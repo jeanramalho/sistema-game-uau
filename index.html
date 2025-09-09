@@ -1,0 +1,521 @@
+<!doctype html>
+
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Game UAU — Prototype</title>  <!-- Tailwind CDN -->  <script src="https://cdn.tailwindcss.com"></script>  <!-- Google Font (8-bit style) -->  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- html2canvas for print/capture -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>  <style>
+    :root{
+      --color-primary: #ffffff; /* Branco */
+      --color-secondary: #bfe9ff; /* Azul Bêbê */
+      --color-tertiary: #000000; /* Preto */
+      --accent: #60a5fa; /* tailwind blue-400 fallback */
+    }
+    body{ font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Press Start 2P", sans-serif; background:var(--color-primary); color:var(--color-tertiary);} 
+    .retro { font-family: 'Press Start 2P', monospace; }
+    /* Simple responsive table scroll */
+    .table-wrap{ overflow:auto; }
+    /* tiny helpers */
+    .btn { @apply px-3 py-1 rounded shadow-sm font-medium; }
+  </style></head>
+<body class="min-h-screen">
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="w-full bg-[color:var(--color-secondary)] text-black p-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded bg-[color:var(--color-tertiary)] flex items-center justify-center text-white">UAU</div>
+        <div>
+          <h1 class="text-sm font-bold retro">Game UAU</h1>
+          <div class="text-xs">App de Ranking</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-4">
+        <a href="#/ranking" class="text-sm">Ranking Público</a>
+        <a href="#/adm/login" class="text-sm">Área ADM</a>
+      </nav>
+    </header><!-- Main (SPA) -->
+<main class="flex-1 p-4" id="view"></main>
+
+<footer class="text-center text-xs p-3 border-t mt-4">&copy; Game UAU</footer>
+
+  </div>  <!-- Firebase configuration (already provided by you) -->  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+    import { getDatabase, ref, set, push, onValue, update, get, child, remove } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+    // Your Firebase config (from your message)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCh9-eS5xStmP6IL_fwhRHqTFejk8BkGjU",
+      authDomain: "gameuau-ba9bb.firebaseapp.com",
+      databaseURL: "https://gameuau-ba9bb-default-rtdb.firebaseio.com",
+      projectId: "gameuau-ba9bb",
+      storageBucket: "gameuau-ba9bb.firebasestorage.app",
+      messagingSenderId: "540955198809",
+      appId: "1:540955198809:web:6b05a8dbe0cf200fceb848",
+      measurementId: "G-VKE7K7KGQ9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    // Simple router
+    const routes = {
+      '/ranking': renderRankingPublic,
+      '/adm/login': renderLogin,
+      '/adm/dashboard': renderAdminDashboard,
+      '/adm/points': renderAdminPoints,
+      '/adm/users': renderAdminUsers
+    };
+
+    function navigate(path){
+      location.hash = path;
+    }
+
+    function getRoute(){
+      return location.hash.replace('#','') || '/ranking';
+    }
+
+    window.addEventListener('hashchange', router);
+    router();
+
+    // --- Utilities ---
+    function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstElementChild; }
+
+    function showToast(msg){ alert(msg); }
+
+    // Download DOM element as image
+    async function downloadElementAsImage(node, filename='ranking.png'){
+      const canvas = await html2canvas(node);
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    // --- Router ---
+    async function router(){
+      const route = getRoute();
+      const view = document.getElementById('view');
+      view.innerHTML = '<div class="p-4">Carregando...</div>';
+      const fn = routes[route] || renderRankingPublic;
+      try{ await fn(view); } catch(e){ console.error(e); view.innerHTML = '<div class="text-red-600">Erro ao carregar a página</div>'; }
+    }
+
+    // --- Public Ranking ---
+    async function renderRankingPublic(container){
+      container.innerHTML = `
+        <div class="max-w-4xl mx-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Ranking Atual (Trimestre Ativo)</h2>
+            <div>
+              <button id="btnPrintPublic" class="px-3 py-1 rounded bg-[color:var(--color-tertiary)] text-white">Tirar print</button>
+            </div>
+          </div>
+          <div id="rankingArea" class="table-wrap border rounded p-2 bg-white"></div>
+        </div>
+      `;
+
+      // Listen for active game
+      const gamesRef = ref(db, 'games');
+      onValue(gamesRef, snapshot => {
+        const games = snapshot.val() || {};
+        // find active game (active: true)
+        const active = Object.entries(games).find(([k,v]) => v && v.active);
+        if(!active){
+          document.getElementById('rankingArea').innerHTML = '<div class="p-6 text-center">Nenhum game UAU ativo no momento.</div>';
+          return;
+        }
+        const [gameId, game] = active;
+        renderRankingForGame(gameId, document.getElementById('rankingArea'));
+      });
+
+      document.getElementById('btnPrintPublic').addEventListener('click', ()=>{
+        const node = document.getElementById('rankingArea'); downloadElementAsImage(node, 'ranking_gameUAU.png');
+      });
+    }
+
+    async function renderRankingForGame(gameId, container){
+      container.innerHTML = '<div class="p-6">Carregando ranking...</div>';
+      const playersSnap = await get(ref(db, 'players'));
+      const players = playersSnap.exists() ? playersSnap.val() : {};
+      const pointsSnap = await get(ref(db, `games/${gameId}/points`));
+      const points = pointsSnap.exists() ? pointsSnap.val() : {};
+      // points structure: { '2025-01-04': { playerId: 10, ...}, ... }
+      // Sum totals
+      const totals = {};
+      Object.keys(players).forEach(pid => totals[pid] = 0);
+      Object.values(points).forEach(sat => {
+        Object.entries(sat).forEach(([pid, val]) => {
+          totals[pid] = (totals[pid] || 0) + Number(val || 0);
+        });
+      });
+      // Create array for table
+      const rows = Object.entries(totals).map(([pid, total]) => ({ id: pid, name: players[pid]?.name || '—', total }));
+      rows.sort((a,b)=> b.total - a.total);
+
+      const tableHtml = `
+        <table class="min-w-full text-left">
+          <thead>
+            <tr class="border-b"><th class="p-2">Pos</th><th class="p-2">Nome</th><th class="p-2">Pontos</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map((r,i)=>`<tr class="border-b"><td class="p-2">${i+1}</td><td class="p-2">${r.name}</td><td class="p-2">${r.total}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      `;
+      container.innerHTML = tableHtml;
+    }
+
+    // --- Admin: Login ---
+    async function renderLogin(container){
+      container.innerHTML = `
+        <div class="max-w-md mx-auto bg-white p-6 rounded shadow">
+          <h2 class="text-lg font-bold">Login - ADM</h2>
+          <div class="mt-4">
+            <label class="block text-xs">Email</label>
+            <input id="loginEmail" class="w-full border p-2" />
+            <label class="block text-xs mt-2">Senha</label>
+            <input id="loginPass" type="password" class="w-full border p-2" />
+            <div class="flex gap-2 mt-4">
+              <button id="btnLogin" class="px-3 py-1 bg-[color:var(--color-tertiary)] text-white rounded">Entrar</button>
+              <button id="btnGoRanking" class="px-3 py-1 bg-gray-200 rounded">Ver Ranking Público</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btnGoRanking').addEventListener('click', ()=>navigate('/ranking'));
+
+      document.getElementById('btnLogin').addEventListener('click', async ()=>{
+        const email = document.getElementById('loginEmail').value.trim();
+        const pass = document.getElementById('loginPass').value.trim();
+        try{
+          await signInWithEmailAndPassword(auth, email, pass);
+          navigate('/adm/dashboard');
+        }catch(e){ showToast('Erro no login: ' + e.message); }
+      });
+
+      // If already logged in, redirect
+      onAuthStateChanged(auth, user => { if(user) navigate('/adm/dashboard'); });
+    }
+
+    // --- Admin: Dashboard (Ranking + quick actions) ---
+    async function renderAdminDashboard(container){
+      // protect route
+      const user = auth.currentUser;
+      if(!user){ navigate('/adm/login'); return; }
+
+      container.innerHTML = `
+        <div class="max-w-6xl mx-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">ADM — Painel</h2>
+            <div class="flex gap-2 items-center">
+              <button id="btnNewGame" class="px-3 py-1 rounded bg-[color:var(--color-tertiary)] text-white">Criar Game</button>
+              <button id="btnPoints" class="px-3 py-1 rounded bg-gray-200">Gerenciar Pontos</button>
+              <button id="btnUsers" class="px-3 py-1 rounded bg-gray-200">Gerenciar Jogadores</button>
+              <button id="btnPrintAdm" class="px-3 py-1 rounded bg-[color:var(--color-tertiary)] text-white">Tirar print</button>
+              <button id="btnLogout" class="px-3 py-1 rounded bg-red-500 text-white">Sair</button>
+            </div>
+          </div>
+          <div id="admRankingArea" class="table-wrap border rounded p-2 bg-white"></div>
+        </div>
+
+        <!-- Modals container -->
+        <div id="modals"></div>
+      `;
+
+      document.getElementById('btnLogout').addEventListener('click', async ()=>{ await signOut(auth); navigate('/adm/login'); });
+      document.getElementById('btnPoints').addEventListener('click', ()=>navigate('/adm/points'));
+      document.getElementById('btnUsers').addEventListener('click', ()=>navigate('/adm/users'));
+      document.getElementById('btnNewGame').addEventListener('click', ()=>openCreateGameModal());
+      document.getElementById('btnPrintAdm').addEventListener('click', ()=>{ const node = document.getElementById('admRankingArea'); downloadElementAsImage(node, 'ranking_admin.png'); });
+
+      // Render ranking for active game
+      const gamesSnap = await get(ref(db, 'games'));
+      const games = gamesSnap.exists()? gamesSnap.val() : {};
+      const active = Object.entries(games).find(([k,v]) => v && v.active);
+      if(!active){ document.getElementById('admRankingArea').innerHTML = '<div class="p-6 text-center">Nenhum game ativo. Crie um novo.</div>'; }
+      else renderRankingForGame(active[0], document.getElementById('admRankingArea'));
+    }
+
+    // Create Game modal
+    function openCreateGameModal(){
+      const modals = document.getElementById('modals');
+      modals.innerHTML = `
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div class="bg-white p-6 rounded shadow max-w-md w-full">
+            <h3 class="font-bold">Criar novo Game UAU</h3>
+            <label class="block mt-2 text-xs">Data de Início</label>
+            <input id="gameStart" type="date" class="w-full border p-2" />
+            <label class="block mt-2 text-xs">Data de Término</label>
+            <input id="gameEnd" type="date" class="w-full border p-2" />
+            <div class="flex gap-2 mt-4">
+              <button id="btnCreateGameSave" class="px-3 py-1 bg-[color:var(--color-tertiary)] text-white rounded">Criar</button>
+              <button id="btnCreateGameCancel" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('btnCreateGameCancel').addEventListener('click', ()=> modals.innerHTML='');
+      document.getElementById('btnCreateGameSave').addEventListener('click', async ()=>{
+        const s = document.getElementById('gameStart').value; const e = document.getElementById('gameEnd').value;
+        if(!s || !e){ showToast('Escolha datas válidas'); return; }
+        if(new Date(s) > new Date(e)){ showToast('Data de início posterior à data de término'); return; }
+        // Create game in DB and compute saturdays
+        const gamesRef = ref(db, 'games');
+        const newGameRef = push(gamesRef);
+        const saturdays = computeSaturdaysBetween(s, e);
+        await set(newGameRef, { start: s, end: e, createdAt: Date.now(), active: true, saturdays });
+        // deactivate other games
+        const allGames = await get(gamesRef);
+        if(allGames.exists()){
+          Object.entries(allGames.val()).forEach(async ([gid,g])=>{
+            if(gid !== newGameRef.key && g && g.active){ await update(ref(db, `games/${gid}`), { active:false }); }
+          });
+        }
+        modals.innerHTML=''; showToast('Game criado e ativado!'); navigate('/adm/dashboard');
+      });
+    }
+
+    function computeSaturdaysBetween(startISO, endISO){
+      const start = new Date(startISO); const end = new Date(endISO);
+      const saturdays = [];
+      // normalize to 00:00
+      let d = new Date(start);
+      d.setHours(0,0,0,0);
+      while(d <= end){
+        if(d.getDay() === 6) saturdays.push(d.toISOString().slice(0,10));
+        d.setDate(d.getDate()+1);
+      }
+      return saturdays;
+    }
+
+    // --- Admin: Points Management ---
+    async function renderAdminPoints(container){
+      const user = auth.currentUser; if(!user){ navigate('/adm/login'); return; }
+      container.innerHTML = `
+        <div class="max-w-6xl mx-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Gerenciar Pontos</h2>
+            <div class="flex gap-2">
+              <button id="btnBackDash" class="px-3 py-1 rounded bg-gray-200">Voltar</button>
+            </div>
+          </div>
+          <div id="pointsArea" class="bg-white p-4 rounded border"></div>
+        </div>
+        <div id="modals"></div>
+      `;
+
+      document.getElementById('btnBackDash').addEventListener('click', ()=>navigate('/adm/dashboard'));
+
+      // find active game
+      const gamesSnap = await get(ref(db,'games')); const games = gamesSnap.exists()? gamesSnap.val():{};
+      const active = Object.entries(games).find(([k,v])=> v && v.active);
+      if(!active){ document.getElementById('pointsArea').innerHTML = '<div class="p-6">Nenhum game ativo.</div>'; return; }
+      const [gameId, game] = active;
+
+      // Render list of saturdays
+      const saturdays = game.saturdays || [];
+      const ptsHtml = `
+        <div>
+          <h3 class="font-semibold mb-2">Sábados do game: ${saturdays.length} encontrados</h3>
+          <div class="grid gap-2 sm:grid-cols-3">${saturdays.map(s=>`<button data-date="${s}" class="sat-btn p-2 border rounded">${s}</button>`).join('')}</div>
+          <div class="mt-4">
+            <button id="btnAddPlayerModal" class="px-3 py-1 rounded bg-[color:var(--color-tertiary)] text-white">Cadastrar jogador</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('pointsArea').innerHTML = ptsHtml;
+
+      document.querySelectorAll('.sat-btn').forEach(b=> b.addEventListener('click', ()=> openSaturdayEditor(gameId, b.dataset.date)));
+      document.getElementById('btnAddPlayerModal').addEventListener('click', ()=> openPlayerModal());
+    }
+
+    async function openSaturdayEditor(gameId, dateISO){
+      const modals = document.getElementById('modals');
+      // load players
+      const playersSnap = await get(ref(db, 'players')); const players = playersSnap.exists()? playersSnap.val(): {};
+      // load saved points for this saturday
+      const ptsSnap = await get(ref(db, `games/${gameId}/points/${dateISO}`)); const savedPoints = ptsSnap.exists()? ptsSnap.val(): {};
+      // try load cache
+      const cacheKey = `cache_${gameId}_${dateISO}`;
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+
+      modals.innerHTML = `
+        <div class="fixed inset-0 bg-black/50 p-4 overflow-auto">
+          <div class="bg-white rounded p-4 max-w-3xl mx-auto">
+            <div class="flex justify-between items-center">
+              <h3 class="font-bold">Lançar pontos — ${dateISO}</h3>
+              <div class="flex gap-2">
+                <button id="btnCloseSat" class="px-2 py-1 bg-gray-200 rounded">Fechar</button>
+                <button id="btnSaveSat" class="px-2 py-1 bg-[color:var(--color-tertiary)] text-white rounded">Salvar</button>
+              </div>
+            </div>
+            <div class="mt-3">
+              <input id="searchPlayer" placeholder="Pesquisar jogador..." class="w-full border p-2 mb-3" />
+              <div id="playersList" class="max-h-72 overflow-auto border rounded p-2">
+                ${Object.entries(players).map(([pid,p])=>{
+                  const val = (cached[pid] ?? savedPoints[pid] ?? 0);
+                  return `<div class="flex items-center gap-2 p-1 border-b"><div class="w-2"> </div><div class="flex-1">${p.name}</div><input data-pid="${pid}" value="${val}" class="w-20 border p-1 points-input" /></div>`;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btnCloseSat').addEventListener('click', ()=>{ modals.innerHTML=''; });
+      // instant search
+      document.getElementById('searchPlayer').addEventListener('input', (e)=>{
+        const q = e.target.value.toLowerCase();
+        document.querySelectorAll('#playersList > div').forEach(div=>{
+          const name = div.querySelector('div:nth-child(2)').innerText.toLowerCase();
+          div.style.display = name.includes(q)? 'flex' : 'none';
+        });
+      });
+
+      // as typing, cache values
+      document.querySelectorAll('.points-input').forEach(inp=>{
+        inp.addEventListener('input', ()=>{
+          const all = {};
+          document.querySelectorAll('.points-input').forEach(i=>{ all[i.dataset.pid] = i.value.trim(); });
+          localStorage.setItem(cacheKey, JSON.stringify(all));
+        });
+      });
+
+      document.getElementById('btnSaveSat').addEventListener('click', async ()=>{
+        // collect values
+        const values = {};
+        document.querySelectorAll('.points-input').forEach(i=>{ values[i.dataset.pid] = Number(i.value.trim()||0); });
+        // save to DB
+        await set(ref(db, `games/${gameId}/points/${dateISO}`), values);
+        // clear cache
+        localStorage.removeItem(cacheKey);
+        showToast('Pontos salvos!');
+        modals.innerHTML='';
+      });
+    }
+
+    // Player modal (create quick)
+    function openPlayerModal(){
+      const modals = document.getElementById('modals');
+      modals.innerHTML = `
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div class="bg-white p-4 rounded max-w-md w-full">
+            <h3 class="font-bold">Cadastrar Jogador</h3>
+            <label class="block text-xs mt-2">Nome (obrigatório)</label>
+            <input id="p_name" class="w-full border p-2" />
+            <label class="block text-xs mt-2">Telefone (opcional)</label>
+            <input id="p_phone" class="w-full border p-2" />
+            <label class="flex items-center gap-2 mt-2"><input id="p_isAdmin" type="checkbox" /> É administrador</label>
+            <div id="adminFields" style="display:none">
+              <label class="block text-xs mt-2">Username (email)</label>
+              <input id="p_email" class="w-full border p-2" />
+              <label class="block text-xs mt-2">Senha</label>
+              <input id="p_pass" type="password" class="w-full border p-2" />
+              <label class="block text-xs mt-2">Confirmar Senha</label>
+              <input id="p_pass2" type="password" class="w-full border p-2" />
+            </div>
+            <div class="flex gap-2 mt-4">
+              <button id="btnSavePlayer" class="px-3 py-1 bg-[color:var(--color-tertiary)] text-white rounded">Salvar</button>
+              <button id="btnCancelPlayer" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('p_isAdmin').addEventListener('change', (e)=>{
+        document.getElementById('adminFields').style.display = e.target.checked? 'block':'none';
+      });
+      document.getElementById('btnCancelPlayer').addEventListener('click', ()=> document.getElementById('modals').innerHTML='');
+      document.getElementById('btnSavePlayer').addEventListener('click', async ()=>{
+        const name = document.getElementById('p_name').value.trim(); const phone = document.getElementById('p_phone').value.trim();
+        const isAdmin = document.getElementById('p_isAdmin').checked;
+        if(!name){ showToast('Nome é obrigatório'); return; }
+        // create player entry
+        const newP = push(ref(db,'players'));
+        await set(newP, { name, phone: phone||'', isAdmin: !!isAdmin, createdAt: Date.now() });
+        if(isAdmin){
+          const email = document.getElementById('p_email').value.trim(); const pass = document.getElementById('p_pass').value; const pass2 = document.getElementById('p_pass2').value;
+          if(!email || !pass || pass !== pass2){ showToast('Preencha email e senhas corretamente'); return; }
+          try{ await createUserWithEmailAndPassword(auth, email, pass); showToast('Admin criado no Authentication'); }
+          catch(e){ showToast('Erro ao criar auth: ' + e.message); }
+        }
+        showToast('Jogador cadastrado'); document.getElementById('modals').innerHTML='';
+      });
+    }
+
+    // --- Admin: Users Management ---
+    async function renderAdminUsers(container){
+      const user = auth.currentUser; if(!user){ navigate('/adm/login'); return; }
+      container.innerHTML = `
+        <div class="max-w-4xl mx-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Gerenciar Jogadores</h2>
+            <div>
+              <button id="btnAddUserPage" class="px-3 py-1 rounded bg-[color:var(--color-tertiary)] text-white">Novo jogador</button>
+              <button id="btnBack" class="px-3 py-1 rounded bg-gray-200">Voltar</button>
+            </div>
+          </div>
+          <div id="usersList" class="bg-white p-3 rounded border"></div>
+        </div>
+      `;
+      document.getElementById('btnBack').addEventListener('click', ()=>navigate('/adm/dashboard'));
+      document.getElementById('btnAddUserPage').addEventListener('click', ()=> openPlayerModal());
+
+      // load players
+      const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
+      const rows = Object.entries(players).map(([pid,p])=>`<div class="p-2 border-b flex justify-between items-center"><div><div class="font-medium">${p.name}</div><div class="text-xs">${p.phone||''} ${p.isAdmin? '- (admin)':''}</div></div><div class="flex gap-2"><button data-id="${pid}" class="edit-btn px-2 py-1 rounded bg-yellow-300">Editar</button><button data-id="${pid}" class="del-btn px-2 py-1 rounded bg-red-500 text-white">Excluir</button></div></div>`).join('');
+      document.getElementById('usersList').innerHTML = rows || '<div class="p-4">Nenhum jogador cadastrado</div>';
+
+      document.querySelectorAll('.del-btn').forEach(b=> b.addEventListener('click', async ()=>{
+        if(!confirm('Excluir jogador?')) return;
+        await remove(ref(db, `players/${b.dataset.id}`)); showToast('Jogador excluído'); renderAdminUsers(container);
+      }));
+      document.querySelectorAll('.edit-btn').forEach(b=> b.addEventListener('click', ()=> openEditPlayerModal(b.dataset.id)));
+    }
+
+    function openEditPlayerModal(pid){
+      // fetch player
+      get(ref(db, `players/${pid}`)).then(snap=>{
+        const p = snap.val()||{};
+        const modals = document.getElementById('modals');
+        modals.innerHTML = `
+          <div class="fixed inset-0 bg-black/50 flex items-center justify-center">
+            <div class="bg-white p-4 rounded max-w-md w-full">
+              <h3 class="font-bold">Editar Jogador</h3>
+              <label class="block text-xs mt-2">Nome</label>
+              <input id="e_name" class="w-full border p-2" value="${p.name||''}" />
+              <label class="block text-xs mt-2">Telefone</label>
+              <input id="e_phone" class="w-full border p-2" value="${p.phone||''}" />
+              <label class="flex items-center gap-2 mt-2"><input id="e_isAdmin" type="checkbox" ${p.isAdmin? 'checked':''} /> É administrador</label>
+              <div class="flex gap-2 mt-4">
+                <button id="btnSaveEdit" class="px-3 py-1 bg-[color:var(--color-tertiary)] text-white rounded">Salvar</button>
+                <button id="btnCancelEdit" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        `;
+        document.getElementById('btnCancelEdit').addEventListener('click', ()=> modals.innerHTML='');
+        document.getElementById('btnSaveEdit').addEventListener('click', async ()=>{
+          const name = document.getElementById('e_name').value.trim(); const phone = document.getElementById('e_phone').value.trim(); const isAdmin = document.getElementById('e_isAdmin').checked;
+          await update(ref(db, `players/${pid}`), { name, phone, isAdmin }); showToast('Atualizado'); modals.innerHTML='';
+        });
+      });
+    }
+
+    // Initial check for public route
+    onAuthStateChanged(auth, user => {
+      // if user logged in and route is admin, allow; else redirect to login
+      const r = getRoute();
+      if(r.startsWith('/adm') && !user) navigate('/adm/login');
+    });
+
+    // Expose navigate to global for debugging
+    window._gameUAU = { navigate };
+  </script></body>
+</html>
