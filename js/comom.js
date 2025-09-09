@@ -1,0 +1,4 @@
+// js/common.js
+export function formatBR(iso){ if(!iso) return ''; const d=new Date(iso); return String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear(); }
+export function generateSaturdays(startIso, count=15){ const start = startIso ? new Date(startIso) : new Date(); const s = new Date(start); const day = s.getDay(); let delta = 6 - day; if(delta<0) delta+=7; s.setDate(s.getDate()+delta); const arr=[]; for(let i=0;i<count;i++){ const d=new Date(s); d.setDate(s.getDate()+i*7); arr.push(d.toISOString()); } return arr; }
+export function uid(prefix='id'){ return prefix + Date.now(); }

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login - Game UAU</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/firebase.js" defer></script>
+  <script type="module" defer>
+    import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
+    import { auth } from './js/firebase.js';
+    window.addEventListener('load', ()=>{
+      const form = document.getElementById('form-login');
+      form.addEventListener('submit', async e=>{
+        e.preventDefault();
+        const email = document.getElementById('login-email').value.trim();
+        const pass = document.getElementById('login-pass').value;
+        try { await signInWithEmailAndPassword(auth, email, pass); alert('Login OK'); window.location = 'admin.html'; }
+        catch(err){ alert('Erro login: ' + err.message); }
+      });
+    });
+  </script>
+</head>
+<body>
+  <main class="max-w-2xl mx-auto mt-20 p-6">
+    <div class="pixel-box p-6">
+      <h2>LOGIN ADMIN</h2>
+      <form id="form-login" class="mt-4">
+        <label>Email</label>
+        <input id="login-email" class="pixel-input" type="email" />
+        <label>Senha</label>
+        <input id="login-pass" class="pixel-input" type="password" />
+        <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">ENTRAR</button><a href="index.html" class="pixel-btn">VOLTAR</a></div>
+      </form>
+    </div>
+  </main>
+</body>
+</html>
