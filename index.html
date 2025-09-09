@@ -1,596 +1,749 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Game UAU - (HTML Single File)</title>
-<meta name="description" content="Game UAU - Ranking Game converted from React to single-file HTML"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Game UAU - Admin (HTML/CSS/JS)</title>
 
-<!-- Tailwind CDN -->
-<script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Press Start 2P -->
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Pixel font (Google) -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
-<!-- Lucide icons -->
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-<!-- html2canvas -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<style>
-/* Game UAU Design System - Retro Gaming Theme */
-
-/* Custom Tailwind Configuration */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-/* CSS Variables for Game UAU Theme */
-:root {
-  /* Game UAU Color Palette */
-  --color-primary: #ffffff; /* Branco primário */
-  --color-secondary: #a8dadc; /* Azul Bebê */
-  --color-tertiary: #000000; /* Preto terciário */
-  
-  /* Gradients */
-  --gradient-game: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  --gradient-retro: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
-  
-  /* Shadows */
-  --shadow-retro: 4px 4px 0px var(--color-tertiary);
-  --shadow-game: 0 8px 32px rgba(168, 218, 220, 0.3);
-  
-  /* Animations */
-  --transition-retro: all 0.2s cubic-bezier(0.25, 0.4, 0.2, 1);
-}
-
-/* Basic resets and font */
-body, html {
-  height: 100%;
-  margin: 0;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Press Start 2P", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Pixel / retro classes used in the React layout */
-.pixel-text { font-family: 'Press Start 2P', monospace; }
-.retro-shadow { box-shadow: var(--shadow-retro); }
-.pixel-perfect { border-radius: 4px; }
-
-/* Color helpers */
-.bg-secondary { background-color: var(--color-secondary); }
-.border-tertiary { border-color: var(--color-tertiary); }
-.text-tertiary { color: var(--color-tertiary); }
-
-/* Card */
-.card { background: var(--color-primary); border: 2px solid var(--color-tertiary); border-radius: 10px; }
-
-/* Buttons similar to React look */
-.btn-game { padding: .6rem .9rem; border:2px solid var(--color-tertiary); display:inline-flex; align-items:center; gap:.5rem; border-radius:8px; font-weight:600; }
-.btn-ghost { background: transparent; border:1px solid #ddd; padding:.4rem .6rem; border-radius:6px; }
-
-/* Small responsive tweaks */
-.container { max-width: 1100px; margin-left:auto; margin-right:auto; padding-left:1rem; padding-right:1rem; }
-
-/* Utility for hidden on small devices from React */
-.hidden-md { display: none; }
-@media (min-width: 768px) { .hidden-md { display: block; } }
-
-/* Modal base */
-#player-modal .card { max-width: 900px; }
-</style>
-</head>
-<body class="bg-gradient-to-br from-white to-blue-50 min-h-screen">
-
-<header class="bg-blue-200 border-b-4 border-black p-4">
-  <div class="container mx-auto flex items-center justify-between">
-    <div class="flex items-center space-x-4">
-      <div class="retro-shadow bg-white p-2 border-2 border-black flex items-center space-x-2">
-        <div class="w-8 h-8 bg-blue-200 border border-black pixel-perfect flex items-center justify-center">
-          <span class="pixel-text text-xs">🎮</span>
-        </div>
-        <h1 class="pixel-text text-black text-lg">GAME UAU</h1>
-      </div>
-      <div class="hidden-md">
-        <span class="pixel-text text-black text-xs">SISTEMA DE RANKING</span>
-      </div>
-    </div>
-    <nav class="flex items-center gap-4">
-      <a href="#/ranking" class="pixel-text text-sm">Ranking Público</a>
-      <a href="#/adm/login" class="pixel-text text-sm">Área ADM</a>
-    </nav>
-  </div>
-</header>
-
-<div id="view" class="container mx-auto px-4 py-8">
-  <!-- Ranking Page -->
-  <section id="page-ranking">
-    <main class="container mx-auto px-4 py-8">
-      <div class="text-center mb-8">
-        <h1 class="pixel-text text-3xl text-black mb-4">RANKING ATUAL</h1>
-        <p class="pixel-text text-sm text-gray-600">
-          Acompanhe a classificação em tempo real
-        </p>
-      </div>
-
-      <!-- Ranking Card -->
-      <div class="max-w-4xl mx-auto">
-        <div class="retro-shadow bg-white border-2 border-black p-6 pixel-perfect">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="pixel-text text-black text-sm border-b-2 border-black pb-2">
-              RANKING ATUAL
-            </h2>
-            <button onclick="printRanking()" class="btn-game bg-blue-200 text-black px-3 py-2 border-2 border-black text-xs flex items-center space-x-2">
-              <i data-lucide="download" class="w-4 h-4"></i>
-              <span>PRINT</span>
-            </button>
-          </div>
-
-          <div class="overflow-x-auto">
-            <div class="min-w-full">
-              <!-- Header -->
-              <div class="grid grid-cols-3 gap-4 bg-blue-200 p-4 border-2 border-black font-bold">
-                <div class="pixel-text text-xs text-black">POSIÇÃO</div>
-                <div class="pixel-text text-xs text-black">JOGADOR</div>
-                <div class="pixel-text text-xs text-black text-right">PONTOS</div>
-              </div>
-
-              <!-- Ranking List -->
-              <div class="space-y-2 mt-2" id="ranking-list">
-                <!-- Ranking items will be populated by JavaScript -->
-              </div>
-            </div>
-          </div>
-
-          <div class="text-center pt-4 border-t border-black" id="total-players">
-            <p class="pixel-text text-xs text-gray-600">CARREGANDO...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Admin Access Button -->
-      <div class="text-center mt-8">
-        <a href="#/adm/login" class="btn-game bg-blue-200 text-black px-4 py-2 border-2 border-black">ACESSO ADMIN</a>
-      </div>
-    </main>
-  </section>
-
-  <!-- Login Page -->
-  <section id="page-login" style="display:none">
-    <main class="container mx-auto px-4 py-8">
-      <div class="max-w-md mx-auto">
-        <div class="text-center mb-8">
-          <h1 class="pixel-text text-2xl text-black mb-4">ÁREA ADMINISTRATIVA</h1>
-          <p class="pixel-text text-xs text-gray-600">Digite suas credenciais para acessar o sistema</p>
-        </div>
-
-        <!-- Login Card -->
-        <div class="retro-shadow bg-white border-2 border-black p-6 pixel-perfect">
-          <form id="login-form" class="space-y-6">
-            <div class="space-y-4">
-              <div>
-                <label for="username" class="pixel-text text-xs text-black mb-2 block">USUÁRIO</label>
-                <input id="username" type="text" class="retro-shadow border-2 border-black p-2 w-full text-black focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Digite seu usuário" required />
-              </div>
-
-              <div>
-                <label for="password" class="pixel-text text-xs text-black mb-2 block">SENHA</label>
-                <div class="relative">
-                  <input id="password" type="password" class="retro-shadow border-2 border-black p-2 w-full text-black focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Digite sua senha" required />
-                  <button type="button" id="toggle-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-blue-400 transition-colors">
-                    <i data-lucide="eye" class="w-5 h-5"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button type="submit" class="btn-game bg-blue-200 text-black px-4 py-2 border-2 border-black text-sm w-full flex items-center justify-center space-x-2" id="login-button">
-              <i data-lucide="log-in" class="w-4 h-4"></i>
-              <span id="login-text">ENTRAR</span>
-            </button>
-          </form>
-
-          <div class="mt-6 pt-4 border-t-2 border-black text-center">
-            <p class="pixel-text text-xs text-gray-600">Se você não possui usuário, peça ao administrador para criar uma conta.</p>
-          </div>
-        </div>
-      </div>
-    </main>
-  </section>
-
-  <!-- Dashboard Page -->
-  <section id="page-dashboard" style="display:none">
-    <main class="container mx-auto px-4 py-8">
-      <div class="text-center mb-8">
-        <h1 class="pixel-text text-3xl text-black mb-4">DASHBOARD ADMINISTRATIVO</h1>
-        <p class="pixel-text text-sm text-gray-600">Gerencie jogadores e pontuações</p>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <button id="btnNewGame" class="btn-game bg-green-500 text-white p-6 border-2 border-black text-sm flex flex-col items-center space-y-2">
-          <i data-lucide="user-plus" class="w-8 h-8"></i>
-          <span>CADASTRAR JOGADOR</span>
-        </button>
-
-        <button id="btnPoints" class="btn-game bg-blue-500 text-white p-6 border-2 border-black text-sm flex flex-col items-center space-y-2">
-          <i data-lucide="trophy" class="w-8 h-8"></i>
-          <span>GERENCIAR PONTOS</span>
-        </button>
-
-        <button id="btnUsers" class="btn-game bg-purple-500 text-white p-6 border-2 border-black text-sm flex flex-col items-center space-y-2">
-          <i data-lucide="users" class="w-8 h-8"></i>
-          <span>GERENCIAR JOGADORES</span>
-        </button>
-      </div>
-
-      <!-- Ranking Card (Admin view) -->
-      <div class="max-w-4xl mx-auto">
-        <div class="retro-shadow bg-white border-2 border-black p-6 pixel-perfect">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="pixel-text text-black text-sm border-b-2 border-black pb-2">RANKING ATUAL</h2>
-            <div class="flex gap-2">
-              <button onclick="printRanking()" class="btn-game bg-blue-200 text-black px-3 py-2 border-2 border-black text-xs flex items-center space-x-2">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span>PRINT</span>
-              </button>
-              <button id="btnLogout" class="btn-game bg-red-500 text-white px-3 py-2 border-2 border-black text-xs">SAIR</button>
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <div class="min-w-full">
-              <!-- Header -->
-              <div class="grid grid-cols-3 gap-4 bg-blue-200 p-4 border-2 border-black font-bold">
-                <div class="pixel-text text-xs text-black">POSIÇÃO</div>
-                <div class="pixel-text text-xs text-black">JOGADOR</div>
-                <div class="pixel-text text-xs text-black text-right">PONTOS</div>
-              </div>
-
-              <!-- Ranking List -->
-              <div class="space-y-2 mt-2" id="ranking-list">
-                <!-- Ranking items will be populated by JavaScript -->
-              </div>
-            </div>
-          </div>
-
-          <div class="text-center pt-4 border-t border-black" id="total-players">
-            <p class="pixel-text text-xs text-gray-600">CARREGANDO...</p>
-          </div>
-        </div>
-      </div>
-    </main>
-  </section>
-</div>
-
-<!-- Modal container used by scripts -->
-<div id="player-modal" class="fixed inset-0 hidden items-center justify-center z-50">
-  <div class="bg-white p-4 rounded max-w-2xl w-full card">
-    <div class="modal-body"></div>
-  </div>
-</div>
-
-<!-- Toast area -->
-<div id="toast-container"></div>
-
-<!-- Firebase and App logic (module) -->
-<script type="module">
-/* app.js - Combined Firebase-enabled logic for Game UAU (inlined)
-   Features:
-   - Firebase Auth (email/password) and Realtime Database integration
-   - Public ranking in real-time (sum of saturday points)
-   - Admin login, dashboard, create game (with saturdays), manage players, manage points
-   - Points entry per saturday (with instant search and localStorage cache)
-   - Print ranking via html2canvas
-   - Export annual CSV (function available)
-*/
-
-/* ---------- Firebase imports ---------- */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-import { getDatabase, ref, set, push, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-
-/* ---------- Your Firebase config (provided) ---------- */
-const firebaseConfig = {
-  apiKey: "AIzaSyCh9-eS5xStmP6IL_fwhRHqTFejk8BkGjU",
-  authDomain: "gameuau-ba9bb.firebaseapp.com",
-  databaseURL: "https://gameuau-ba9bb-default-rtdb.firebaseio.com",
-  projectId: "gameuau-ba9bb",
-  storageBucket: "gameuau-ba9bb.firebasestorage.app",
-  messagingSenderId: "540955198809",
-  appId: "1:540955198809:web:6b05a8dbe0cf200fceb848",
-  measurementId: "G-VKE7K7KGQ9"
-};
-
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const db = getDatabase(app);
-const auth = getAuth(app);
-
-/* ---------- Small helpers ---------- */
-function $(sel){ return document.querySelector(sel); }
-function showToast(msg, time=3000){
-  const t = document.getElementById('toast-container') || document.body;
-  const el = document.createElement('div');
-  el.className = 'fixed bottom-4 right-4 bg-black text-white px-3 py-2 rounded shadow';
-  el.textContent = msg;
-  t.appendChild(el);
-  setTimeout(()=> el.remove(), time);
-}
-
-/* Print ranking using html2canvas */
-async function printRanking(nodeSelector='#ranking-list', filename='ranking_gameUAU.png'){
-  const node = document.querySelector(nodeSelector);
-  if(!node){ showToast('Área de ranking não encontrada'); return; }
-  if(typeof html2canvas === 'undefined'){ showToast('html2canvas não carregado'); return;}
-  const canvas = await html2canvas(node);
-  const url = canvas.toDataURL('image/png');
-  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-}
-
-/* Utility: compute saturdays inclusive between dates */
-function computeSaturdaysBetween(startISO, endISO){
-  const start = new Date(startISO); const end = new Date(endISO);
-  const saturdays = [];
-  let d = new Date(start); d.setHours(0,0,0,0);
-  while(d <= end){
-    if(d.getDay()===6) saturdays.push(d.toISOString().slice(0,10));
-    d.setDate(d.getDate()+1);
-  }
-  return saturdays;
-}
-
-/* CSV export helper */
-function exportCSV(rows, filename='export.csv'){
-  const csv = rows.map(r=> r.map(c=> `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
-}
-
-/* ---------- PUBLIC RANKING (real-time) ---------- */
-async function renderPublicRanking(){
-  const list = document.getElementById('ranking-list');
-  if(!list) return;
-  list.innerHTML = '<div class="p-4">Carregando ranking...</div>';
-  const gamesRef = ref(db, 'games');
-  onValue(gamesRef, async snap => {
-    const games = snap.val() || {};
-    const activeEntry = Object.entries(games).find(([k,v]) => v && v.active);
-    if(!activeEntry){ list.innerHTML = '<div class="p-4">Nenhum game ativo</div>'; return; }
-    const [gameId, game] = activeEntry;
-    // load players and points
-    const playersSnap = await get(ref(db, 'players')); const players = playersSnap.exists()? playersSnap.val() : {};
-    const pointsSnap = await get(ref(db, `games/${gameId}/points`)); const points = pointsSnap.exists()? pointsSnap.val() : {};
-    const totals = {}; Object.keys(players).forEach(pid => totals[pid]=0);
-    Object.values(points).forEach(sat => { Object.entries(sat).forEach(([pid,val])=> totals[pid] = (totals[pid]||0)+Number(val||0)); });
-    const rows = Object.entries(totals).map(([pid,total])=> ({ id:pid, name: players[pid]?.name||'—', total}));
-    rows.sort((a,b)=> b.total - a.total);
-    // render list
-    list.innerHTML = '';
-    rows.forEach((r,i)=>{
-      const el = document.createElement('div');
-      el.className = 'grid grid-cols-3 gap-4 bg-white p-3 border-2 border-black';
-      el.innerHTML = `<div class="pixel-text text-xs">${i<3? (i===0?'🥇':i===1?'🥈':'🥉') : (i+1)+'º'}</div><div class="pixel-text text-xs">${r.name}</div><div class="pixel-text text-xs text-right">${r.total}</div>`;
-      list.appendChild(el);
-    });
-    // total players
-    const totalEl = document.getElementById('total-players');
-    if(totalEl) totalEl.innerHTML = `<p class="pixel-text text-xs text-gray-600">TOTAL: ${rows.length} JOGADOR${rows.length !== 1 ? 'ES' : ''}</p>`;
-  });
-}
-
-/* ---------- LOGIN PAGE ---------- */
-function setupLoginPage(){
-  const loginBtn = document.getElementById('login-button');
-  if(!loginBtn) return;
-  loginBtn.addEventListener('click', async (ev)=>{
-    ev.preventDefault();
-    const email = (document.getElementById('username')||{}).value;
-    const pass = (document.getElementById('password')||{}).value;
-    if(!email || !pass){ showToast('Preencha email e senha'); return; }
-    try{
-      await signInWithEmailAndPassword(auth, email, pass);
-      showToast('Logado com sucesso');
-      setTimeout(()=> location.hash = '/adm/dashboard', 600);
-    }catch(e){ showToast('Erro no login: ' + e.message); }
-  });
-  const toggle = document.getElementById('toggle-password');
-  if(toggle){
-    toggle.addEventListener('click', ()=>{
-      const p = document.getElementById('password');
-      if(p.type==='password'){ p.type='text'; toggle.innerHTML='🙈'; } else { p.type='password'; toggle.innerHTML='👁️'; }
-    });
-  }
-  onAuthStateChanged(auth, user => { if(user) location.hash = '/adm/dashboard'; });
-}
-
-/* ---------- DASHBOARD (admin) ---------- */
-async function setupDashboardPage(){
-  // ensure auth
-  const user = auth.currentUser;
-  if(!user){
-    onAuthStateChanged(auth, u => { if(!u) location.hash = '/adm/login'; else initDashboard(); });
-  } else initDashboard();
-
-  async function initDashboard(){
-    // bind buttons
-    document.getElementById('btnNewGame')?.addEventListener('click', ()=> openCreateGameModal());
-    document.getElementById('btnPoints')?.addEventListener('click', ()=> openPointsManager());
-    document.getElementById('btnUsers')?.addEventListener('click', ()=> openPlayersManager());
-    document.getElementById('btnLogout')?.addEventListener('click', async ()=>{ await signOut(auth); location.hash='/adm/login'; });
-
-    // render ranking area for admin as well (subscribe)
-    renderPublicRanking();
-  }
-}
-
-/* ---------- Create Game Modal ---------- */
-function openCreateGameModal(){
-  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
-  const container = modal.querySelector('.modal-body');
-  container.innerHTML = `<div class="space-y-2"><label>Data Início: <input id="gstart" type="date" class="border p-2" /></label><label>Data Fim: <input id="gend" type="date" class="border p-2" /></label><div class="pt-2"><button id="create-game" class="btn-game bg-black text-white px-3 py-1">Criar</button><button id="cancel-game" class="btn-game bg-white px-3 py-1 border-black ml-2">Cancelar</button></div></div>`;
-  document.getElementById('cancel-game').addEventListener('click', ()=> modal.classList.add('hidden'));
-  document.getElementById('create-game').addEventListener('click', async ()=>{
-    const s = document.getElementById('gstart').value; const e = document.getElementById('gend').value;
-    if(!s || !e){ showToast('Datas inválidas'); return; } if(new Date(s)>new Date(e)){ showToast('Início após término'); return; }
-    const newG = push(ref(db, 'games')); const saturdays = computeSaturdaysBetween(s,e);
-    await set(newG, { start:s, end:e, saturdays, active:true, createdAt: Date.now() });
-    // deactivate others
-    const all = await get(ref(db, 'games')); if(all.exists()){ Object.entries(all.val()).forEach(async ([gid,g])=>{ if(gid!==newG.key && g && g.active){ await update(ref(db, `games/${gid}`), { active:false }); } }); }
-    showToast('Game criado e ativado'); modal.classList.add('hidden');
-  });
-}
-
-/* ---------- Points Manager ---------- */
-async function openPointsManager(){
-  // find active game
-  const gamesSnap = await get(ref(db,'games')); const games = gamesSnap.exists()? gamesSnap.val():{};
-  const active = Object.entries(games).find(([k,v])=> v && v.active);
-  if(!active){ showToast('Nenhum game ativo'); return; }
-  const [gameId, game] = active;
-  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
-  const container = modal.querySelector('.modal-body');
-  const saturdays = game.saturdays || [];
-  container.innerHTML = `<h3 class="font-bold">Sábados (${saturdays.length})</h3><div class="grid grid-cols-2 gap-2 mt-2">${saturdays.map(d=>`<button class="sat-btn btn-game bg-white border-black" data-date="${d}">${d}</button>`).join('')}</div><div class="pt-3"><button id="close-sats" class="btn-game bg-black text-white px-3 py-1">Fechar</button></div>`;
-  container.querySelectorAll('.sat-btn').forEach(b=> b.addEventListener('click', ()=> openSaturdayEditor(gameId, b.dataset.date)));
-  document.getElementById('close-sats').addEventListener('click', ()=> modal.classList.add('hidden'));
-}
-
-/* Open Saturday editor modal: list players, allow typing points, cache localStorage */
-async function openSaturdayEditor(gameId, dateISO){
-  const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
-  const ptsSnap = await get(ref(db, `games/${gameId}/points/${dateISO}`)); const savedPoints = ptsSnap.exists()? ptsSnap.val(): {};
-  const cacheKey = `cache_${gameId}_${dateISO}`; const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
-  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
-  const container = modal.querySelector('.modal-body');
-  container.innerHTML = `<div class="flex justify-between items-center"><h3 class="font-bold">Lançar pontos — ${dateISO}</h3><div><button id="close-sat" class="btn-game">Fechar</button><button id="save-sat" class="btn-game bg-black text-white">Salvar</button></div></div><input id="searchPlayer" placeholder="Pesquisar jogador..." class="w-full border p-2 my-2" />`;
-  const list = document.createElement('div'); list.className='max-h-72 overflow-auto border rounded p-2 space-y-2';
-  Object.entries(players).forEach(([pid,p])=>{
-    const val = cached[pid] ?? savedPoints[pid] ?? 0;
-    const row = document.createElement('div'); row.className='flex items-center justify-between gap-2';
-    row.innerHTML = `<div class="flex-1">${p.name}</div><input data-pid="${pid}" value="${val}" class="w-20 border p-1 points-input" />`;
-    list.appendChild(row);
-  });
-  container.appendChild(list);
-  document.getElementById('close-sat').addEventListener('click', ()=> modal.classList.add('hidden'));
-  document.getElementById('searchPlayer').addEventListener('input', (e)=>{ const q = e.target.value.toLowerCase(); list.querySelectorAll('div').forEach(div=>{ const name = div.querySelector('.flex-1').innerText.toLowerCase(); div.style.display = name.includes(q)? 'flex' : 'none'; }); });
-  list.querySelectorAll('.points-input').forEach(inp=> inp.addEventListener('input', ()=>{ const all = {}; list.querySelectorAll('.points-input').forEach(i=> all[i.dataset.pid] = i.value.trim()); localStorage.setItem(cacheKey, JSON.stringify(all)); }));
-  document.getElementById('save-sat').addEventListener('click', async ()=>{
-    const values = {}; list.querySelectorAll('.points-input').forEach(i=> values[i.dataset.pid] = Number(i.value.trim() || 0));
-    await set(ref(db, `games/${gameId}/points/${dateISO}`), values);
-    localStorage.removeItem(cacheKey);
-    showToast('Pontos salvos!');
-    modal.classList.add('hidden');
-  });
-}
-
-/* ---------- Player quick-create modal ---------- */
-function openPlayerModal(){
-  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
-  const container = modal.querySelector('.modal-body');
-  container.innerHTML = `<form id="quick-player-form" class="space-y-2"><label>Nome (obrigatório)<input id="p_name" class="w-full border p-2" /></label><label>Telefone (opcional)<input id="p_phone" class="w-full border p-2" /></label><label><input id="p_isAdmin" type="checkbox" /> É administrador</label><div id="adminFields" style="display:none"><label>Email<input id="p_email" class="w-full border p-2" /></label><label>Senha<input id="p_pass" type="password" class="w-full border p-2" /></label><label>Confirmar Senha<input id="p_pass2" type="password" class="w-full border p-2" /></label></div><div class="pt-2"><button id="save-player" class="btn-game bg-black text-white">Salvar</button><button id="cancel-player" class="btn-game ml-2">Cancelar</button></div></form>`;
-  const chk = document.getElementById('player-modal').querySelector('#p_isAdmin');
-  const adminFields = document.getElementById('player-modal').querySelector('#adminFields');
-  modal.querySelector('#p_isAdmin').addEventListener('change', (e)=> adminFields.style.display = e.target.checked? 'block':'none');
-  modal.querySelector('#cancel-player').addEventListener('click', ()=> modal.classList.add('hidden'));
-  modal.querySelector('#save-player').addEventListener('click', async (ev)=>{
-    ev.preventDefault();
-    const name = modal.querySelector('#p_name').value.trim();
-    const phone = modal.querySelector('#p_phone').value.trim();
-    const isAdmin = modal.querySelector('#p_isAdmin').checked;
-    if(!name){ showToast('Nome é obrigatório'); return; }
-    const newP = push(ref(db, 'players'));
-    await set(newP, { name, phone: phone||'', isAdmin: !!isAdmin, createdAt: Date.now() });
-    if(isAdmin){
-      const email = modal.querySelector('#p_email').value.trim();
-      const pass = modal.querySelector('#p_pass').value;
-      const pass2 = modal.querySelector('#p_pass2').value;
-      if(!email || !pass || pass !== pass2){ showToast('Preencha email e senhas corretamente'); return; }
-      try{ await createUserWithEmailAndPassword(auth, email, pass); showToast('Admin criado no Authentication'); } catch(e){ showToast('Erro ao criar auth: '+e.message); }
+  <style>
+    :root{
+      --pixel-border: 6px;
+      --pixel-shadow: 6px;
+      --bg-light: #eaf7f9; /* azul claro do layout */
+      --card-blue: #c9e9ee;
     }
-    showToast('Jogador cadastrado'); modal.classList.add('hidden');
-  });
-}
 
-/* ---------- Players Manager (list, edit, delete) ---------- */
-async function openPlayersManager(){
-  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
-  const container = modal.querySelector('.modal-body');
-  const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
-  container.innerHTML = '<div class="space-y-2"><h3 class="font-bold">Gerenciar Jogadores</h3><div id="players-list" class="mt-2 space-y-2"></div><div class="pt-2"><button id="close-players" class="btn-game">Fechar</button></div></div>';
-  const listEl = container.querySelector('#players-list');
-  Object.entries(players).forEach(([pid,p])=>{
-    const row = document.createElement('div'); row.className='flex justify-between items-center border p-2';
-    row.innerHTML = `<div><div class="font-medium">${p.name}</div><div class="text-xs">${p.phone||''} ${p.isAdmin? '- (admin)':''}</div></div><div class="flex gap-2"><button class="edit-btn btn-game" data-id="${pid}">Editar</button><button class="del-btn btn-game bg-red-500 text-white" data-id="${pid}">Excluir</button></div>`;
-    listEl.appendChild(row);
-  });
-  container.querySelectorAll('.del-btn').forEach(b=> b.addEventListener('click', async ()=>{ if(!confirm('Excluir jogador?')) return; await remove(ref(db, `players/${b.dataset.id}`)); showToast('Jogador excluído'); openPlayersManager(); }));
-  container.querySelectorAll('.edit-btn').forEach(b=> b.addEventListener('click', ()=> openEditPlayerModal(b.dataset.id)));
-  container.querySelector('#close-players').addEventListener('click', ()=> modal.classList.add('hidden'));
-}
+    body {
+      font-family: "Press Start 2P", monospace;
+      background: linear-gradient(90deg,#f7feff 0%, #eaf7f9 100%);
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
 
-/* Edit player modal */
-function openEditPlayerModal(pid){
-  get(ref(db, `players/${pid}`)).then(snap=>{
-    const p = snap.val()||{};
-    const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
-    const container = modal.querySelector('.modal-body');
-    container.innerHTML = `<div class="space-y-2"><h3 class="font-bold">Editar Jogador</h3><label>Nome<input id="e_name" class="w-full border p-2" value="${(p.name||'').replace(/"/g,'&quot;')}" /></label><label>Telefone<input id="e_phone" class="w-full border p-2" value="${(p.phone||'')}" /></label><label><input id="e_isAdmin" type="checkbox" ${(p.isAdmin? 'checked':'')} /> É administrador</label><div class="pt-2"><button id="save-edit" class="btn-game bg-black text-white">Salvar</button><button id="cancel-edit" class="btn-game ml-2">Cancelar</button></div></div>`;
-    modal.querySelector('#cancel-edit').addEventListener('click', ()=> modal.classList.add('hidden'));
-    modal.querySelector('#save-edit').addEventListener('click', async ()=>{
-      const name = modal.querySelector('#e_name').value.trim(); const phone = modal.querySelector('#e_phone').value.trim(); const isAdmin = modal.querySelector('#e_isAdmin').checked;
-      await update(ref(db, `players/${pid}`), { name, phone, isAdmin }); showToast('Atualizado'); modal.classList.add('hidden');
-    });
-  });
-}
+    /* Pixel box style used across UI */
+    .pixel-box {
+      background: white;
+      border: var(--pixel-border) solid #000;
+      box-shadow: var(--pixel-shadow) var(--pixel-shadow) 0 #000;
+      border-radius: 4px;
+    }
 
-/* ---------- Annual export ---------- */
-async function exportAnnualCSV(year){
-  const gamesSnap = await get(ref(db, 'games')); const games = gamesSnap.exists()? gamesSnap.val(): {};
-  const gameIds = Object.entries(games).filter(([gid,g])=> g && new Date(g.start).getFullYear()===Number(year)).map(([gid,g])=> gid);
-  const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
-  const rows = [['Nome','Total']];
-  const totals = {}; Object.keys(players).forEach(pid=> totals[pid]=0);
-  for(const gid of gameIds){
-    const pSnap = await get(ref(db, `games/${gid}/points`)); const points = pSnap.exists()? pSnap.val(): {};
-    Object.values(points).forEach(sat=> Object.entries(sat).forEach(([pid,val])=> totals[pid] = (totals[pid]||0)+Number(val||0)));
+    .pixel-card {
+      background: var(--card-blue);
+      border: 4px solid #000;
+      box-shadow: 6px 6px 0 #000;
+    }
+
+    /* Modal overlay centered */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index: 60;
+    }
+    .modal-center {
+      width: min(900px, 95%);
+      max-height: 90vh;
+      overflow:auto;
+      background: #fff;
+      border: 8px solid #000;
+      box-shadow: 10px 10px 0 #000;
+      padding: 20px;
+      border-radius: 4px;
+    }
+
+    /* Buttons style */
+    .pixel-btn {
+      display:inline-block;
+      background: #bfeaf0;
+      border: 6px solid #000;
+      box-shadow: 6px 6px 0 #000;
+      padding: 8px 18px;
+      cursor:pointer;
+      font-family: "Press Start 2P", monospace;
+      font-size: 12px;
+    }
+
+    /* Small accent tag */
+    .tag {
+      background:#bfeaf0;
+      padding:6px 12px;
+      border:4px solid #000;
+      box-shadow:4px 4px 0 #000;
+      font-size:12px;
+      margin-right:8px;
+    }
+
+    /* table */
+    .ranking-row {
+      border: 4px solid #000;
+      padding: 12px;
+      margin-bottom: 8px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background: #dff3f5;
+    }
+
+    /* form inputs pixel */
+    .pixel-input{
+      background: #fff;
+      border:6px solid #000;
+      padding:10px;
+      width:100%;
+      box-shadow: 6px 6px 0 #000;
+      margin-bottom:12px;
+    }
+
+    /* mobile tweaks */
+    @media (max-width: 640px){
+      .modal-center{ padding:12px; }
+    }
+
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <div class="max-w-7xl mx-auto py-6 px-4">
+
+    <!-- Header -->
+    <header class="mb-6">
+      <div class="flex items-center gap-4">
+        <div class="pixel-box p-2 inline-flex items-center">
+          <div class="w-12 h-12 bg-black mr-2"></div>
+          <div class="px-3 py-1 bg-white border-4 border-black">GAME UAU</div>
+        </div>
+        <div class="text-lg">SISTEMA DE RANKING</div>
+        <div class="ml-auto">
+          <button id="logoutBtn" class="pixel-btn">SAIR</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Hero -->
+    <main>
+      <section class="mx-auto mb-8">
+        <div class="pixel-box p-8 text-center bg-[--card-blue]">
+          <h1 style="font-size:28px">DASHBOARD ADMINISTRATIVO</h1>
+        </div>
+      </section>
+
+      <!-- Top tags -->
+      <div class="mb-6 flex items-center">
+        <div id="activeTag" class="tag">TRIMESTRE INATIVO</div>
+        <div id="playersCount" class="tag">0 JOGADORES</div>
+        <div id="saturdayTag" class="tag">SÁBADO --</div>
+      </div>
+
+      <!-- Ações rápidas (cards) -->
+      <section class="mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="pixel-card p-6 cursor-pointer" id="card-manage-players">
+            <h3>GERENCIAR JOGADORES</h3>
+            <p class="mt-2 text-xs">Cadastrar, editar e excluir jogadores</p>
+          </div>
+
+          <div class="pixel-card p-6 cursor-pointer" id="card-launch-points">
+            <h3>LANÇAR PONTOS</h3>
+            <p class="mt-2 text-xs">Cadastrar pontos dos sábados</p>
+          </div>
+
+          <div class="pixel-card p-6 cursor-pointer" id="card-annual-ranking">
+            <h3>RANKING ANUAL</h3>
+            <p class="mt-2 text-xs">Soma dos pontos dos trimestres do ano</p>
+          </div>
+
+          <div class="pixel-card p-6 cursor-pointer" id="card-register-player">
+            <h3>CADASTRAR JOGADOR</h3>
+            <p class="mt-2 text-xs">Adicionar jogador ou administrador</p>
+          </div>
+
+          <div class="pixel-card p-6 cursor-pointer flex items-center justify-center" id="card-create-end-game" >
+            <h3 id="createEndTitle">NOVO GAME UAU</h3>
+          </div>
+
+          <div class="pixel-card p-6 cursor-pointer" id="card-settings">
+            <h3>CONFIGURAÇÕES</h3>
+            <p class="mt-2 text-xs">Configurar sistema</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ranking atual + sidebar -->
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 pixel-box p-6">
+          <h2>RANKING ATUAL</h2>
+          <div id="rankingList" class="mt-4">
+            <!-- rows injected by JS -->
+          </div>
+
+          <div class="mt-4 text-center text-xs">TOTAL: <span id="totalPlayers">0</span> JOGADORES</div>
+        </div>
+
+        <aside class="pixel-box p-6">
+          <h3>ESTATÍSTICAS</h3>
+          <div class="mt-3 text-xs">
+            <div>MAIOR PONTUAÇÃO: <span id="statMax">0</span></div>
+            <div>MÉDIA GERAL: <span id="statAvg">0</span></div>
+            <div>SÁBADOS JOGADOS: <span id="statSábados">0</span></div>
+            <div>PRÓXIMO JOGO: <span id="statNextGame">--</span></div>
+          </div>
+
+          <div class="mt-6">
+            <h4>ADICIONAR JOGADOR</h4>
+            <button id="quickRegisterBtn" class="pixel-btn mt-3">CADASTRAR JOGADOR</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal container (JS injects content here) -->
+  <div id="modal-root"></div>
+
+  <script>
+  /***********************
+   * Utility & State
+   ***********************/
+  const STORAGE_KEY = "gameuau_state_v1";
+
+  function formatBR(dateInput){
+    if(!dateInput) return "";
+    const d = new Date(dateInput);
+    const dd = String(d.getDate()).padStart(2,'0');
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
   }
-  Object.entries(totals).forEach(([pid,total])=> rows.push([players[pid]?.name||'—', total]));
-  exportCSV(rows, `ranking_${year}.csv`);
-}
 
-/* ---------- Init on DOMContentLoaded ---------- */
-document.addEventListener('DOMContentLoaded', ()=>{
-  // detect which page to initialize
-  if(document.getElementById('ranking-list')) renderPublicRanking();
-  if(document.getElementById('login-button')) setupLoginPage();
-  if(document.getElementById('btnNewGame')) setupDashboardPage();
+  function todaySaturdayLabel(){
+    // example: display today's date as saturday label (the UI shows sábado/current)
+    return formatBR(new Date());
+  }
 
-  // attach global helpers
-  window.printRanking = () => printRanking('#ranking-list');
-  window.openPlayerModal = openPlayerModal;
-  window.openCreateGameModal = openCreateGameModal;
-  window.openPointsManager = openPointsManager;
-  window.openPlayersManager = openPlayersManager;
-  window.exportAnnualCSV = exportAnnualCSV;
-});
-</script>
+  // default seed data (for demo). It will persist in localStorage after first load.
+  const seedState = {
+    players: [
+      { id: "p1", name: "João Silva", role: "player", createdAt: new Date().toISOString() },
+      { id: "p2", name: "Maria Santos", role: "player", createdAt: new Date().toISOString() },
+      { id: "p3", name: "Carlos Oliveira", role: "player", createdAt: new Date().toISOString() },
+      { id: "p4", name: "Ana Costa", role: "player", createdAt: new Date().toISOString() },
+      { id: "p5", name: "Pedro Souza", role: "player", createdAt: new Date().toISOString() },
+      { id: "admin1", name: "Admin Demo", role: "admin", createdAt: new Date().toISOString() }
+    ],
+    // games: array newest first
+    games: [
+      {
+        id: "g1",
+        year: new Date().getFullYear(),
+        trimester: 1,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        playersPoints: { p1:1250, p2:1100, p3:950, p4:800, p5:750 }
+      }
+    ],
+    activeGameId: "g1"
+  };
 
-<script>
-// Simple SPA router to show/hide pages based on hash
-function showPage(page){
-  document.getElementById('page-ranking').style.display = 'none';
-  document.getElementById('page-login').style.display = 'none';
-  document.getElementById('page-dashboard').style.display = 'none';
-  if(page === '/adm/login') document.getElementById('page-login').style.display = '';
-  else if(page === '/adm/dashboard') document.getElementById('page-dashboard').style.display = '';
-  else document.getElementById('page-ranking').style.display = '';
-}
-window.addEventListener('hashchange', ()=> showPage(location.hash.replace('#','') || '/ranking'));
-showPage(location.hash.replace('#','') || '/ranking');
-// initialize lucide icons
-if(window.lucide) window.lucide.createIcons();
-</script>
+  function loadState(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seedState, null, 2));
+        return JSON.parse(JSON.stringify(seedState));
+      }
+      return JSON.parse(raw);
+    } catch(e){
+      console.error("loadState err", e);
+      return JSON.parse(JSON.stringify(seedState));
+    }
+  }
+
+  function saveState(s){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s, null, 2));
+  }
+
+  let state = loadState();
+
+  /***********************
+   * Core model functions
+   ***********************/
+  function reopenUI(){
+    renderTopTags();
+    renderRanking();
+    renderStats();
+  }
+
+  function createPlayer({name, role="player", email=null}){
+    const id = "p" + Date.now();
+    const player = { id, name, role, email, createdAt: new Date().toISOString() };
+    state.players.push(player);
+    saveState(state);
+    reopenUI();
+    return player;
+  }
+
+  function createGame({year, trimester}){
+    if(state.activeGameId) throw new Error("Já existe um trimestre ativo. Encerre antes de criar outro.");
+    const id = "g" + Date.now();
+    const g = { id, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
+    state.games.unshift(g);
+    state.activeGameId = id;
+    saveState(state);
+    reopenUI();
+    return g;
+  }
+
+  function endGame(gameId){
+    state.games = state.games.map(g => {
+      if(g.id === gameId) return {...g, endedAt: new Date().toISOString()};
+      return g;
+    });
+    if(state.activeGameId === gameId) state.activeGameId = null;
+    saveState(state);
+    reopenUI();
+  }
+
+  function addPoints(gameId, playerId, points){
+    state.games = state.games.map(g => {
+      if(g.id !== gameId) return g;
+      const copy = {...g, playersPoints: {...g.playersPoints}};
+      copy.playersPoints[playerId] = (copy.playersPoints[playerId] || 0) + Number(points);
+      return copy;
+    });
+    saveState(state);
+    reopenUI();
+  }
+
+  function computeAnnualRanking(year){
+    const map = {}; // playerId -> total
+    state.games.forEach(g => {
+      const gameYear = new Date(g.startedAt).getFullYear();
+      if(gameYear !== year) return;
+      Object.entries(g.playersPoints || {}).forEach(([pid, pts]) => {
+        map[pid] = (map[pid] || 0) + Number(pts || 0);
+      });
+    });
+    const arr = Object.entries(map).map(([id, points]) => ({ id, points }));
+    arr.sort((a,b)=> b.points - a.points);
+    return arr;
+  }
+
+  /***********************
+   * UI Rendering
+   ***********************/
+  const playersCountEl = document.getElementById("playersCount");
+  const activeTagEl = document.getElementById("activeTag");
+  const saturdayTagEl = document.getElementById("saturdayTag");
+  const createEndTitleEl = document.getElementById("createEndTitle");
+  const rankingListEl = document.getElementById("rankingList");
+  const totalPlayersEl = document.getElementById("totalPlayers");
+  const statMaxEl = document.getElementById("statMax");
+  const statAvgEl = document.getElementById("statAvg");
+  const statSabadosEl = document.getElementById("statSábados");
+  const statNextGameEl = document.getElementById("statNextGame");
+
+  function renderTopTags(){
+    playersCountEl.textContent = state.players.length + " JOGADORES";
+    if(state.activeGameId){
+      activeTagEl.textContent = "TRIMESTRE ATIVO";
+      createEndTitleEl.textContent = "ENCERRAR GAME";
+    } else {
+      activeTagEl.textContent = "TRIMESTRE INATIVO";
+      createEndTitleEl.textContent = "NOVO GAME UAU";
+    }
+    saturdayTagEl.textContent = "SÁBADO " + todaySaturdayLabel();
+  }
+
+  function renderRanking(){
+    rankingListEl.innerHTML = "";
+    const activeGame = state.games.find(g => g.id === state.activeGameId) || state.games[0] || null;
+    if(!activeGame){
+      rankingListEl.innerHTML = "<div class='text-sm'>Nenhum trimestre disponível</div>";
+      totalPlayersEl.textContent = "0";
+      return;
+    }
+    // build ranking rows
+    // compute ordering by points desc
+    const pts = activeGame.playersPoints || {};
+    const arr = state.players.map(p => {
+      return { id: p.id, name: p.name, points: pts[p.id] || 0 };
+    });
+    arr.sort((a,b)=> b.points - a.points);
+
+    arr.forEach((r, idx)=>{
+      const row = document.createElement("div");
+      row.className = "ranking-row pixel-box";
+      row.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div style="width:30px;text-align:center">${ idx < 3 ? (idx+1 + "º") : ( (r.points>0) ? (idx+1+"º") : (idx+1+"º"))}</div>
+          <div>${r.name}</div>
+        </div>
+        <div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>
+      `;
+      rankingListEl.appendChild(row);
+    });
+
+    totalPlayersEl.textContent = state.players.length;
+  }
+
+  function renderStats(){
+    // compute stats for current year (or active game)
+    const activeGame = state.games.find(g => g.id === state.activeGameId) || state.games[0] || null;
+    if(!activeGame){
+      statMaxEl.textContent = "0";
+      statAvgEl.textContent = "0";
+      statSabadosEl.textContent = "0";
+      statNextGameEl.textContent = "--";
+      return;
+    }
+    const pts = Object.values(activeGame.playersPoints || {});
+    const max = pts.length ? Math.max(...pts) : 0;
+    const avg = pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : 0;
+    statMaxEl.textContent = max.toLocaleString('pt-BR');
+    statAvgEl.textContent = avg.toLocaleString('pt-BR');
+    // sábados jogados: we store number as sample here using points as hint: we use game's config? for demo:
+    statSabadosEl.textContent = Object.keys(activeGame.playersPoints || {}).length + "/15";
+    statNextGameEl.textContent = "SÁBADO " + formatBR(new Date());
+  }
+
+  /***********************
+   * Modal logic
+   ***********************/
+  const modalRoot = document.getElementById("modal-root");
+  let currentModal = null;
+
+  function openModal(type, payload){
+    closeModal(); // ensure single
+    currentModal = { type, payload };
+    document.body.style.overflow = "hidden";
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.id = "modal-overlay";
+    overlay.addEventListener("click", closeModal);
+
+    const center = document.createElement("div");
+    center.className = "modal-center";
+    center.addEventListener("click", e => e.stopPropagation());
+
+    // build content
+    if(type === "player"){
+      center.innerHTML = playerModalHtml();
+      overlay.appendChild(center);
+      modalRoot.appendChild(overlay);
+      attachPlayerModalHandlers();
+    } else if(type === "createGame"){
+      center.innerHTML = createGameModalHtml();
+      overlay.appendChild(center);
+      modalRoot.appendChild(overlay);
+      attachCreateGameHandlers();
+    } else if(type === "endGame"){
+      center.innerHTML = endGameModalHtml();
+      overlay.appendChild(center);
+      modalRoot.appendChild(overlay);
+      attachEndGameHandlers(payload);
+    } else if(type === "annualRanking"){
+      center.innerHTML = annualRankingModalHtml();
+      overlay.appendChild(center);
+      modalRoot.appendChild(overlay);
+      attachAnnualRankingHandlers();
+    } else if(type === "managePlayers"){
+      center.innerHTML = managePlayersModalHtml();
+      overlay.appendChild(center);
+      modalRoot.appendChild(overlay);
+      attachManagePlayersHandlers();
+    } else if(type === "launchPoints"){
+      center.innerHTML = launchPointsModalHtml();
+      overlay.appendChild(center);
+      modalRoot.appendChild(overlay);
+      attachLaunchPointsHandlers();
+    } else {
+      center.innerHTML = "<div>Em desenvolvimento</div>";
+      overlay.appendChild(center);
+      modalRoot.appendChild(overlay);
+    }
+  }
+
+  function closeModal(){
+    const overlay = document.getElementById("modal-overlay");
+    if(overlay) overlay.remove();
+    currentModal = null;
+    document.body.style.overflow = "";
+  }
+
+  /***********************
+   * Modal templates + handlers
+   ***********************/
+  function playerModalHtml(){
+    return `
+      <h2>CADASTRAR JOGADOR / ADMIN</h2>
+      <form id="form-player" class="mt-4">
+        <label>Nome</label>
+        <input id="player-name" class="pixel-input" placeholder="Nome completo" required />
+        <label>Email (opcional)</label>
+        <input id="player-email" class="pixel-input" placeholder="email@exemplo.com" />
+        <label>Perfil</label>
+        <select id="player-role" class="pixel-input">
+          <option value="player">Jogador</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <div class="flex gap-3">
+          <button type="submit" class="pixel-btn">CADASTRAR</button>
+          <button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function attachPlayerModalHandlers(){
+    const form = document.getElementById("form-player");
+    form.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const name = document.getElementById("player-name").value.trim();
+      const email = document.getElementById("player-email").value.trim();
+      const role = document.getElementById("player-role").value;
+      if(!name) return alert("Digite o nome");
+      createPlayer({name, role, email: email || null});
+      alert("Jogador cadastrado com sucesso!");
+      closeModal();
+    });
+    document.getElementById("cancel-player").addEventListener("click", closeModal);
+  }
+
+  function createGameModalHtml(){
+    const year = new Date().getFullYear();
+    return `
+      <h2>NOVO GAME UAU</h2>
+      <form id="form-create-game" class="mt-4">
+        <label>Trimestre</label>
+        <select id="create-trim" class="pixel-input">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+        <label>Ano</label>
+        <input id="create-year" type="number" class="pixel-input" value="${year}" />
+        <div class="flex gap-3">
+          <button class="pixel-btn" type="submit">CRIAR</button>
+          <button type="button" id="cancel-create" class="pixel-btn">CANCELAR</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function attachCreateGameHandlers(){
+    document.getElementById("form-create-game").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const trimester = Number(document.getElementById("create-trim").value);
+      const year = Number(document.getElementById("create-year").value);
+      try {
+        createGame({year, trimester});
+        alert("Trimestre criado!");
+        closeModal();
+      } catch(err){
+        alert(err.message);
+      }
+    });
+    document.getElementById("cancel-create").addEventListener("click", closeModal);
+  }
+
+  function endGameModalHtml(){
+    return `
+      <h2>ENCERRAR TRIMESTRE</h2>
+      <p>Deseja encerrar o trimestre em andamento?</p>
+      <div class="flex gap-3 mt-4">
+        <button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button>
+        <button id="cancel-end" class="pixel-btn">CANCELAR</button>
+      </div>
+    `;
+  }
+
+  function attachEndGameHandlers(payload){
+    document.getElementById("confirm-end").addEventListener("click", ()=>{
+      const id = state.activeGameId;
+      if(!id) { alert("Nenhum trimestre ativo."); return; }
+      endGame(id);
+      alert("Trimestre encerrado.");
+      closeModal();
+    });
+    document.getElementById("cancel-end").addEventListener("click", closeModal);
+  }
+
+  function annualRankingModalHtml(){
+    const rank = computeAnnualRanking(new Date().getFullYear());
+    const rows = rank.map((r, i)=> {
+      const player = state.players.find(p => p.id === r.id);
+      const name = player ? player.name : "Desconhecido";
+      return `<div class="flex justify-between py-2 border-b"><div>${i+1}. ${name}</div><div>${r.points.toLocaleString('pt-BR')}</div></div>`;
+    }).join("") || "<div>Nenhum registro</div>";
+    return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
+  }
+
+  function attachAnnualRankingHandlers(){
+    document.getElementById("close-annual").addEventListener("click", closeModal);
+  }
+
+  function managePlayersModalHtml(){
+    const rows = state.players.map(p => `
+      <div class="flex justify-between items-center py-2 border-b">
+        <div>
+          <div>${p.name}</div>
+          <div class="text-xs">${p.role}</div>
+        </div>
+        <div>
+          <button class="pixel-btn btn-edit" data-id="${p.id}">EDIT</button>
+          <button class="pixel-btn btn-del" data-id="${p.id}">DEL</button>
+        </div>
+      </div>
+    `).join("");
+    return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
+  }
+
+  function attachManagePlayersHandlers(){
+    document.querySelectorAll(".btn-del").forEach(btn=>{
+      btn.addEventListener("click", e=>{
+        const id = e.currentTarget.dataset.id;
+        if(!confirm("Excluir jogador?")) return;
+        state.players = state.players.filter(p=>p.id !== id);
+        // also remove from points
+        state.games.forEach(g => { if(g.playersPoints && g.playersPoints[id]) delete g.playersPoints[id]; });
+        saveState(state);
+        alert("Excluído");
+        closeModal();
+        reopenUI();
+      });
+    });
+    document.getElementById("close-manage").addEventListener("click", closeModal);
+  }
+
+  function launchPointsModalHtml(){
+    const activeGame = state.games.find(g => g.id === state.activeGameId) || null;
+    if(!activeGame) return `<h2>LANÇAR PONTOS</h2><div class="mt-4">Nenhum trimestre ativo.</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+    const playerOptions = state.players.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+    return `
+      <h2>LANÇAR PONTOS - TRIMESTRE ATIVO</h2>
+      <form id="form-points" class="mt-4">
+        <label>Jogador</label>
+        <select id="points-player" class="pixel-input">${playerOptions}</select>
+        <label>Pontos (ex: 250)</label>
+        <input id="points-value" class="pixel-input" type="number" value="0" />
+        <div class="flex gap-3">
+          <button class="pixel-btn" type="submit">ADICIONAR</button>
+          <button type="button" id="cancel-launch" class="pixel-btn">CANCELAR</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function attachLaunchPointsHandlers(){
+    const activeGame = state.games.find(g => g.id === state.activeGameId) || null;
+    if(!activeGame){
+      document.getElementById("close-launch").addEventListener("click", closeModal);
+      return;
+    }
+    document.getElementById("form-points").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const pid = document.getElementById("points-player").value;
+      const pts = Number(document.getElementById("points-value").value) || 0;
+      if(!pid) return alert("Selecione jogador");
+      addPoints(activeGame.id, pid, pts);
+      alert("Pontos adicionados");
+      closeModal();
+    });
+    document.getElementById("cancel-launch").addEventListener("click", closeModal);
+  }
+
+  /***********************
+   * wiring up cards/buttons
+   ***********************/
+  document.getElementById("card-register-player").addEventListener("click", ()=> openModal("player"));
+  document.getElementById("quickRegisterBtn").addEventListener("click", ()=> openModal("player"));
+  document.getElementById("card-manage-players").addEventListener("click", ()=> openModal("managePlayers"));
+  document.getElementById("card-annual-ranking").addEventListener("click", ()=> openModal("annualRanking"));
+  document.getElementById("card-launch-points").addEventListener("click", ()=> openModal("launchPoints"));
+  document.getElementById("card-settings").addEventListener("click", ()=> alert("Configurações - ainda sem backend"));
+
+  document.getElementById("card-create-end-game").addEventListener("click", ()=>{
+    if(state.activeGameId) openModal("endGame");
+    else openModal("createGame");
+  });
+
+  // logout demo
+  document.getElementById("logoutBtn").addEventListener("click", ()=> alert("Logout (demo)"));
+
+  // make sure modal openers call right handlers
+  // dynamic attach for modal type 'launchPoints' route to template name "launchPoints"
+  function attachHandlersForModalType(type){
+    // not used now because we pass explicit attachers
+  }
+
+  /***********************
+   * Initial render
+   ***********************/
+  function computeAnnualRanking(){
+    return (function(year){
+      const map = {};
+      state.games.forEach(g=>{
+        const gy = new Date(g.startedAt).getFullYear();
+        if(gy !== year) return;
+        Object.entries(g.playersPoints || {}).forEach(([pid, pts])=>{
+          map[pid] = (map[pid] || 0) + Number(pts || 0);
+        });
+      });
+      const arr = Object.entries(map).map(([id, points])=>({id, points}));
+      arr.sort((a,b)=> b.points - a.points);
+      return arr;
+    })(new Date().getFullYear());
+  }
+
+  // expose helper computeAnnualRanking globally used in modal template
+  window.computeAnnualRanking = function(year = new Date().getFullYear()){
+    const map = {};
+    state.games.forEach(g=>{
+      const gy = new Date(g.startedAt).getFullYear();
+      if(gy !== year) return;
+      Object.entries(g.playersPoints || {}).forEach(([pid, pts])=>{
+        map[pid] = (map[pid] || 0) + Number(pts || 0);
+      });
+    });
+    return Object.entries(map).map(([id, points])=>({ id, points })).sort((a,b)=> b.points - a.points);
+  };
+
+  // helper used in templates
+  function computeAnnualRankingForTemplate(year = new Date().getFullYear()){
+    const arr = window.computeAnnualRanking(year);
+    return arr;
+  }
+
+  // renderData used at start
+  reopenUI();
+
+  // Also export some functions to console for quick demo use
+  window.__gameuau = {
+    state,
+    createPlayer,
+    createGame,
+    endGame,
+    addPoints,
+    saveState,
+    loadState
+  };
+
+  // When modal root receives a new child, the attach functions above will wire events.
+  // initial sample: nothing to do
+
+  </script>
 
 </body>
 </html>
