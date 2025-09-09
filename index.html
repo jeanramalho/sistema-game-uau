@@ -3,17 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Game UAU - Admin (HTML/CSS/JS)</title>
+  <title>Game UAU - Admin</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Pixel font -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
-  <!-- Firebase compat libs (Auth + Realtime DB) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
   <style>
     :root{
@@ -22,21 +18,68 @@
       --bg-light: #eaf7f9;
       --card-blue: #c9e9ee;
     }
-    body { font-family: "Press Start 2P", monospace; background: linear-gradient(90deg,#f7feff 0%, #eaf7f9 100%); margin:0; }
-    .pixel-box { background:white; border:var(--pixel-border) solid #000; box-shadow:var(--pixel-shadow) var(--pixel-shadow) 0 #000; border-radius:4px; }
+    body { font-family: "Press Start 2P", monospace; background: linear-gradient(90deg,#f7feff 0%, #eaf7f9 100%); margin:0; -webkit-font-smoothing:antialiased;}
+    .pixel-box { background:white; border:var(--pixel-border) solid #000; box-shadow:var(--pixel-shadow) var(--pixel-shadow) 0 #000; border-radius:6px; }
     .pixel-card { background:var(--card-blue); border:4px solid #000; box-shadow:6px 6px 0 #000; }
-    .pixel-btn { background:#bfeaf0; border:6px solid #000; box-shadow:6px 6px 0 #000; padding:8px 14px; cursor:pointer; font-size:12px; }
+    .pixel-btn { background:#bfeaf0; border:6px solid #000; box-shadow:6px 6px 0 #000; padding:10px 16px; cursor:pointer; font-size:13px; }
     .pixel-input { background:#fff; border:6px solid #000; padding:10px; width:100%; box-shadow:6px 6px 0 #000; margin-bottom:12px; }
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; z-index:60; }
-    .modal-center { width:min(900px,95%); max-height:90vh; overflow:auto; background:#fff; border:8px solid #000; box-shadow:10px 10px 0 #000; padding:20px; border-radius:4px; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; z-index:60; padding:16px; }
+    .modal-center { width:min(960px, 100%); max-height:92vh; overflow:auto; background:#fff; border:8px solid #000; box-shadow:12px 12px 0 #000; padding:20px; border-radius:6px; }
     .ranking-row { border:4px solid #000; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:#dff3f5; }
     .tag { background:#bfeaf0; padding:6px 12px; border:4px solid #000; box-shadow:4px 4px 0 #000; font-size:12px; margin-right:8px; display:inline-block; }
-    @media (max-width:640px){ .modal-center{ padding:12px } }
+    /* responsive tweaks */
+    @media (max-width: 1024px){
+      .pixel-btn{ padding:10px 12px; font-size:12px; }
+      .pixel-input{ padding:8px; }
+    }
+    @media (max-width: 640px){
+      nav .max-w-6xl{ padding-left:12px; padding-right:12px; }
+      .pixel-btn{ padding:12px; font-size:13px; width:100%; }
+      .modal-center{ padding:14px; }
+      .pixel-box{ margin:8px; }
+      .pixel-card{ padding:18px; }
+      .ranking-row{ flex-direction:column; gap:6px; align-items:flex-start }
+    }
+
+    /* admin stats card style to match photos */
+    .stats-card { background:#f5f9fa; border:6px solid #000; box-shadow:8px 8px 0 #000; padding:14px; }
+    .stat-item { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed rgba(0,0,0,0.15); }
   </style>
 </head>
 <body>
 
-  <!-- Simple hash-based navigation -->
+  <!-- Firebase modular imports and config (you provided) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, push, update, remove, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+    // ---------- YOUR FIREBASE CONFIG (you gave this) ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyCh9-eS5xStmP6IL_fwhRHqTFejk8BkGjU",
+      authDomain: "gameuau-ba9bb.firebaseapp.com",
+      databaseURL: "https://gameuau-ba9bb-default-rtdb.firebaseio.com",
+      projectId: "gameuau-ba9bb",
+      storageBucket: "gameuau-ba9bb.firebasestorage.app",
+      messagingSenderId: "540955198809",
+      appId: "1:540955198809:web:6b05a8dbe0cf200fceb848",
+      measurementId: "G-VKE7K7KGQ9"
+    };
+    // ----------------------------------------------------------
+
+    // init firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // export to global for other inline scripts
+    window.__firebase = { app, auth, db, modular: true };
+
+    // now boot main UI script (below) after firebase set
+    // We put UI code into another script tag to keep structure clear.
+  </script>
+
+  <!-- NAV -->
   <nav class="p-4 bg-[--card-blue] border-b-4 border-black">
     <div class="max-w-6xl mx-auto flex items-center gap-4">
       <div class="pixel-box p-2 inline-flex items-center">
@@ -44,8 +87,8 @@
         <div class="px-3 py-1 bg-white border-4 border-black">GAME UAU</div>
       </div>
       <a href="#/" class="ml-4">INÍCIO</a>
-      <a href="#/ranking" class="">RANKING PÚBLICO</a>
-      <a href="#/admin" class="">ÁREA ADMIN</a>
+      <a href="#/ranking">RANKING PÚBLICO</a>
+      <a href="#/admin">ÁREA ADMIN</a>
       <div class="ml-auto flex items-center gap-3">
         <div id="nextSaturdayTag" class="tag">Próx. sábado: --</div>
         <button id="logoutBtn" class="pixel-btn">SAIR</button>
@@ -53,8 +96,10 @@
     </div>
   </nav>
 
+  <!-- APP -->
   <main id="app" class="max-w-6xl mx-auto mt-6 mb-12 px-4">
-    <!-- Home -->
+
+    <!-- HOME -->
     <section id="view-home" class="view">
       <div class="pixel-box p-8 text-center bg-[--card-blue]">
         <h1 style="font-size:28px">GAME UAU</h1>
@@ -64,7 +109,7 @@
       <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="pixel-box p-6">
           <h2>RANKING PÚBLICO</h2>
-          <p class="mt-2 text-xs">Veja a classificação atual de todos os jogadores.</p>
+          <p class="mt-2 text-xs">Veja a classificação atual dos jogadores.</p>
           <div class="mt-4">
             <button id="btnGoRanking" class="pixel-btn">VER RANKING</button>
           </div>
@@ -80,7 +125,7 @@
       </div>
     </section>
 
-    <!-- Public ranking -->
+    <!-- PUBLIC RANKING -->
     <section id="view-ranking" class="view hidden">
       <div class="pixel-box p-6">
         <h2>RANKING PÚBLICO</h2>
@@ -91,821 +136,758 @@
       </div>
     </section>
 
-    <!-- Admin (requires login) -->
+    <!-- ADMIN -->
     <section id="view-admin" class="view hidden">
-      <div class="pixel-box p-6 mb-6">
-        <h2>DASHBOARD ADMINISTRATIVO</h2>
-        <div class="mt-3">
-          <span id="activeTag" class="tag">TRIMESTRE INATIVO</span>
-          <span id="playersCount" class="tag">0 JOGADORES</span>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- left column: actions & ranking -->
+        <div class="lg:col-span-2 space-y-6">
+          <div class="pixel-box p-6">
+            <h2>DASHBOARD ADMINISTRATIVO</h2>
+            <div class="mt-3">
+              <span id="activeTag" class="tag">TRIMESTRE INATIVO</span>
+              <span id="playersCount" class="tag">0 JOGADORES</span>
+            </div>
+          </div>
+
+          <div class="pixel-box p-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="pixel-card p-4 cursor-pointer" id="card-manage-players"><h3 class="text-sm">GERENCIAR JOGADORES</h3></div>
+              <div class="pixel-card p-4 cursor-pointer" id="card-launch-points"><h3 class="text-sm">LANÇAR PONTOS</h3></div>
+              <div class="pixel-card p-4 cursor-pointer" id="card-annual-ranking"><h3 class="text-sm">RANKING ANUAL</h3></div>
+
+              <div class="pixel-card p-4 cursor-pointer" id="card-register-player"><h3 class="text-sm">CADASTRAR JOGADOR</h3></div>
+              <div class="pixel-card p-4 cursor-pointer text-center" id="card-create-end-game"><h3 id="createEndTitle" class="text-sm">NOVO GAME UAU</h3></div>
+              <div class="pixel-card p-4 cursor-pointer" id="card-settings"><h3 class="text-sm">CONFIGURAÇÕES</h3></div>
+            </div>
+          </div>
+
+          <div class="pixel-box p-6" id="ranking-box">
+            <h3>RANKING ATUAL</h3>
+            <div id="rankingPreview" class="mt-4"></div>
+            <div class="mt-4 text-center">TOTAL: <span id="totalPlayers">0</span> JOGADORES</div>
+          </div>
         </div>
-      </div>
 
-      <!-- Actions -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-        <div class="pixel-card p-6 cursor-pointer" id="card-manage-players"><h3>GERENCIAR JOGADORES</h3></div>
-        <div class="pixel-card p-6 cursor-pointer" id="card-launch-points"><h3>LANÇAR PONTOS</h3></div>
-        <div class="pixel-card p-6 cursor-pointer" id="card-annual-ranking"><h3>RANKING ANUAL</h3></div>
-        <div class="pixel-card p-6 cursor-pointer" id="card-register-player"><h3>CADASTRAR JOGADOR</h3></div>
-        <div class="pixel-card p-6 cursor-pointer text-center" id="card-create-end-game"><h3 id="createEndTitle">NOVO GAME UAU</h3></div>
-        <div class="pixel-card p-6 cursor-pointer" id="card-settings"><h3>CONFIGURAÇÕES</h3></div>
-      </div>
+        <!-- right column: stats -->
+        <aside class="space-y-6">
+          <div class="stats-card">
+            <h3>ESTATÍSTICAS</h3>
+            <div class="mt-4">
+              <div class="stat-item"><div>MAIOR PONTUAÇÃO</div><div id="statMax">0</div></div>
+              <div class="stat-item"><div>MÉDIA GERAL</div><div id="statAvg">0</div></div>
+              <div class="stat-item"><div>SÁBADOS JOGADOS</div><div id="statSábados">0</div></div>
+              <div class="stat-item"><div>PRÓXIMO JOGO</div><div id="statNextGame">--</div></div>
+            </div>
+          </div>
 
-      <!-- Ranking preview -->
-      <div class="pixel-box p-6">
-        <h3>RANKING ATUAL</h3>
-        <div id="rankingPreview" class="mt-4"></div>
-        <div class="mt-4">TOTAL: <span id="totalPlayers">0</span> JOGADORES</div>
+          <div class="pixel-box p-4">
+            <h4>ADICIONAR JOGADOR</h4>
+            <button id="quickRegisterBtn" class="pixel-btn mt-3 w-full">CADASTRAR JOGADOR</button>
+          </div>
+        </aside>
+
       </div>
     </section>
 
   </main>
 
-  <!-- Modal root -->
+  <!-- modal root -->
   <div id="modal-root"></div>
 
-<script>
-/* ------------- CONFIGURE FIREBASE -------------
-  Substitua este firebaseConfig pelo seu objeto de configuração do Firebase
-  (apiKey, authDomain, databaseURL, projectId, storageBucket, messagingSenderId, appId).
-  Exemplo:
-  const firebaseConfig = {
-    apiKey: "AIza....",
-    authDomain: "seu-projeto.firebaseapp.com",
-    databaseURL: "https://seu-projeto-default-rtdb.firebaseio.com",
-    projectId: "seu-projeto",
-    storageBucket: "...",
-    messagingSenderId: "...",
-    appId: "1:...:web:..."
-  };
-*/
-const firebaseConfig = {
-  // COLE AQUI SEU CONFIG DO FIREBASE
-};
+  <!-- Main UI script (uses modular firebase instance window.__firebase created above) -->
+  <script type="module">
+    import { ref, onValue, set, push, update, remove, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-/* Fim config */
-let firebaseEnabled = false;
-try {
-  if (firebaseConfig && firebaseConfig.apiKey) {
-    firebase.initializeApp(firebaseConfig);
-    firebaseEnabled = true;
-    console.log("Firebase inicializado (modo REAL).");
-  } else {
-    console.warn("Firebase não configurado — operando em modo local (localStorage).");
-  }
-} catch(e) {
-  console.error("Erro init firebase:", e);
-  firebaseEnabled = false;
-}
+    // Firebase utilities (grabbed from earlier script)
+    const { auth, db } = window.__firebase;
 
-/* ------------- Simple local fallback + state ------------- */
-const STORAGE_KEY = "gameuau_state_v2";
-function defaultSeed(){
-  const now = new Date().toISOString();
-  return {
-    players: {
-      p1: { id: "p1", name: "João Silva", phone:"(11) 99999-0001", role:"player", createdAt: now },
-      p2: { id: "p2", name: "Maria Santos", phone:"(11) 99999-0002", role:"player", createdAt: now },
-      p3: { id: "p3", name: "Carlos Oliveira", phone:"(11) 99999-0003", role:"player", createdAt: now },
-    },
-    games: {
-      g1: { id:"g1", year: new Date().getFullYear(), trimester:1, startedAt: now, endedAt: null,
-        playersPoints: { p1:1250, p2:1100, p3:950 }
+    // Helpers
+    const STORAGE_KEY = 'gameuau_state_local_v3'; // fallback local
+    function uid(prefix='id'){ return prefix + Date.now(); }
+    function formatBR(d){ if(!d) return ''; const dt=new Date(d); return String(dt.getDate()).padStart(2,'0') + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + dt.getFullYear(); }
+    function today(){ return new Date().toISOString(); }
+
+    // Local fallback state (will be overwritten by realtime DB when connected)
+    let localState = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if(!localState){
+      const now = new Date().toISOString();
+      localState = {
+        players: { p1:{id:'p1', name:'João Silva', phone:'(11)99999-0001', role:'player', createdAt:now} },
+        games: { g1:{id:'g1', year:new Date().getFullYear(), trimester:1, startedAt: now, endedAt: null, playersPoints:{ p1:1250 } } },
+        activeGameId: 'g1'
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
+    }
+
+    // Global state reference that will be kept in sync with Firebase if available
+    let state = { players: {}, games: {}, activeGameId: null };
+    let firebaseAvailable = true;
+    try { if(!db) firebaseAvailable = false; } catch(e){ firebaseAvailable = false; }
+
+    // Read initial state from Firebase (realtime listeners). If fail, use local.
+    async function initState(){
+      if(firebaseAvailable){
+        // players
+        onValue(ref(db, '/players'), snap => {
+          state.players = snap.val() || {};
+          renderAll();
+        }, err => {
+          console.warn('players onValue err', err);
+        });
+
+        // games
+        onValue(ref(db, '/games'), snap => {
+          state.games = snap.val() || {};
+          renderAll();
+        });
+
+        // meta activeGameId
+        onValue(ref(db, '/meta/activeGameId'), snap => {
+          state.activeGameId = snap.val();
+          renderAll();
+        });
+
+        // auth state
+        onAuthStateChanged(auth, user => {
+          window.__currentUser = user;
+          renderAll();
+        });
+
+      } else {
+        // fallback to local
+        state.players = localState.players || {};
+        state.games = localState.games || {};
+        state.activeGameId = localState.activeGameId || null;
+        renderAll();
       }
-    },
-    activeGameId: "g1"
-  };
-}
-function loadLocal(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) { const seed = defaultSeed(); localStorage.setItem(STORAGE_KEY, JSON.stringify(seed)); return seed; }
-    return JSON.parse(raw);
-  } catch(e) { const seed = defaultSeed(); localStorage.setItem(STORAGE_KEY, JSON.stringify(seed)); return seed; }
-}
-function saveLocal(state){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-
-/* ------------- App state ---------------- */
-let state = loadLocal(); // mirrored from DB if firebase enabled
-let currentUser = null;
-
-/* Helpers */
-function uidGen(prefix='id'){ return prefix + Date.now(); }
-function formatBR(d){ if(!d) return ""; const dt = new Date(d); return String(dt.getDate()).padStart(2,'0') + "-" + String(dt.getMonth()+1).padStart(2,'0') + "-" + dt.getFullYear(); }
-function toNumberSafe(v){ return Number(v) || 0; }
-
-/* ------------- Firebase helpers (if enabled) -------------- */
-function dbRef(path){ return firebase.database().ref(path); }
-
-async function syncFromFirebase(){
-  if(!firebaseEnabled) return;
-  // Listen players and games
-  const playersRef = dbRef('/players');
-  playersRef.on('value', snap=>{
-    const players = snap.val() || {};
-    state.players = players;
-    renderAll();
-  });
-  const gamesRef = dbRef('/games');
-  gamesRef.on('value', snap=>{
-    const games = snap.val() || {};
-    state.games = games;
-    // activeGameId stored at /meta/activeGameId or inferred
-    dbRef('/meta/activeGameId').once('value').then(s => {
-      const aid = s.val();
-      state.activeGameId = aid || Object.keys(games)[0] || null;
-      renderAll();
-    });
-  });
-  // meta
-  dbRef('/meta/activeGameId').on('value', snap=>{
-    state.activeGameId = snap.val();
-    renderAll();
-  });
-}
-
-if(firebaseEnabled) {
-  syncFromFirebase();
-  // Auth state
-  firebase.auth().onAuthStateChanged(user=>{
-    currentUser = user;
-    renderAll();
-  });
-} else {
-  // local fallback: ensure state has players/games structure
-  if(!state.players) state.players = defaultSeed().players;
-  if(!state.games) state.games = defaultSeed().games;
-  if(!state.activeGameId) state.activeGameId = defaultSeed().activeGameId;
-}
-
-/* ------------- Utility: compute saturdays for a trimester -------------
-   We'll generate 15 consecutive saturdays starting from the first Saturday >= startedAt
-*/
-function generateSaturdays(startIso, count=15){
-  const start = startIso ? new Date(startIso) : new Date();
-  // find first saturday (weekday 6)
-  const s = new Date(start);
-  const day = s.getDay(); // 0 sunday, 6 saturday
-  let delta = (6 - day);
-  if(delta < 0) delta += 7;
-  s.setDate(s.getDate() + delta);
-  const arr = [];
-  for(let i=0;i<count;i++){
-    const d = new Date(s);
-    d.setDate(s.getDate() + i*7);
-    arr.push(d.toISOString());
-  }
-  return arr;
-}
-
-/* ------------- CRUD operations (works with firebase if enabled, else localStorage) ------------- */
-async function savePlayerToBackend(player){
-  if(firebaseEnabled){
-    // if player has id that looks like auth uid (admin created), use that id, else push new
-    if(player.role === 'admin' && player.id){ // id is auth uid
-      await dbRef('/players/' + player.id).set(player);
-      return player;
-    } else {
-      const newRef = dbRef('/players').push();
-      player.id = newRef.key;
-      await newRef.set(player);
-      return player;
     }
-  } else {
-    // local
-    if(!player.id) player.id = uidGen('p');
-    state.players = state.players || {};
-    state.players[player.id] = player;
-    saveLocal(state);
-    renderAll();
-    return player;
-  }
-}
 
-async function createAdminWithAuth(email, password, playerObj){
-  if(!firebaseEnabled) throw new Error("Firebase não configurado");
-  const res = await firebase.auth().createUserWithEmailAndPassword(email, password);
-  const user = res.user;
-  const uid = user.uid;
-  playerObj.id = uid;
-  await dbRef('/players/' + uid).set(playerObj);
-  // optionally set role mapping
-  return playerObj;
-}
-
-async function createPlayerFlow(data){
-  // data: {name, phone, role, email, password}
-  const player = { name: data.name, phone: data.phone, role: data.role, createdAt: new Date().toISOString() };
-  if(data.role === 'admin'){
-    if(!firebaseEnabled) {
-      alert("Para criar administradores é necessário configurar o Firebase (Auth).");
-      return;
-    }
-    const created = await createAdminWithAuth(data.email, data.password, player);
-    return created;
-  } else {
-    const saved = await savePlayerToBackend(player);
-    return saved;
-  }
-}
-
-async function createGameFlow({year, trimester}){
-  if(state.activeGameId){
-    throw new Error("Já existe um trimestre ativo. Encerre antes de criar outro.");
-  }
-  const id = firebaseEnabled ? dbRef('/games').push().key : uidGen('g');
-  const game = { id, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
-
-  if(firebaseEnabled){
-    await dbRef('/games/' + id).set(game);
-    await dbRef('/meta/activeGameId').set(id);
-  } else {
-    state.games = state.games || {};
-    state.games[id] = game;
-    state.activeGameId = id;
-    saveLocal(state);
-    renderAll();
-  }
-  return game;
-}
-
-async function endGameFlow(gameId){
-  if(firebaseEnabled){
-    await dbRef('/games/' + gameId + '/endedAt').set(new Date().toISOString());
-    await dbRef('/meta/activeGameId').set(null);
-  } else {
-    state.games[gameId].endedAt = new Date().toISOString();
-    state.activeGameId = null;
-    saveLocal(state);
-    renderAll();
-  }
-}
-
-async function addPointsFlow(gameId, playerId, points){
-  if(firebaseEnabled){
-    const ref = dbRef('/games/' + gameId + '/playersPoints/' + playerId);
-    // use transaction to add points
-    await ref.transaction(current => (Number(current || 0) + Number(points)));
-  } else {
-    const g = state.games[gameId];
-    if(!g.playersPoints) g.playersPoints = {};
-    g.playersPoints[playerId] = (g.playersPoints[playerId] || 0) + Number(points);
-    saveLocal(state);
-    renderAll();
-  }
-}
-
-/* ------------- Print helper ------------- */
-function printRankingWithLogo(rankingHtml){
-  const win = window.open('', '_blank', 'width=900,height=1000');
-  const logoHtml = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-    <div style="width:60px;height:60px;background:#000"></div>
-    <div style="font-family: 'Press Start 2P', monospace;font-size:18px">GAME UAU</div>
-  </div>`;
-  win.document.write(`
-    <html><head><title>Game UAU - Ranking</title>
-    <style>
-      body{ font-family: 'Press Start 2P', monospace; padding:20px; }
-      table{ width:100%; border-collapse: collapse; }
-      th,td{ border:1px solid #000; padding:12px; text-align:left; }
-    </style>
-    </head><body>
-    ${logoHtml}
-    ${rankingHtml}
-    </body></html>`);
-  win.document.close();
-  setTimeout(()=> { win.print(); }, 500);
-}
-
-/* ------------- UI rendering and wiring ------------- */
-const views = {
-  home: document.getElementById('view-home'),
-  ranking: document.getElementById('view-ranking'),
-  admin: document.getElementById('view-admin')
-};
-
-function showView(route){
-  Object.values(views).forEach(v=>v.classList.add('hidden'));
-  if(route === 'ranking') views.ranking.classList.remove('hidden');
-  else if(route === 'admin') views.admin.classList.remove('hidden');
-  else views.home.classList.remove('hidden');
-  // minor re-render
-  renderAll();
-}
-
-window.addEventListener('hashchange', ()=> {
-  const r = location.hash.replace('#','').replace('/','') || '';
-  if(r === 'admin') showView('admin');
-  else if(r === 'ranking') showView('ranking');
-  else showView('home');
-});
-if(!location.hash) location.hash = '#/';
-
-/* DOM refs */
-const nextSaturdayTag = document.getElementById('nextSaturdayTag');
-const logoutBtn = document.getElementById('logoutBtn');
-const btnGoRanking = document.getElementById('btnGoRanking');
-const btnPrintPublic = document.getElementById('btnPrintPublic');
-const cardRegister = document.getElementById('card-register-player');
-const cardCreateEnd = document.getElementById('card-create-end-game');
-const cardLaunchPoints = document.getElementById('card-launch-points');
-const cardManagePlayers = document.getElementById('card-manage-players');
-const cardAnnualRanking = document.getElementById('card-annual-ranking');
-const rankingPreviewEl = document.getElementById('rankingPreview');
-const totalPlayersEl = document.getElementById('totalPlayers');
-const playersCountTag = document.getElementById('playersCount');
-const activeTag = document.getElementById('activeTag');
-const createEndTitle = document.getElementById('createEndTitle');
-const publicRankingEl = document.getElementById('publicRanking');
-
-/* Attach nav actions */
-btnGoRanking.addEventListener('click', ()=> location.hash = '#/ranking');
-btnPrintPublic.addEventListener('click', ()=> {
-  // build ranking HTML
-  const html = buildPublicRankingHtmlForPrint();
-  printRankingWithLogo(html);
-});
-
-/* logout behavior */
-logoutBtn.addEventListener('click', async ()=>{
-  if(firebaseEnabled && firebase.auth().currentUser){
-    await firebase.auth().signOut();
-    alert('Logout efetuado.');
-    currentUser = null;
-    location.hash = '#/';
-    renderAll();
-  } else {
-    // local fallback: just navigate to home
-    alert('Logout (modo local)');
-    currentUser = null;
-    location.hash = '#/';
-    renderAll();
-  }
-});
-
-/* Cards */
-cardRegister.addEventListener('click', ()=> openModal('playerRegister'));
-cardManagePlayers.addEventListener('click', ()=> openModal('managePlayers'));
-cardCreateEnd.addEventListener('click', async ()=>{
-  if(state.activeGameId) openModal('endGame');
-  else openModal('createGame');
-});
-cardLaunchPoints.addEventListener('click', ()=> openModal('launchPoints'));
-cardAnnualRanking.addEventListener('click', ()=> openModal('annualRanking'));
-
-/* Renders */
-function renderAll(){
-  // update derived UI (players count, active tag, next saturday)
-  const players = state.players || {};
-  const games = state.games || {};
-  const playerCount = Object.keys(players).length;
-  playersCountTag.textContent = playerCount + ' JOGADORES';
-  if(state.activeGameId) { activeTag.textContent = 'TRIMESTRE ATIVO'; createEndTitle.textContent = 'ENCERRAR GAME'; }
-  else { activeTag.textContent = 'TRIMESTRE INATIVO'; createEndTitle.textContent = 'NOVO GAME UAU'; }
-
-  // compute next saturday for active game (first saturday >= now in list)
-  let nextSatText = '--';
-  if(state.activeGameId && state.games && state.games[state.activeGameId]){
-    const g = state.games[state.activeGameId];
-    const saturdays = generateSaturdays(g.startedAt, 15);
-    const next = saturdays.find(s => new Date(s) >= new Date());
-    nextSatText = next ? formatBR(next) : formatBR(saturdays[0]);
-  } else {
-    // use today
-    nextSatText = formatBR(new Date());
-  }
-  nextSaturdayTag.textContent = 'Próx. sábado: ' + nextSatText;
-
-  // render ranking preview
-  renderRankingPreview();
-  renderPublicRankingList();
-}
-
-function renderRankingPreview(){
-  rankingPreviewEl.innerHTML = '';
-  const game = (state.activeGameId && state.games && state.games[state.activeGameId]) ? state.games[state.activeGameId] : (state.games && Object.values(state.games)[0]);
-  if(!game){ rankingPreviewEl.innerHTML = '<div>Nenhum trimestre</div>'; totalPlayersEl.textContent = '0'; return; }
-  const pts = game.playersPoints || {};
-  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name, points: pts[p.id] || 0 }));
-  playersArr.sort((a,b)=> b.points - a.points);
-  playersArr.forEach((r,i)=>{
-    const row = document.createElement('div'); row.className = 'ranking-row pixel-box';
-    row.innerHTML = `<div>${i+1}º • ${r.name}</div><div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>`;
-    rankingPreviewEl.appendChild(row);
-  });
-  totalPlayersEl.textContent = (Object.keys(state.players||{}).length || 0);
-}
-
-/* Public ranking list */
-function renderPublicRankingList(){
-  publicRankingEl.innerHTML = '';
-  // pick latest finished game? For public ranking, show active game's ranking
-  const game = (state.activeGameId && state.games && state.games[state.activeGameId]) ? state.games[state.activeGameId] : (state.games && Object.values(state.games)[0]);
-  if(!game) { publicRankingEl.innerHTML = '<div>Nenhum ranking</div>'; return; }
-  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name, points: (game.playersPoints||{})[p.id] || 0 }));
-  playersArr.sort((a,b)=> b.points - a.points);
-  const container = document.createElement('div');
-  container.innerHTML = playersArr.map((r,i)=> `<div style="display:flex;justify-content:space-between;padding:10px;border:2px solid #000;margin-bottom:6px;background:#dff3f5">${i+1}º ${r.name} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('');
-  publicRankingEl.appendChild(container);
-}
-
-/* Build print html portion (table) */
-function buildPublicRankingHtmlForPrint(){
-  const game = (state.activeGameId && state.games && state.games[state.activeGameId]) ? state.games[state.activeGameId] : (state.games && Object.values(state.games)[0]);
-  if(!game) return '<div>Nenhum ranking</div>';
-  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name, points: (game.playersPoints||{})[p.id] || 0 }));
-  playersArr.sort((a,b)=> b.points - a.points);
-  let html = '<table><thead><tr><th>Posição</th><th>Jogador</th><th>Pontos</th></tr></thead><tbody>';
-  playersArr.forEach((r,i)=> html += `<tr><td>${i+1}º</td><td>${r.name}</td><td>${r.points.toLocaleString('pt-BR')}</td></tr>`);
-  html += '</tbody></table>';
-  return html;
-}
-
-/* ------------- Modal system ------------- */
-const modalRoot = document.getElementById('modal-root');
-let currentModal = null;
-function openModal(type, payload){
-  closeModal();
-  document.body.style.overflow = 'hidden';
-  const overlay = document.createElement('div'); overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
-  overlay.addEventListener('click', closeModal);
-  const center = document.createElement('div'); center.className = 'modal-center'; center.addEventListener('click', e=>e.stopPropagation());
-  overlay.appendChild(center);
-  modalRoot.appendChild(overlay);
-  currentModal = { type, payload, overlay, center };
-  // mount content
-  if(type === 'playerRegister') center.innerHTML = playerRegisterHtml();
-  else if(type === 'managePlayers') center.innerHTML = managePlayersHtml();
-  else if(type === 'createGame') center.innerHTML = createGameHtml();
-  else if(type === 'endGame') center.innerHTML = endGameHtml();
-  else if(type === 'launchPoints') center.innerHTML = launchPointsHtml();
-  else if(type === 'annualRanking') center.innerHTML = annualRankingHtml();
-  else if(type === 'login') center.innerHTML = loginHtml();
-  else center.innerHTML = '<div>Em construção</div>';
-  attachModalHandlers(type, payload);
-}
-function closeModal(){
-  const o = document.getElementById('modal-overlay');
-  if(o) o.remove();
-  currentModal = null;
-  document.body.style.overflow = '';
-}
-
-/* Modal html builders + attachers */
-function playerRegisterHtml(){
-  return `
-    <h2>CADASTRAR JOGADOR / ADMIN</h2>
-    <form id="form-player" class="mt-4">
-      <label>Nome</label>
-      <input id="player-name" class="pixel-input" placeholder="Nome completo" required />
-      <label>Telefone</label>
-      <input id="player-phone" class="pixel-input" placeholder="(11) 9xxxx-xxxx" />
-      <label>Perfil</label>
-      <select id="player-role" class="pixel-input">
-        <option value="player">Jogador</option>
-        <option value="admin">Administrador</option>
-      </select>
-
-      <div id="admin-credentials" style="display:none">
-        <label>Email</label>
-        <input id="player-email" class="pixel-input" placeholder="admin@exemplo.com" />
-        <label>Senha</label>
-        <div style="display:flex;gap:8px;">
-          <input id="player-pass" type="password" class="pixel-input" placeholder="Senha" style="flex:1" />
-          <button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button>
-        </div>
-        <label>Confirmar senha</label>
-        <input id="player-pass2" type="password" class="pixel-input" placeholder="Confirmar senha" />
-      </div>
-
-      <div class="flex gap-3">
-        <button type="submit" class="pixel-btn">CADASTRAR</button>
-        <button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button>
-      </div>
-    </form>
-  `;
-}
-function attachModalHandlers(type, payload){
-  if(type === 'playerRegister'){
-    document.getElementById('player-role').addEventListener('change', (e)=>{
-      const isAdmin = e.target.value === 'admin';
-      document.getElementById('admin-credentials').style.display = isAdmin ? 'block' : 'none';
-    });
-    document.getElementById('toggle-pass').addEventListener('click', ()=>{
-      const p = document.getElementById('player-pass');
-      p.type = (p.type === 'password') ? 'text' : 'password';
-      document.getElementById('toggle-pass').textContent = p.type === 'password' ? 'Mostrar' : 'Esconder';
-    });
-    document.getElementById('form-player').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const name = document.getElementById('player-name').value.trim();
-      const phone = document.getElementById('player-phone').value.trim();
-      const role = document.getElementById('player-role').value;
-      if(!name) return alert('Digite o nome');
-      if(role === 'admin'){
-        const email = document.getElementById('player-email').value.trim();
-        const pass = document.getElementById('player-pass').value;
-        const pass2 = document.getElementById('player-pass2').value;
-        if(!email || !pass) return alert('Email e senha obrigatórios para admin');
-        if(pass !== pass2) return alert('Senhas não conferem');
-        try {
-          await createPlayerFlow({name, phone, role, email, password: pass});
-          alert('Administrador criado com sucesso!');
-          closeModal();
-        } catch(err){
-          console.error(err);
-          alert('Erro ao criar admin: '+ err.message);
+    // Write helpers: create player (if admin creates Auth user)
+    async function createPlayer(data){
+      // data: { name, phone, role, email?, password? }
+      if(firebaseAvailable){
+        if(data.role === 'admin'){
+          // create auth user
+          const userCred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+          const uid = userCred.user.uid;
+          // store in players node with authUid and key == uid (we use auth uid as key for admins)
+          const playerObj = { id: uid, name: data.name, phone: data.phone || null, role: 'admin', createdAt: new Date().toISOString() };
+          await set(ref(db, '/players/' + uid), playerObj);
+          // ensure mapping of active meta? no
+          return playerObj;
+        } else {
+          // normal player under push key
+          const newRef = push(ref(db, '/players'));
+          const key = newRef.key;
+          const playerObj = { id: key, name: data.name, phone: data.phone || null, role: 'player', createdAt: new Date().toISOString() };
+          await set(ref(db, '/players/' + key), playerObj);
+          return playerObj;
         }
       } else {
-        try {
-          await createPlayerFlow({name, phone, role});
-          alert('Jogador criado com sucesso!');
-          closeModal();
-        } catch(err){
-          console.error(err);
-          alert('Erro ao criar jogador: '+ err.message);
-        }
-      }
-    });
-    document.getElementById('cancel-player').addEventListener('click', closeModal);
-  }
-
-  if(type === 'createGame'){
-    document.getElementById('form-create-game').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const trimester = Number(document.getElementById('create-trim').value);
-      const year = Number(document.getElementById('create-year').value);
-      try {
-        await createGameFlow({year, trimester});
-        alert('Trimestre criado!');
-        closeModal();
-      } catch(err){
-        alert(err.message || 'Erro');
-      }
-    });
-    document.getElementById('cancel-create').addEventListener('click', closeModal);
-  }
-
-  if(type === 'endGame'){
-    document.getElementById('confirm-end').addEventListener('click', async ()=>{
-      const id = state.activeGameId;
-      if(!id) return alert('Nenhum trimestre ativo');
-      try {
-        await endGameFlow(id);
-        alert('Trimestre encerrado!');
-        closeModal();
-      } catch(err){ alert('Erro: '+err.message); }
-    });
-    document.getElementById('cancel-end').addEventListener('click', closeModal);
-  }
-
-  if(type === 'managePlayers'){
-    document.querySelectorAll('.btn-del').forEach(btn=>{
-      btn.addEventListener('click', async (e)=>{
-        const id = e.currentTarget.dataset.id;
-        if(!confirm('Excluir jogador?')) return;
-        if(firebaseEnabled){
-          await dbRef('/players/' + id).remove();
-          // also remove from games points
-          // iterate games and remove
-          const gSnap = await dbRef('/games').once('value');
-          const games = gSnap.val() || {};
-          for(const gid in games){
-            if(games[gid].playersPoints && games[gid].playersPoints[id]) {
-              await dbRef('/games/' + gid + '/playersPoints/' + id).remove();
-            }
-          }
-        } else {
-          delete state.players[id];
-          for(const gid in state.games) { if(state.games[gid].playersPoints) delete state.games[gid].playersPoints[id]; }
-          saveLocal(state);
-          renderAll();
-        }
-        alert('Excluído');
-        closeModal();
-      });
-    });
-    document.getElementById('close-manage').addEventListener('click', closeModal);
-  }
-
-  if(type === 'launchPoints'){
-    // Clicking a saturday button expands the table area below (attached in that modal markup)
-    document.querySelectorAll('.sat-btn').forEach(btn=>{
-      btn.addEventListener('click', (e)=>{
-        const iso = e.currentTarget.dataset.iso;
-        renderPointsTableForSaturday(iso);
-      });
-    });
-
-    // search input filtering
-    const search = document.getElementById('points-search');
-    if(search){
-      search.addEventListener('input', (e)=>{
-        const q = e.target.value.toLowerCase();
-        document.querySelectorAll('.pts-row').forEach(row=>{
-          const name = row.dataset.name.toLowerCase();
-          row.style.display = name.includes(q) ? '' : 'none';
-        });
-      });
-    }
-
-    // submit points (catch event via delegation)
-    document.getElementById('points-table-area')?.addEventListener('click', (e)=>{
-      if(e.target && e.target.matches('.save-point-btn')){
-        const pid = e.target.dataset.pid;
-        const val = document.getElementById('pts-' + pid).value;
-        const iso = e.target.dataset.iso;
-        const pts = Number(val) || 0;
-        // Add points to selected game for that player for that saturday
-        const gameId = state.activeGameId;
-        addPointsFlow(gameId, pid, pts).then(()=> {
-          alert('Pontos registrados');
-          // optionally mark this saturday as used? For now we just add points
-          renderAll();
-        }).catch(err=> alert('Erro: '+err.message));
-      }
-    });
-
-    document.getElementById('close-launch')?.addEventListener('click', closeModal);
-  }
-
-  if(type === 'annualRanking'){
-    document.getElementById('close-annual')?.addEventListener('click', closeModal);
-  }
-
-  if(type === 'login'){
-    document.getElementById('form-login')?.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-pass').value;
-      if(!firebaseEnabled) { alert('Firebase não configurado (modo local)'); return; }
-      try {
-        await firebase.auth().signInWithEmailAndPassword(email, password);
-        alert('Login OK');
-        closeModal();
-        location.hash = '#/admin'; // go to admin
+        // local fallback
+        const key = uid('p');
+        const playerObj = { id:key, name: data.name, phone: data.phone || null, role: data.role || 'player', createdAt: new Date().toISOString() };
+        state.players[key] = playerObj;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         renderAll();
-      } catch(err){ alert('Erro login: ' + err.message); }
-    });
-    document.getElementById('cancel-login')?.addEventListener('click', closeModal);
-  }
-}
-
-/* Modal HTML fragments */
-
-function managePlayersHtml(){
-  const rows = Object.values(state.players || {}).map(p=>{
-    return `<div class="flex justify-between items-center py-2 border-b">
-      <div><div>${p.name}</div><div style="font-size:12px">${p.role} ${p.phone ? '• ' + p.phone : ''}</div></div>
-      <div><button class="pixel-btn btn-del" data-id="${p.id}">DEL</button></div>
-    </div>`;
-  }).join('');
-  return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
-}
-
-function createGameHtml(){
-  const year = new Date().getFullYear();
-  return `<h2>NOVO GAME UAU</h2>
-    <form id="form-create-game" class="mt-4">
-      <label>Trimestre</label>
-      <select id="create-trim" class="pixel-input"><option>1</option><option>2</option><option>3</option><option>4</option></select>
-      <label>Ano</label>
-      <input id="create-year" class="pixel-input" type="number" value="${year}" />
-      <div class="flex gap-3"><button class="pixel-btn" type="submit">CRIAR</button><button id="cancel-create" type="button" class="pixel-btn">CANCELAR</button></div>
-    </form>`;
-}
-
-function endGameHtml(){
-  return `<h2>ENCERRAR TRIMESTRE</h2><p>Deseja encerrar o trimestre em andamento?</p>
-    <div class="flex gap-3 mt-4"><button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button><button id="cancel-end" class="pixel-btn">CANCELAR</button></div>`;
-}
-
-function launchPointsHtml(){
-  // show list of saturdays for active game
-  const game = state.activeGameId && state.games && state.games[state.activeGameId] ? state.games[state.activeGameId] : null;
-  if(!game) return `<h2>LANÇAR PONTOS</h2><div class="mt-4">Nenhum trimestre ativo.</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
-  const saturdays = generateSaturdays(game.startedAt, 15);
-  const satsHtml = saturdays.map(s => `<button class="pixel-btn sat-btn" data-iso="${s}" style="margin:4px">${formatBR(s)}</button>`).join('');
-  return `<h2>LANÇAR PONTOS - TRIMESTRE ATIVO</h2>
-    <div class="mt-4">Escolha o sábado:</div>
-    <div class="mt-3">${satsHtml}</div>
-    <div class="mt-4">Pesquisar jogador:</div>
-    <input id="points-search" class="pixel-input" placeholder="Digite para filtrar" />
-    <div id="points-table-area" class="mt-4"></div>
-    <div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
-}
-
-function renderPointsTableForSaturday(iso){
-  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name }));
-  playersArr.sort((a,b)=> a.name.localeCompare(b.name));
-  const rows = playersArr.map(p=> `<div class="pts-row flex justify-between items-center py-2 border-b" data-name="${p.name}">
-    <div>${p.name}</div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <input id="pts-${p.id}" class="pixel-input" style="width:120px;padding:6px" type="number" placeholder="0" />
-      <button class="pixel-btn save-point-btn" data-pid="${p.id}" data-iso="${iso}">SALVAR</button>
-    </div>
-  </div>`).join('');
-  const area = document.getElementById('points-table-area');
-  area.innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
-}
-
-function annualRankingHtml(){
-  // compute sum of all games in current year
-  const arr = computeAnnualRanking(new Date().getFullYear());
-  const rows = arr.map((r,i)=>{
-    const p = state.players && state.players[r.id];
-    const name = p ? p.name : 'Desconhecido';
-    return `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i+1}. ${name} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`;
-  }).join('') || '<div>Nenhum registro</div>';
-  return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
-}
-
-function loginHtml(){
-  return `<h2>LOGIN ADMIN</h2>
-    <form id="form-login" class="mt-4">
-      <label>Email</label><input id="login-email" class="pixel-input" type="email" />
-      <label>Senha</label><input id="login-pass" class="pixel-input" type="password" />
-      <div class="flex gap-3"><button class="pixel-btn" type="submit">ENTRAR</button><button id="cancel-login" type="button" class="pixel-btn">CANCELAR</button></div>
-    </form>`;
-}
-
-/* ------------- annual ranking compute ------------- */
-function computeAnnualRanking(year){
-  const map = {};
-  for(const gid in (state.games||{})){
-    const g = state.games[gid];
-    const gy = new Date(g.startedAt).getFullYear();
-    if(gy !== year) continue;
-    const ppts = g.playersPoints || {};
-    for(const pid in ppts){ map[pid] = (map[pid] || 0) + Number(ppts[pid] || 0); }
-  }
-  return Object.entries(map).map(([id, points])=>({ id, points })).sort((a,b)=> b.points - a.points);
-}
-
-/* ------------- Navigation guard for admin: show login if not authed ------------- */
-function ensureAdminAccess(){
-  if(firebaseEnabled){
-    const user = firebase.auth().currentUser;
-    if(!user) { openModal('login'); return false; }
-    // Optionally check role in DB -> allow only if /players/{uid}.role === 'admin'
-    return true;
-  } else {
-    // local mode: allow admin area
-    return true;
-  }
-}
-
-/* When user navigates to admin hash, if not logged prompt login */
-window.addEventListener('hashchange', ()=>{
-  if(location.hash.startsWith('#/admin')){
-    if(!ensureAdminAccess()) {
-      // redirect to home view and show login modal
-      showView('home');
-      return;
+        return playerObj;
+      }
     }
-  }
-});
 
-/* ------------- Initial boot ------------- */
-function initialRender(){
-  // if firebase enabled but not synced to state yet, state will update via listeners
-  renderAll();
-}
-initialRender();
+    async function updatePlayer(key, patch){
+      if(firebaseAvailable){
+        await update(ref(db, '/players/' + key), patch);
+      } else {
+        state.players[key] = {...state.players[key], ...patch};
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderAll();
+      }
+    }
 
-/* ------------- Event: show admin modal on clicking admin link if not authed ------------- */
-document.querySelectorAll('a[href="#/admin"]').forEach(a=>{
-  a.addEventListener('click', (e)=>{
-    // wait for hashchange to fire; ensure authentication
-    setTimeout(()=> { if(!ensureAdminAccess()) openModal('login'); }, 50);
-  });
-});
+    async function deletePlayer(key){
+      if(firebaseAvailable){
+        // remove player node
+        await remove(ref(db, '/players/' + key));
+        // also remove entries in games playersPoints
+        const gamesSnap = await get(ref(db, '/games'));
+        const games = gamesSnap.val() || {};
+        for(const gid in games){
+          if(games[gid].playersPoints && games[gid].playersPoints[key]){
+            await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
+          }
+        }
+      } else {
+        delete state.players[key];
+        for(const gid in state.games) { if(state.games[gid].playersPoints) delete state.games[gid].playersPoints[key]; }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderAll();
+      }
+    }
 
-/* ------------- On load, show proper view ------------- */
-if(location.hash.startsWith('#/admin')) {
-  if(!ensureAdminAccess()) { showView('home'); openModal('login'); } else showView('admin');
-} else if(location.hash.startsWith('#/ranking')) showView('ranking'); else showView('home');
+    async function createGame({year, trimester}){
+      if(state.activeGameId) throw new Error('Já existe um trimestre ativo. Encerre antes.');
+      if(firebaseAvailable){
+        const newRef = push(ref(db, '/games'));
+        const gid = newRef.key;
+        const game = { id:gid, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
+        await set(ref(db, '/games/' + gid), game);
+        await set(ref(db, '/meta/activeGameId'), gid);
+        return game;
+      } else {
+        const gid = uid('g');
+        const game = { id:gid, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
+        state.games[gid] = game;
+        state.activeGameId = gid;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderAll();
+        return game;
+      }
+    }
 
-/* ------------- Open modal shortcuts for admin actions that require login ------------- */
-cardCreateEnd.addEventListener('click', ()=>{
-  if(!ensureAdminAccess()) return;
-  // open create or end accordingly
-  if(state.activeGameId) openModal('endGame'); else openModal('createGame');
-});
+    async function endGame(gid){
+      if(!gid) gid = state.activeGameId;
+      if(!gid) throw new Error('Nenhum game ativo');
+      if(firebaseAvailable){
+        await set(ref(db, '/games/' + gid + '/endedAt'), new Date().toISOString());
+        await set(ref(db, '/meta/activeGameId'), null);
+      } else {
+        state.games[gid].endedAt = new Date().toISOString();
+        state.activeGameId = null;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderAll();
+      }
+    }
 
-/* ------------- Sync local state with firebase when firebaseEnabled (write operations already use DB) ------------- */
-if(!firebaseEnabled){
-  // keep local state variable
-} else {
-  // when using firebase, writes already go to DB. Keep state updated from listeners.
-}
+    async function addPoints(gid, playerId, pts){
+      if(firebaseAvailable){
+        await runTransaction(ref(db, '/games/' + gid + '/playersPoints/' + playerId), current => (Number(current || 0) + Number(pts)));
+      } else {
+        const g = state.games[gid];
+        if(!g.playersPoints) g.playersPoints = {};
+        g.playersPoints[playerId] = (g.playersPoints[playerId] || 0) + Number(pts);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderAll();
+      }
+    }
 
-/* Expose for debugging */
-window.__gameuau = {
-  state,
-  firebaseEnabled
-};
-</script>
+    /* Utility: generate saturdays */
+    function generateSaturdays(startIso, count=15){
+      const start = startIso ? new Date(startIso) : new Date();
+      const s = new Date(start);
+      const day = s.getDay();
+      let delta = (6 - day);
+      if(delta < 0) delta += 7;
+      s.setDate(s.getDate() + delta);
+      const arr = [];
+      for(let i=0;i<count;i++){
+        const d = new Date(s);
+        d.setDate(s.getDate() + i*7);
+        arr.push(d.toISOString());
+      }
+      return arr;
+    }
+
+    /* ---------- UI wiring ---------- */
+    const views = {
+      home: document.getElementById('view-home'),
+      admin: document.getElementById('view-admin'),
+      ranking: document.getElementById('view-ranking')
+    };
+
+    function showView(route){
+      Object.values(views).forEach(v=>v.classList.add('hidden'));
+      if(route === 'admin') views.admin.classList.remove('hidden');
+      else if(route === 'ranking') views.ranking.classList.remove('hidden');
+      else views.home.classList.remove('hidden');
+      renderAll();
+    }
+    window.addEventListener('hashchange', ()=> {
+      const path = location.hash.replace('#/','');
+      if(path === 'admin'){
+        // if not authed, open login modal
+        if(firebaseAvailable){
+          if(!auth.currentUser) { openModal('login'); showView('home'); return; }
+        }
+        showView('admin');
+      } else if(path === 'ranking') showView('ranking');
+      else showView('home');
+    });
+    if(!location.hash) location.hash = '#/';
+
+    // DOM refs
+    const nextSatTag = document.getElementById('nextSaturdayTag');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const btnGoRanking = document.getElementById('btnGoRanking');
+    const btnPrintPublic = document.getElementById('btnPrintPublic');
+    const cardRegister = document.getElementById('card-register-player');
+    const cardCreateEnd = document.getElementById('card-create-end-game');
+    const cardLaunchPoints = document.getElementById('card-launch-points');
+    const cardManagePlayers = document.getElementById('card-manage-players');
+    const cardAnnualRanking = document.getElementById('card-annual-ranking');
+    const quickRegisterBtn = document.getElementById('quickRegisterBtn');
+
+    btnGoRanking.addEventListener('click', ()=> location.hash = '#/ranking');
+    btnPrintPublic?.addEventListener('click', ()=> {
+      const html = buildPublicRankingHtmlForPrint();
+      const win = window.open('','_blank','width=900,height=1000');
+      win.document.write(`<html><head><title>Ranking</title><style>body{font-family: 'Press Start 2P', monospace;padding:20px}</style></head><body><div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><div style="width:60px;height:60px;background:#000"></div><div style="font-size:18px">GAME UAU</div></div>${html}</body></html>`);
+      win.document.close();
+      setTimeout(()=>win.print(),400);
+    });
+
+    logoutBtn.addEventListener('click', async ()=>{
+      if(firebaseAvailable && auth.currentUser){
+        await signOut(auth);
+        alert('Logout efetuado');
+        renderAll();
+        location.hash = '#/';
+      } else {
+        alert('Logout (modo local)');
+        location.hash = '#/';
+      }
+    });
+
+    cardRegister.addEventListener('click', ()=> openModal('playerRegister'));
+    quickRegisterBtn.addEventListener('click', ()=> openModal('playerRegister'));
+    cardManagePlayers.addEventListener('click', ()=> openModal('managePlayers'));
+    cardCreateEnd.addEventListener('click', ()=> {
+      if(state.activeGameId) openModal('endGame');
+      else openModal('createGame');
+    });
+    cardLaunchPoints.addEventListener('click', ()=> openModal('launchPoints'));
+    cardAnnualRanking.addEventListener('click', ()=> openModal('annualRanking'));
+
+    /* Render helpers */
+    function renderAll(){
+      // if firebase available, state is updated by listeners; else we use localState
+      const players = firebaseAvailable ? (state.players || {}) : (localState.players || {});
+      const games = firebaseAvailable ? (state.games || {}) : (localState.games || {});
+      const activeId = firebaseAvailable ? state.activeGameId : (localState.activeGameId || Object.keys(games)[0]);
+
+      // players count
+      document.getElementById('playersCount').textContent = (Object.keys(players).length || 0) + ' JOGADORES';
+      const activeTag = document.getElementById('activeTag');
+      if(activeId) { activeTag.textContent = 'TRIMESTRE ATIVO'; document.getElementById('createEndTitle').textContent = 'ENCERRAR GAME'; }
+      else { activeTag.textContent = 'TRIMESTRE INATIVO'; document.getElementById('createEndTitle').textContent = 'NOVO GAME UAU'; }
+
+      // next saturday
+      let next = '--';
+      if(activeId && games[activeId]){
+        const sats = generateSaturdays(games[activeId].startedAt, 15);
+        const n = sats.find(s=> new Date(s) >= new Date()) || sats[0];
+        next = formatBR(n);
+      } else {
+        next = formatBR(new Date());
+      }
+      nextSatTag.textContent = 'Próx. sábado: ' + next;
+
+      // ranking preview
+      renderRankingPreview(players, games, activeId);
+      // public ranking
+      renderPublicRanking(players, games, activeId);
+      // stats
+      renderStats(players, games, activeId);
+    }
+
+    function renderRankingPreview(players, games, activeId){
+      const container = document.getElementById('rankingPreview');
+      container.innerHTML = '';
+      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
+      if(!game){ container.innerHTML = '<div>Nenhum trimestre disponível</div>'; document.getElementById('totalPlayers').textContent = '0'; return; }
+      const pts = game.playersPoints || {};
+      const arr = Object.values(players).map(p => ({ id:p.id, name:p.name, points: pts[p.id] || 0 }));
+      arr.sort((a,b)=> b.points - a.points);
+      arr.forEach((r,i)=>{
+        const div = document.createElement('div'); div.className = 'ranking-row pixel-box';
+        div.innerHTML = `<div>${i+1}º • ${r.name}</div><div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>`;
+        container.appendChild(div);
+      });
+      document.getElementById('totalPlayers').textContent = Object.keys(players).length || 0;
+    }
+
+    function renderPublicRanking(players, games, activeId){
+      const el = document.getElementById('publicRanking');
+      el.innerHTML = '';
+      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
+      if(!game) { el.innerHTML = '<div>Nenhum ranking</div>'; return; }
+      const pts = game.playersPoints || {};
+      const arr = Object.values(players).map(p => ({ id:p.id, name:p.name, points: pts[p.id] || 0 }));
+      arr.sort((a,b)=> b.points - a.points);
+      arr.forEach((r,i)=>{
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center p-3 border-2 border-black mb-2 bg-[#dff3f5]';
+        div.innerHTML = `<div>${i+1}º ${r.name}</div><div><strong>${r.points.toLocaleString('pt-BR')}</strong></div>`;
+        el.appendChild(div);
+      });
+    }
+
+    function computeAnnualRanking(year){
+      const map = {};
+      const gamesObj = firebaseAvailable ? (state.games||{}) : (localState.games||{});
+      for(const gid in gamesObj){
+        const g = gamesObj[gid];
+        const gy = new Date(g.startedAt).getFullYear();
+        if(gy !== year) continue;
+        const ppts = g.playersPoints || {};
+        for(const pid in ppts) map[pid] = (map[pid] || 0) + Number(ppts[pid] || 0);
+      }
+      return Object.entries(map).map(([id, points])=> ({ id, points })).sort((a,b)=> b.points - a.points);
+    }
+
+    function renderStats(players, games, activeId){
+      const statMaxEl = document.getElementById('statMax');
+      const statAvgEl = document.getElementById('statAvg');
+      const statSábadosEl = document.getElementById('statSábados');
+      const statNextEl = document.getElementById('statNextGame');
+
+      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
+      if(!game){ statMaxEl.textContent = '0'; statAvgEl.textContent = '0'; statSábadosEl.textContent = '0'; statNextEl.textContent = '--'; return; }
+      const pts = Object.values(game.playersPoints || {});
+      const max = pts.length ? Math.max(...pts) : 0;
+      const avg = pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : 0;
+      statMaxEl.textContent = max.toLocaleString('pt-BR');
+      statAvgEl.textContent = avg.toLocaleString('pt-BR');
+      const sats = generateSaturdays(game.startedAt, 15);
+      statSábadosEl.textContent = (Object.keys(game.playersPoints||{}).length || 0) + '/' + sats.length;
+      statNextEl.textContent = 'SÁBADO ' + formatBR(sats.find(s=> new Date(s) >= new Date()) || sats[0]);
+    }
+
+    function buildPublicRankingHtmlForPrint(){
+      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
+      const games = firebaseAvailable ? (state.games||{}) : (localState.games||{});
+      const activeId = firebaseAvailable ? state.activeGameId : (localState.activeGameId || Object.keys(games)[0]);
+      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
+      if(!game) return '<div>Nenhum ranking</div>';
+      const arr = Object.values(players).map(p => ({ id:p.id, name:p.name, points: (game.playersPoints||{})[p.id] || 0 }));
+      arr.sort((a,b)=> b.points - a.points);
+      let html = '<table style="width:100%;border-collapse:collapse"><thead><tr><th style="border:1px solid #000;padding:8px">Pos</th><th style="border:1px solid #000;padding:8px">Jogador</th><th style="border:1px solid #000;padding:8px">Pontos</th></tr></thead><tbody>';
+      arr.forEach((r,i)=> html += `<tr><td style="border:1px solid #000;padding:8px">${i+1}º</td><td style="border:1px solid #000;padding:8px">${r.name}</td><td style="border:1px solid #000;padding:8px">${r.points.toLocaleString('pt-BR')}</td></tr>`);
+      html += '</tbody></table>';
+      return html;
+    }
+
+    /* ---------- Modal system ---------- */
+    const modalRoot = document.getElementById('modal-root');
+    let currentModal = null;
+    function openModal(type, payload){
+      closeModal();
+      document.body.style.overflow = 'hidden';
+      const overlay = document.createElement('div'); overlay.className='modal-overlay'; overlay.id='modal-overlay';
+      overlay.addEventListener('click', closeModal);
+      const center = document.createElement('div'); center.className='modal-center'; center.addEventListener('click', e=> e.stopPropagation());
+      overlay.appendChild(center); modalRoot.appendChild(overlay);
+      currentModal = { type, payload, overlay, center };
+
+      if(type === 'playerRegister') center.innerHTML = playerRegisterHtml();
+      else if(type === 'managePlayers') center.innerHTML = managePlayersHtml();
+      else if(type === 'createGame') center.innerHTML = createGameHtml();
+      else if(type === 'endGame') center.innerHTML = endGameHtml();
+      else if(type === 'launchPoints') center.innerHTML = launchPointsHtml();
+      else if(type === 'annualRanking') center.innerHTML = annualRankingHtml();
+      else if(type === 'editPlayer') center.innerHTML = editPlayerHtml(payload);
+      else if(type === 'login') center.innerHTML = loginHtml();
+
+      attachModalHandlers(type, payload);
+    }
+    function closeModal(){ const o = document.getElementById('modal-overlay'); if(o) o.remove(); currentModal = null; document.body.style.overflow=''; }
+
+    /* modal html builders */
+    function playerRegisterHtml(){
+      return `
+        <h2>CADASTRAR JOGADOR / ADMIN</h2>
+        <form id="form-player" class="mt-4">
+          <label>Nome</label>
+          <input id="player-name" class="pixel-input" placeholder="Nome completo" required />
+          <label>Telefone</label>
+          <input id="player-phone" class="pixel-input" placeholder="(11) 9xxxx-xxxx" />
+          <label>Perfil</label>
+          <select id="player-role" class="pixel-input"><option value="player">Jogador</option><option value="admin">Administrador</option></select>
+
+          <div id="admin-credentials" style="display:none">
+            <label>Email</label><input id="player-email" class="pixel-input" placeholder="admin@exemplo.com" />
+            <label>Senha</label>
+            <div style="display:flex;gap:8px;"><input id="player-pass" type="password" class="pixel-input" style="flex:1"/><button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button></div>
+            <label>Confirmar senha</label><input id="player-pass2" type="password" class="pixel-input" />
+          </div>
+
+          <div class="flex gap-3"><button class="pixel-btn" type="submit">CADASTRAR</button><button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button></div>
+        </form>
+      `;
+    }
+
+    function editPlayerHtml(playerKey){
+      const p = (firebaseAvailable ? (state.players||{}) : localState.players)[playerKey] || {};
+      return `
+        <h2>EDITAR JOGADOR</h2>
+        <form id="form-edit-player" class="mt-4">
+          <label>Nome</label><input id="edit-name" class="pixel-input" value="${p.name || ''}" />
+          <label>Telefone</label><input id="edit-phone" class="pixel-input" value="${p.phone || ''}" />
+          <label>Perfil</label>
+          <select id="edit-role" class="pixel-input"><option value="player" ${p.role==='player'?'selected':''}>Jogador</option><option value="admin" ${p.role==='admin'?'selected':''}>Administrador</option></select>
+          <div id="edit-admin-credentials" style="display:none">
+            <label>Email (apenas para criar credenciais caso não exista)</label><input id="edit-email" class="pixel-input" value="${p.email || ''}" />
+            <label>Senha (nova)</label><input id="edit-pass" type="password" class="pixel-input" />
+          </div>
+          <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">SALVAR</button><button type="button" id="cancel-edit" class="pixel-btn">CANCELAR</button></div>
+          <div class="mt-2"><button id="del-player" class="pixel-btn" type="button">DELETAR</button></div>
+        </form>
+      `;
+    }
+
+    function managePlayersHtml(){
+      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
+      const rows = Object.entries(players).map(([k,p])=> {
+        return `<div class="flex justify-between items-center py-2 border-b">
+          <div><div>${p.name}</div><div style="font-size:12px">${p.role} ${p.phone? ' • ' + p.phone : ''}</div></div>
+          <div class="flex gap-2"><button class="pixel-btn btn-edit" data-key="${k}">EDIT</button><button class="pixel-btn btn-del" data-key="${k}">DEL</button></div>
+        </div>`;
+      }).join('') || '<div>Nenhum jogador</div>';
+      return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
+    }
+
+    function createGameHtml(){
+      const year = new Date().getFullYear();
+      return `<h2>NOVO GAME UAU</h2><form id="form-create-game" class="mt-4"><label>Trimestre</label><select id="create-trim" class="pixel-input"><option>1</option><option>2</option><option>3</option><option>4</option></select><label>Ano</label><input id="create-year" class="pixel-input" type="number" value="${year}" /><div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">CRIAR</button><button id="cancel-create" type="button" class="pixel-btn">CANCELAR</button></div></form>`;
+    }
+
+    function endGameHtml(){
+      return `<h2>ENCERRAR TRIMESTRE</h2><p>Deseja encerrar o trimestre em andamento?</p><div class="flex gap-3 mt-4"><button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button><button id="cancel-end" class="pixel-btn">CANCELAR</button></div>`;
+    }
+
+    function launchPointsHtml(){
+      const game = (firebaseAvailable ? (state.games||{}) : (localState.games||{}))[ (firebaseAvailable? state.activeGameId : localState.activeGameId) ] || null;
+      if(!game) return `<h2>LANÇAR PONTOS</h2><div class="mt-4">Nenhum trimestre ativo</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+      const sats = generateSaturdays(game.startedAt, 15);
+      const satsHtml = sats.map(s=> `<button class="pixel-btn sat-btn" data-iso="${s}" style="margin:4px">${formatBR(s)}</button>`).join('');
+      return `<h2>LANÇAR PONTOS</h2><div class="mt-2">Escolha o sábado:</div><div class="mt-3">${satsHtml}</div><div class="mt-4">Pesquisar jogador:</div><input id="points-search" class="pixel-input" placeholder="Digite para filtrar" /><div id="points-table-area" class="mt-4"></div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+    }
+
+    function renderPointsTableForSaturday(iso){
+      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
+      const list = Object.values(players).sort((a,b)=> a.name.localeCompare(b.name));
+      const rows = list.map(p=> `<div class="pts-row flex justify-between items-center py-2 border-b" data-name="${p.name}"><div>${p.name}</div><div style="display:flex;gap:8px;align-items:center"><input id="pts-${p.id}" class="pixel-input" style="width:120px;padding:6px" type="number" placeholder="0" /><button class="pixel-btn save-point-btn" data-pid="${p.id}" data-iso="${iso}">SALVAR</button></div></div>`).join('');
+      document.getElementById('points-table-area').innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
+    }
+
+    function annualRankingHtml(){
+      const arr = computeAnnualRanking(new Date().getFullYear());
+      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
+      const rows = arr.map((r,i)=> `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i+1}. ${players[r.id] ? players[r.id].name : 'Desconhecido'} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('') || '<div>Nenhum registro</div>';
+      return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
+    }
+
+    function loginHtml(){
+      return `<h2>LOGIN ADMIN</h2><form id="form-login" class="mt-4"><label>Email</label><input id="login-email" class="pixel-input" type="email" /><label>Senha</label><input id="login-pass" class="pixel-input" type="password" /><div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">ENTRAR</button><button id="cancel-login" type="button" class="pixel-btn">CANCELAR</button></div></form>`;
+    }
+
+    /* attach modal handlers (delegation style) */
+    function attachModalHandlers(type, payload){
+      if(type === 'playerRegister'){
+        document.getElementById('player-role').addEventListener('change', e => {
+          document.getElementById('admin-credentials').style.display = e.target.value === 'admin' ? 'block' : 'none';
+        });
+        document.getElementById('toggle-pass')?.addEventListener('click', ()=>{
+          const p = document.getElementById('player-pass');
+          p.type = (p.type === 'password') ? 'text' : 'password';
+          document.getElementById('toggle-pass').textContent = p.type === 'password' ? 'Mostrar' : 'Esconder';
+        });
+        document.getElementById('form-player').addEventListener('submit', async e => {
+          e.preventDefault();
+          const name = document.getElementById('player-name').value.trim();
+          const phone = document.getElementById('player-phone').value.trim();
+          const role = document.getElementById('player-role').value;
+          if(!name) return alert('Digite o nome');
+          if(role === 'admin'){
+            const email = document.getElementById('player-email').value.trim();
+            const pass = document.getElementById('player-pass').value;
+            const pass2 = document.getElementById('player-pass2').value;
+            if(!email || !pass) return alert('Informe email e senha para admin');
+            if(pass !== pass2) return alert('Senhas não conferem');
+            try { await createPlayer({ name, phone, role:'admin', email, password:pass }); alert('Administrador criado'); closeModal(); } catch(err){ alert('Erro: '+ err.message); console.error(err); }
+          } else {
+            try { await createPlayer({ name, phone, role:'player' }); alert('Jogador criado'); closeModal(); } catch(err){ alert('Erro: '+err.message); console.error(err); }
+          }
+        });
+        document.getElementById('cancel-player').addEventListener('click', closeModal);
+      }
+
+      if(type === 'managePlayers'){
+        document.querySelectorAll('.btn-edit').forEach(btn => btn.addEventListener('click', (e)=> {
+          const k = e.currentTarget.dataset.key;
+          openModal('editPlayer', k);
+        }));
+        document.querySelectorAll('.btn-del').forEach(btn => btn.addEventListener('click', async (e)=>{
+          const k = e.currentTarget.dataset.key;
+          if(!confirm('Excluir jogador?')) return;
+          await deletePlayer(k);
+          alert('Excluído');
+          closeModal();
+        }));
+        document.getElementById('close-manage').addEventListener('click', closeModal);
+      }
+
+      if(type === 'editPlayer'){
+        const key = payload;
+        const roleSelect = document.getElementById('edit-role');
+        roleSelect.addEventListener('change', (e)=> {
+          document.getElementById('edit-admin-credentials').style.display = e.target.value === 'admin' ? 'block' : 'none';
+        });
+        document.getElementById('cancel-edit').addEventListener('click', closeModal);
+        document.getElementById('del-player').addEventListener('click', async ()=>{
+          if(!confirm('Excluir jogador?')) return;
+          await deletePlayer(key);
+          alert('Excluído');
+          closeModal();
+        });
+        document.getElementById('form-edit-player').addEventListener('submit', async (e)=>{
+          e.preventDefault();
+          const name = document.getElementById('edit-name').value.trim();
+          const phone = document.getElementById('edit-phone').value.trim();
+          const role = document.getElementById('edit-role').value;
+          if(!name) return alert('Nome obrigatório');
+          // If changing to admin and no auth yet, require email/password
+          const player = (firebaseAvailable ? (state.players||{}) : (localState.players||{}))[key];
+          if(role === 'admin' && (!player || !player.id || player.role !== 'admin')){
+            // need email/password to create auth user
+            const email = document.getElementById('edit-email').value.trim();
+            const pass = document.getElementById('edit-pass').value;
+            if(!email || !pass) return alert('Email e senha obrigatórios para transformar em admin');
+            try {
+              // create auth user & then update DB: we will create auth user and set new player key as auth uid
+              const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+              const uid = userCred.user.uid;
+              // set player at uid key and remove old key
+              const playerObj = { id: uid, name, phone: phone||null, role: 'admin', createdAt: new Date().toISOString() };
+              await set(ref(db, '/players/' + uid), playerObj);
+              await remove(ref(db, '/players/' + key)); // delete old
+              alert('Transformado em admin');
+              closeModal();
+              return;
+            } catch(err){ alert('Erro ao criar admin: ' + err.message); console.error(err); return; }
+          } else {
+            // normal patch
+            await updatePlayer(key, { name, phone, role });
+            alert('Atualizado');
+            closeModal();
+          }
+        });
+      }
+
+      if(type === 'createGame'){
+        document.getElementById('form-create-game').addEventListener('submit', async e=>{
+          e.preventDefault();
+          const trimester = Number(document.getElementById('create-trim').value);
+          const year = Number(document.getElementById('create-year').value);
+          try { await createGame({ year, trimester }); alert('Trimestre criado'); closeModal(); } catch(err){ alert('Erro: '+ (err.message||err)); }
+        });
+        document.getElementById('cancel-create').addEventListener('click', closeModal);
+      }
+
+      if(type === 'endGame'){
+        document.getElementById('confirm-end').addEventListener('click', async ()=>{
+          const gid = firebaseAvailable ? state.activeGameId : localState.activeGameId;
+          if(!gid) return alert('Nenhum trimestre ativo');
+          await endGame(gid);
+          alert('Trimestre encerrado');
+          closeModal();
+        });
+        document.getElementById('cancel-end').addEventListener('click', closeModal);
+      }
+
+      if(type === 'launchPoints'){
+        document.querySelectorAll('.sat-btn').forEach(btn => btn.addEventListener('click', (e)=>{
+          const iso = e.currentTarget.dataset.iso;
+          renderPointsTableForSaturday(iso);
+        }));
+        const search = document.getElementById('points-search');
+        if(search) search.addEventListener('input', (e) => {
+          const q = e.target.value.toLowerCase();
+          document.querySelectorAll('.pts-row').forEach(row => {
+            row.style.display = row.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+          });
+        });
+        // delegate save buttons
+        document.getElementById('points-table-area')?.addEventListener('click', async (e)=>{
+          if(e.target && e.target.matches('.save-point-btn')){
+            const pid = e.target.dataset.pid;
+            const iso = e.target.dataset.iso;
+            const val = Number(document.getElementById('pts-' + pid).value) || 0;
+            const gid = firebaseAvailable ? state.activeGameId : localState.activeGameId;
+            if(!gid) return alert('Nenhum trimestre ativo');
+            await addPoints(gid, pid, val);
+            alert('Pontos adicionados');
+            // don't auto-close, let admin add more
+            renderAll();
+          }
+        });
+        document.getElementById('close-launch').addEventListener('click', closeModal);
+      }
+
+      if(type === 'annualRanking'){
+        document.getElementById('close-annual').addEventListener('click', closeModal);
+      }
+
+      if(type === 'login'){
+        document.getElementById('form-login').addEventListener('submit', async e=>{
+          e.preventDefault();
+          const email = document.getElementById('login-email').value.trim();
+          const pass = document.getElementById('login-pass').value;
+          try { await signInWithEmailAndPassword(auth, email, pass); alert('Login OK'); closeModal(); location.hash = '#/admin'; } catch(err){ alert('Erro login: '+err.message); }
+        });
+        document.getElementById('cancel-login').addEventListener('click', closeModal);
+      }
+    } // end attachModalHandlers
+
+    /* helper updatePlayer to work with firebase or local */
+    async function updatePlayer(key, patch){
+      if(firebaseAvailable){
+        await update(ref(db, '/players/' + key), patch);
+      } else {
+        localState.players[key] = {...localState.players[key], ...patch};
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
+        state.players = localState.players;
+        renderAll();
+      }
+    }
+
+    /* deletePlayer wrapper */
+    async function deletePlayer(key){
+      if(firebaseAvailable){
+        await remove(ref(db, '/players/' + key));
+        // remove points
+        const gamesSnap = await get(ref(db, '/games'));
+        const gamesObj = gamesSnap.val() || {};
+        for(const gid in gamesObj){
+          if(gamesObj[gid].playersPoints && gamesObj[gid].playersPoints[key]){
+            await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
+          }
+        }
+      } else {
+        delete localState.players[key];
+        for(const gid in localState.games) if(localState.games[gid].playersPoints) delete localState.games[gid].playersPoints[key];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
+        state.players = localState.players;
+        renderAll();
+      }
+    }
+
+    // Initialize state listeners or fallback
+    initState();
+
+    // Initial view
+    if(location.hash.startsWith('#/admin')) {
+      if(firebaseAvailable && !auth.currentUser){ openModal('login'); showView('home'); } else showView('admin');
+    } else if(location.hash.startsWith('#/ranking')) showView('ranking'); else showView('home');
+
+    // expose small debug
+    window.__gameuau = { state, firebaseAvailable, db, auth };
+
+    // initial render tick after listeners could populate
+    setTimeout(()=> renderAll(), 700);
+
+  </script>
 
 </body>
 </html>
