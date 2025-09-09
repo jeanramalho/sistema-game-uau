@@ -1,425 +1,596 @@
 <!doctype html>
-
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Game UAU — Prototype (Retro Layout)</title>  <!-- Tailwind CDN -->  <script src="https://cdn.tailwindcss.com"></script>  <!-- Google Font (8-bit style) -->  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <!-- html2canvas for print/capture -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- Lucide icons (used in original React layout) -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>  <style>
-    /* ===== Game UAU - Retro Layout adapted from your React layout (single-file) ===== */
-    :root{
-      --color-primary: #ffffff; /* Branco */
-      --color-secondary: #bfe9ff; /* Azul Bêbê */
-      --color-tertiary: #000000; /* Preto */
-      --accent: #60a5fa;
-    }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Game UAU - (HTML Single File)</title>
+<meta name="description" content="Game UAU - Ranking Game converted from React to single-file HTML"/>
 
-    @font-face{ font-family: 'PressStart2P'; src: local('Press Start 2P'); }
-    body{ font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, 'PressStart2P', sans-serif; }
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
 
-    /* small subset of the original project's custom css to reproduce the same aesthetic */
-    .pixel-text{ font-family: 'PressStart2P', monospace; }
-    .retro-shadow{ box-shadow: 6px 6px 0 rgba(0,0,0,1); }
-    .pixel-perfect{ border-radius:4px; }
+<!-- Press Start 2P -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
-    /* Layout specifics */
-    header{ background: linear-gradient(180deg, var(--color-secondary), rgba(191,233,255,0.9)); border-bottom:4px solid var(--color-tertiary); }
-    .container{ max-width:1200px; margin-left:auto; margin-right:auto; padding-left:1rem; padding-right:1rem; }
-    .card{ background:var(--color-primary); border:2px solid var(--color-tertiary); border-radius:10px; }
+<!-- Lucide icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    /* table responsiveness */
-    .table-wrap{ overflow:auto; }
+<style>
+/* Game UAU Design System - Retro Gaming Theme */
 
-    /* form & modal tweaks */
-    .modal-backdrop{ background: rgba(0,0,0,0.5); }
+/* Custom Tailwind Configuration */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-    /* utility */
-    .btn-primary{ background:var(--color-tertiary); color:white; padding:.5rem .75rem; border-radius:6px; }
-    .btn-ghost{ background:transparent; border:1px solid #ddd; padding:.4rem .6rem; border-radius:6px; }
+/* CSS Variables for Game UAU Theme */
+:root {
+  /* Game UAU Color Palette */
+  --color-primary: #ffffff; /* Branco primário */
+  --color-secondary: #a8dadc; /* Azul Bebê */
+  --color-tertiary: #000000; /* Preto terciário */
+  
+  /* Gradients */
+  --gradient-game: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  --gradient-retro: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
+  
+  /* Shadows */
+  --shadow-retro: 4px 4px 0px var(--color-tertiary);
+  --shadow-game: 0 8px 32px rgba(168, 218, 220, 0.3);
+  
+  /* Animations */
+  --transition-retro: all 0.2s cubic-bezier(0.25, 0.4, 0.2, 1);
+}
 
-  </style></head>
-<body class="min-h-screen bg-gradient-to-br from-white to-blue-50">
-  <div id="app" class="min-h-screen flex flex-col">
-    <!-- Header (matches the react layout look) -->
-    <header class="p-4">
-      <div class="container flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="retro-shadow bg-white p-2 border-2 border-black flex items-center space-x-2">
-            <div class="w-10 h-10 bg-blue-200 border border-black pixel-perfect flex items-center justify-center">
-              <span class="pixel-text text-sm">🎮</span>
-            </div>
-            <div>
-              <h1 class="pixel-text text-black text-base">GAME UAU</h1>
-              <div class="text-xs">App de Ranking</div>
-            </div>
-          </div>
+/* Basic resets and font */
+body, html {
+  height: 100%;
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Press Start 2P", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Pixel / retro classes used in the React layout */
+.pixel-text { font-family: 'Press Start 2P', monospace; }
+.retro-shadow { box-shadow: var(--shadow-retro); }
+.pixel-perfect { border-radius: 4px; }
+
+/* Color helpers */
+.bg-secondary { background-color: var(--color-secondary); }
+.border-tertiary { border-color: var(--color-tertiary); }
+.text-tertiary { color: var(--color-tertiary); }
+
+/* Card */
+.card { background: var(--color-primary); border: 2px solid var(--color-tertiary); border-radius: 10px; }
+
+/* Buttons similar to React look */
+.btn-game { padding: .6rem .9rem; border:2px solid var(--color-tertiary); display:inline-flex; align-items:center; gap:.5rem; border-radius:8px; font-weight:600; }
+.btn-ghost { background: transparent; border:1px solid #ddd; padding:.4rem .6rem; border-radius:6px; }
+
+/* Small responsive tweaks */
+.container { max-width: 1100px; margin-left:auto; margin-right:auto; padding-left:1rem; padding-right:1rem; }
+
+/* Utility for hidden on small devices from React */
+.hidden-md { display: none; }
+@media (min-width: 768px) { .hidden-md { display: block; } }
+
+/* Modal base */
+#player-modal .card { max-width: 900px; }
+</style>
+</head>
+<body class="bg-gradient-to-br from-white to-blue-50 min-h-screen">
+
+<header class="bg-blue-200 border-b-4 border-black p-4">
+  <div class="container mx-auto flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+      <div class="retro-shadow bg-white p-2 border-2 border-black flex items-center space-x-2">
+        <div class="w-8 h-8 bg-blue-200 border border-black pixel-perfect flex items-center justify-center">
+          <span class="pixel-text text-xs">🎮</span>
         </div>
-        <nav class="flex items-center gap-4">
-          <a href="#/ranking" class="text-sm">Ranking Público</a>
-          <a href="#/adm/login" class="text-sm">Área ADM</a>
-        </nav>
+        <h1 class="pixel-text text-black text-lg">GAME UAU</h1>
       </div>
-    </header><!-- Main (SPA) -->
-<main class="flex-1 p-6 container" id="view"></main>
+      <div class="hidden-md">
+        <span class="pixel-text text-black text-xs">SISTEMA DE RANKING</span>
+      </div>
+    </div>
+    <nav class="flex items-center gap-4">
+      <a href="#/ranking" class="pixel-text text-sm">Ranking Público</a>
+      <a href="#/adm/login" class="pixel-text text-sm">Área ADM</a>
+    </nav>
+  </div>
+</header>
 
-<footer class="text-center text-xs p-3 border-t mt-4">&copy; Game UAU</footer>
+<div id="view" class="container mx-auto px-4 py-8">
+  <!-- Ranking Page -->
+  <section id="page-ranking">
+    <main class="container mx-auto px-4 py-8">
+      <div class="text-center mb-8">
+        <h1 class="pixel-text text-3xl text-black mb-4">RANKING ATUAL</h1>
+        <p class="pixel-text text-sm text-gray-600">
+          Acompanhe a classificação em tempo real
+        </p>
+      </div>
 
-  </div>  <!-- Firebase configuration and app logic -->  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-    import { getDatabase, ref, set, push, onValue, update, get, child, remove } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-
-    // Firebase config (user provided)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCh9-eS5xStmP6IL_fwhRHqTFejk8BkGjU",
-      authDomain: "gameuau-ba9bb.firebaseapp.com",
-      databaseURL: "https://gameuau-ba9bb-default-rtdb.firebaseio.com",
-      projectId: "gameuau-ba9bb",
-      storageBucket: "gameuau-ba9bb.firebasestorage.app",
-      messagingSenderId: "540955198809",
-      appId: "1:540955198809:web:6b05a8dbe0cf200fceb848",
-      measurementId: "G-VKE7K7KGQ9"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
-
-    // Simple router
-    const routes = {
-      '/ranking': renderRankingPublic,
-      '/adm/login': renderLogin,
-      '/adm/dashboard': renderAdminDashboard,
-      '/adm/points': renderAdminPoints,
-      '/adm/users': renderAdminUsers
-    };
-
-    function navigate(path){ location.hash = path; }
-    function getRoute(){ return location.hash.replace('#','') || '/ranking'; }
-    window.addEventListener('hashchange', router);
-    router();
-
-    function showToast(msg){ alert(msg); }
-    async function downloadElementAsImage(node, filename='ranking.png'){ const canvas = await html2canvas(node); const dataUrl = canvas.toDataURL('image/png'); const a = document.createElement('a'); a.href = dataUrl; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); }
-
-    // --- Router handler ---
-    async function router(){
-      const route = getRoute(); const view = document.getElementById('view'); view.innerHTML = '<div class="p-4">Carregando...</div>';
-      const fn = routes[route] || renderRankingPublic; try{ await fn(view); } catch(e){ console.error(e); view.innerHTML = '<div class="text-red-600">Erro ao carregar a página</div>'; }
-    }
-
-    // --- Public Ranking ---
-    async function renderRankingPublic(container){
-      container.innerHTML = `
-        <div class="card p-4">
+      <!-- Ranking Card -->
+      <div class="max-w-4xl mx-auto">
+        <div class="retro-shadow bg-white border-2 border-black p-6 pixel-perfect">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold pixel-text">Ranking Atual (Trimestre Ativo)</h2>
-            <div>
-              <button id="btnPrintPublic" class="btn-primary">Tirar print</button>
+            <h2 class="pixel-text text-black text-sm border-b-2 border-black pb-2">
+              RANKING ATUAL
+            </h2>
+            <button onclick="printRanking()" class="btn-game bg-blue-200 text-black px-3 py-2 border-2 border-black text-xs flex items-center space-x-2">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>PRINT</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <div class="min-w-full">
+              <!-- Header -->
+              <div class="grid grid-cols-3 gap-4 bg-blue-200 p-4 border-2 border-black font-bold">
+                <div class="pixel-text text-xs text-black">POSIÇÃO</div>
+                <div class="pixel-text text-xs text-black">JOGADOR</div>
+                <div class="pixel-text text-xs text-black text-right">PONTOS</div>
+              </div>
+
+              <!-- Ranking List -->
+              <div class="space-y-2 mt-2" id="ranking-list">
+                <!-- Ranking items will be populated by JavaScript -->
+              </div>
             </div>
           </div>
-          <div id="rankingArea" class="table-wrap border rounded p-2 bg-white"></div>
-        </div>
-      `;
 
-      const gamesRef = ref(db, 'games');
-      onValue(gamesRef, snapshot => {
-        const games = snapshot.val() || {};
-        const active = Object.entries(games).find(([k,v]) => v && v.active);
-        if(!active){ document.getElementById('rankingArea').innerHTML = '<div class="p-6 text-center">Nenhum game UAU ativo no momento.</div>'; return; }
-        const [gameId, game] = active; renderRankingForGame(gameId, document.getElementById('rankingArea'));
-      });
-
-      document.getElementById('btnPrintPublic').addEventListener('click', ()=>{ const node = document.getElementById('rankingArea'); downloadElementAsImage(node, 'ranking_gameUAU.png'); });
-    }
-
-    async function renderRankingForGame(gameId, container){
-      container.innerHTML = '<div class="p-6">Carregando ranking...</div>';
-      const playersSnap = await get(ref(db, 'players'));
-      const players = playersSnap.exists() ? playersSnap.val() : {};
-      const pointsSnap = await get(ref(db, `games/${gameId}/points`));
-      const points = pointsSnap.exists() ? pointsSnap.val() : {};
-      const totals = {};
-      Object.keys(players).forEach(pid => totals[pid] = 0);
-      Object.values(points).forEach(sat => { Object.entries(sat).forEach(([pid, val]) => { totals[pid] = (totals[pid] || 0) + Number(val || 0); }); });
-      const rows = Object.entries(totals).map(([pid, total]) => ({ id: pid, name: players[pid]?.name || '—', total }));
-      rows.sort((a,b)=> b.total - a.total);
-
-      const tableHtml = `
-        <table class="min-w-full text-left">
-          <thead>
-            <tr class="border-b"><th class="p-2">Pos</th><th class="p-2">Nome</th><th class="p-2">Pontos</th></tr>
-          </thead>
-          <tbody>
-            ${rows.map((r,i)=>`<tr class="border-b"><td class="p-2">${i+1}</td><td class="p-2">${r.name}</td><td class="p-2">${r.total}</td></tr>`).join('')}
-          </tbody>
-        </table>
-      `;
-      container.innerHTML = tableHtml;
-    }
-
-    // --- Admin Login ---
-    async function renderLogin(container){
-      container.innerHTML = `
-        <div class="max-w-md mx-auto card p-6">
-          <h2 class="text-lg font-bold pixel-text">Login - ADM</h2>
-          <div class="mt-4">
-            <label class="block text-xs">Email</label>
-            <input id="loginEmail" class="w-full border p-2" />
-            <label class="block text-xs mt-2">Senha</label>
-            <input id="loginPass" type="password" class="w-full border p-2" />
-            <div class="flex gap-2 mt-4">
-              <button id="btnLogin" class="btn-primary">Entrar</button>
-              <button id="btnGoRanking" class="btn-ghost">Ver Ranking Público</button>
-            </div>
+          <div class="text-center pt-4 border-t border-black" id="total-players">
+            <p class="pixel-text text-xs text-gray-600">CARREGANDO...</p>
           </div>
         </div>
-      `;
-      document.getElementById('btnGoRanking').addEventListener('click', ()=>navigate('/ranking'));
-      document.getElementById('btnLogin').addEventListener('click', async ()=>{
-        const email = document.getElementById('loginEmail').value.trim(); const pass = document.getElementById('loginPass').value.trim();
-        try{ await signInWithEmailAndPassword(auth, email, pass); navigate('/adm/dashboard'); }catch(e){ showToast('Erro no login: ' + e.message); }
-      });
-      onAuthStateChanged(auth, user => { if(user) navigate('/adm/dashboard'); });
-    }
+      </div>
 
-    // --- Admin Dashboard ---
-    async function renderAdminDashboard(container){
-      const user = auth.currentUser; if(!user){ navigate('/adm/login'); return; }
-      container.innerHTML = `
-        <div class="card p-4">
+      <!-- Admin Access Button -->
+      <div class="text-center mt-8">
+        <a href="#/adm/login" class="btn-game bg-blue-200 text-black px-4 py-2 border-2 border-black">ACESSO ADMIN</a>
+      </div>
+    </main>
+  </section>
+
+  <!-- Login Page -->
+  <section id="page-login" style="display:none">
+    <main class="container mx-auto px-4 py-8">
+      <div class="max-w-md mx-auto">
+        <div class="text-center mb-8">
+          <h1 class="pixel-text text-2xl text-black mb-4">ÁREA ADMINISTRATIVA</h1>
+          <p class="pixel-text text-xs text-gray-600">Digite suas credenciais para acessar o sistema</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="retro-shadow bg-white border-2 border-black p-6 pixel-perfect">
+          <form id="login-form" class="space-y-6">
+            <div class="space-y-4">
+              <div>
+                <label for="username" class="pixel-text text-xs text-black mb-2 block">USUÁRIO</label>
+                <input id="username" type="text" class="retro-shadow border-2 border-black p-2 w-full text-black focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Digite seu usuário" required />
+              </div>
+
+              <div>
+                <label for="password" class="pixel-text text-xs text-black mb-2 block">SENHA</label>
+                <div class="relative">
+                  <input id="password" type="password" class="retro-shadow border-2 border-black p-2 w-full text-black focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Digite sua senha" required />
+                  <button type="button" id="toggle-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-blue-400 transition-colors">
+                    <i data-lucide="eye" class="w-5 h-5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-game bg-blue-200 text-black px-4 py-2 border-2 border-black text-sm w-full flex items-center justify-center space-x-2" id="login-button">
+              <i data-lucide="log-in" class="w-4 h-4"></i>
+              <span id="login-text">ENTRAR</span>
+            </button>
+          </form>
+
+          <div class="mt-6 pt-4 border-t-2 border-black text-center">
+            <p class="pixel-text text-xs text-gray-600">Se você não possui usuário, peça ao administrador para criar uma conta.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- Dashboard Page -->
+  <section id="page-dashboard" style="display:none">
+    <main class="container mx-auto px-4 py-8">
+      <div class="text-center mb-8">
+        <h1 class="pixel-text text-3xl text-black mb-4">DASHBOARD ADMINISTRATIVO</h1>
+        <p class="pixel-text text-sm text-gray-600">Gerencie jogadores e pontuações</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <button id="btnNewGame" class="btn-game bg-green-500 text-white p-6 border-2 border-black text-sm flex flex-col items-center space-y-2">
+          <i data-lucide="user-plus" class="w-8 h-8"></i>
+          <span>CADASTRAR JOGADOR</span>
+        </button>
+
+        <button id="btnPoints" class="btn-game bg-blue-500 text-white p-6 border-2 border-black text-sm flex flex-col items-center space-y-2">
+          <i data-lucide="trophy" class="w-8 h-8"></i>
+          <span>GERENCIAR PONTOS</span>
+        </button>
+
+        <button id="btnUsers" class="btn-game bg-purple-500 text-white p-6 border-2 border-black text-sm flex flex-col items-center space-y-2">
+          <i data-lucide="users" class="w-8 h-8"></i>
+          <span>GERENCIAR JOGADORES</span>
+        </button>
+      </div>
+
+      <!-- Ranking Card (Admin view) -->
+      <div class="max-w-4xl mx-auto">
+        <div class="retro-shadow bg-white border-2 border-black p-6 pixel-perfect">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold pixel-text">ADM — Painel</h2>
-            <div class="flex gap-2 items-center">
-              <button id="btnNewGame" class="btn-primary">Criar Game</button>
-              <button id="btnPoints" class="btn-ghost">Gerenciar Pontos</button>
-              <button id="btnUsers" class="btn-ghost">Gerenciar Jogadores</button>
-              <button id="btnPrintAdm" class="btn-primary">Tirar print</button>
-              <button id="btnLogout" class="px-3 py-1 rounded bg-red-500 text-white">Sair</button>
-            </div>
-          </div>
-          <div id="admRankingArea" class="table-wrap border rounded p-2 bg-white"></div>
-        </div>
-        <div id="modals"></div>
-      `;
-      document.getElementById('btnLogout').addEventListener('click', async ()=>{ await signOut(auth); navigate('/adm/login'); });
-      document.getElementById('btnPoints').addEventListener('click', ()=>navigate('/adm/points'));
-      document.getElementById('btnUsers').addEventListener('click', ()=>navigate('/adm/users'));
-      document.getElementById('btnNewGame').addEventListener('click', ()=>openCreateGameModal());
-      document.getElementById('btnPrintAdm').addEventListener('click', ()=>{ const node = document.getElementById('admRankingArea'); downloadElementAsImage(node, 'ranking_admin.png'); });
-
-      const gamesSnap = await get(ref(db, 'games'));
-      const games = gamesSnap.exists()? gamesSnap.val() : {};
-      const active = Object.entries(games).find(([k,v]) => v && v.active);
-      if(!active){ document.getElementById('admRankingArea').innerHTML = '<div class="p-6 text-center">Nenhum game ativo. Crie um novo.</div>'; }
-      else renderRankingForGame(active[0], document.getElementById('admRankingArea'));
-    }
-
-    function computeSaturdaysBetween(startISO, endISO){
-      const start = new Date(startISO); const end = new Date(endISO);
-      const saturdays = [];
-      let d = new Date(start); d.setHours(0,0,0,0);
-      while(d <= end){ if(d.getDay() === 6) saturdays.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
-      return saturdays;
-    }
-
-    function openCreateGameModal(){
-      const modals = document.getElementById('modals');
-      modals.innerHTML = `
-        <div class="fixed inset-0 modal-backdrop flex items-center justify-center p-4">
-          <div class="bg-white p-6 rounded shadow max-w-md w-full card">
-            <h3 class="font-bold">Criar novo Game UAU</h3>
-            <label class="block mt-2 text-xs">Data de Início</label>
-            <input id="gameStart" type="date" class="w-full border p-2" />
-            <label class="block mt-2 text-xs">Data de Término</label>
-            <input id="gameEnd" type="date" class="w-full border p-2" />
-            <div class="flex gap-2 mt-4">
-              <button id="btnCreateGameSave" class="btn-primary">Criar</button>
-              <button id="btnCreateGameCancel" class="btn-ghost">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      `;
-      document.getElementById('btnCreateGameCancel').addEventListener('click', ()=> modals.innerHTML='');
-      document.getElementById('btnCreateGameSave').addEventListener('click', async ()=>{
-        const s = document.getElementById('gameStart').value; const e = document.getElementById('gameEnd').value;
-        if(!s || !e){ showToast('Escolha datas válidas'); return; }
-        if(new Date(s) > new Date(e)){ showToast('Data de início posterior à data de término'); return; }
-        const gamesRef = ref(db, 'games');
-        const newGameRef = push(gamesRef);
-        const saturdays = computeSaturdaysBetween(s, e);
-        await set(newGameRef, { start: s, end: e, createdAt: Date.now(), active: true, saturdays });
-        const allGames = await get(gamesRef);
-        if(allGames.exists()){
-          Object.entries(allGames.val()).forEach(async ([gid,g])=>{
-            if(gid !== newGameRef.key && g && g.active){ await update(ref(db, `games/${gid}`), { active:false }); }
-          });
-        }
-        modals.innerHTML=''; showToast('Game criado e ativado!'); navigate('/adm/dashboard');
-      });
-    }
-
-    // --- Admin: Points Management ---
-    async function renderAdminPoints(container){
-      const user = auth.currentUser; if(!user){ navigate('/adm/login'); return; }
-      container.innerHTML = `
-        <div class="card p-4">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold pixel-text">Gerenciar Pontos</h2>
+            <h2 class="pixel-text text-black text-sm border-b-2 border-black pb-2">RANKING ATUAL</h2>
             <div class="flex gap-2">
-              <button id="btnBackDash" class="btn-ghost">Voltar</button>
+              <button onclick="printRanking()" class="btn-game bg-blue-200 text-black px-3 py-2 border-2 border-black text-xs flex items-center space-x-2">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>PRINT</span>
+              </button>
+              <button id="btnLogout" class="btn-game bg-red-500 text-white px-3 py-2 border-2 border-black text-xs">SAIR</button>
             </div>
           </div>
-          <div id="pointsArea" class="bg-white p-4 rounded border"></div>
-        </div>
-        <div id="modals"></div>
-      `;
-      document.getElementById('btnBackDash').addEventListener('click', ()=>navigate('/adm/dashboard'));
 
-      const gamesSnap = await get(ref(db,'games')); const games = gamesSnap.exists()? gamesSnap.val():{};
-      const active = Object.entries(games).find(([k,v])=> v && v.active);
-      if(!active){ document.getElementById('pointsArea').innerHTML = '<div class="p-6">Nenhum game ativo.</div>'; return; }
-      const [gameId, game] = active;
-      const saturdays = game.saturdays || [];
-      const ptsHtml = `
-        <div>
-          <h3 class="font-semibold mb-2">Sábados do game: ${saturdays.length} encontrados</h3>
-          <div class="grid gap-2 sm:grid-cols-3">${saturdays.map(s=>`<button data-date="${s}" class="sat-btn p-2 border rounded">${s}</button>`).join('')}</div>
-          <div class="mt-4">
-            <button id="btnAddPlayerModal" class="btn-primary">Cadastrar jogador</button>
-          </div>
-        </div>
-      `;
-      document.getElementById('pointsArea').innerHTML = ptsHtml;
-      document.querySelectorAll('.sat-btn').forEach(b=> b.addEventListener('click', ()=> openSaturdayEditor(gameId, b.dataset.date)));
-      document.getElementById('btnAddPlayerModal').addEventListener('click', ()=> openPlayerModal());
-    }
-
-    async function openSaturdayEditor(gameId, dateISO){
-      const modals = document.getElementById('modals');
-      const playersSnap = await get(ref(db, 'players')); const players = playersSnap.exists()? playersSnap.val(): {};
-      const ptsSnap = await get(ref(db, `games/${gameId}/points/${dateISO}`)); const savedPoints = ptsSnap.exists()? ptsSnap.val(): {};
-      const cacheKey = `cache_${gameId}_${dateISO}`;
-      const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
-      modals.innerHTML = `
-        <div class="fixed inset-0 modal-backdrop p-4 overflow-auto">
-          <div class="bg-white rounded p-4 max-w-3xl mx-auto card">
-            <div class="flex justify-between items-center">
-              <h3 class="font-bold">Lançar pontos — ${dateISO}</h3>
-              <div class="flex gap-2">
-                <button id="btnCloseSat" class="btn-ghost">Fechar</button>
-                <button id="btnSaveSat" class="btn-primary">Salvar</button>
+          <div class="overflow-x-auto">
+            <div class="min-w-full">
+              <!-- Header -->
+              <div class="grid grid-cols-3 gap-4 bg-blue-200 p-4 border-2 border-black font-bold">
+                <div class="pixel-text text-xs text-black">POSIÇÃO</div>
+                <div class="pixel-text text-xs text-black">JOGADOR</div>
+                <div class="pixel-text text-xs text-black text-right">PONTOS</div>
               </div>
-            </div>
-            <div class="mt-3">
-              <input id="searchPlayer" placeholder="Pesquisar jogador..." class="w-full border p-2 mb-3" />
-              <div id="playersList" class="max-h-72 overflow-auto border rounded p-2">
-                ${Object.entries(players).map(([pid,p])=>{ const val = (cached[pid] ?? savedPoints[pid] ?? 0); return `<div class="flex items-center gap-2 p-1 border-b"><div class="flex-1">${p.name}</div><input data-pid="${pid}" value="${val}" class="w-20 border p-1 points-input" /></div>`; }).join('')}
+
+              <!-- Ranking List -->
+              <div class="space-y-2 mt-2" id="ranking-list">
+                <!-- Ranking items will be populated by JavaScript -->
               </div>
             </div>
           </div>
-        </div>
-      `;
-      document.getElementById('btnCloseSat').addEventListener('click', ()=>{ modals.innerHTML=''; });
-      document.getElementById('searchPlayer').addEventListener('input', (e)=>{
-        const q = e.target.value.toLowerCase();
-        document.querySelectorAll('#playersList > div').forEach(div=>{ const name = div.querySelector('div').innerText.toLowerCase(); div.style.display = name.includes(q)? 'flex' : 'none'; });
-      });
-      document.querySelectorAll('.points-input').forEach(inp=>{ inp.addEventListener('input', ()=>{ const all = {}; document.querySelectorAll('.points-input').forEach(i=>{ all[i.dataset.pid] = i.value.trim(); }); localStorage.setItem(cacheKey, JSON.stringify(all)); }); });
-      document.getElementById('btnSaveSat').addEventListener('click', async ()=>{
-        const values = {}; document.querySelectorAll('.points-input').forEach(i=>{ values[i.dataset.pid] = Number(i.value.trim()||0); });
-        await set(ref(db, `games/${gameId}/points/${dateISO}`), values);
-        localStorage.removeItem(cacheKey); showToast('Pontos salvos!'); modals.innerHTML='';
-      });
-    }
 
-    function openPlayerModal(){
-      const modals = document.getElementById('modals');
-      modals.innerHTML = `
-        <div class="fixed inset-0 modal-backdrop flex items-center justify-center">
-          <div class="bg-white p-4 rounded max-w-md w-full card">
-            <h3 class="font-bold">Cadastrar Jogador</h3>
-            <label class="block text-xs mt-2">Nome (obrigatório)</label>
-            <input id="p_name" class="w-full border p-2" />
-            <label class="block text-xs mt-2">Telefone (opcional)</label>
-            <input id="p_phone" class="w-full border p-2" />
-            <label class="flex items-center gap-2 mt-2"><input id="p_isAdmin" type="checkbox" /> É administrador</label>
-            <div id="adminFields" style="display:none">
-              <label class="block text-xs mt-2">Username (email)</label>
-              <input id="p_email" class="w-full border p-2" />
-              <label class="block text-xs mt-2">Senha</label>
-              <input id="p_pass" type="password" class="w-full border p-2" />
-              <label class="block text-xs mt-2">Confirmar Senha</label>
-              <input id="p_pass2" type="password" class="w-full border p-2" />
-            </div>
-            <div class="flex gap-2 mt-4">
-              <button id="btnSavePlayer" class="btn-primary">Salvar</button>
-              <button id="btnCancelPlayer" class="btn-ghost">Cancelar</button>
-            </div>
+          <div class="text-center pt-4 border-t border-black" id="total-players">
+            <p class="pixel-text text-xs text-gray-600">CARREGANDO...</p>
           </div>
         </div>
-      `;
-      document.getElementById('p_isAdmin').addEventListener('change', (e)=>{ document.getElementById('adminFields').style.display = e.target.checked? 'block':'none'; });
-      document.getElementById('btnCancelPlayer').addEventListener('click', ()=> document.getElementById('modals').innerHTML='');
-      document.getElementById('btnSavePlayer').addEventListener('click', async ()=>{
-        const name = document.getElementById('p_name').value.trim(); const phone = document.getElementById('p_phone').value.trim(); const isAdmin = document.getElementById('p_isAdmin').checked;
-        if(!name){ showToast('Nome é obrigatório'); return; }
-        const newP = push(ref(db,'players'));
-        await set(newP, { name, phone: phone||'', isAdmin: !!isAdmin, createdAt: Date.now() });
-        if(isAdmin){ const email = document.getElementById('p_email').value.trim(); const pass = document.getElementById('p_pass').value; const pass2 = document.getElementById('p_pass2').value; if(!email || !pass || pass !== pass2){ showToast('Preencha email e senhas corretamente'); return; } try{ await createUserWithEmailAndPassword(auth, email, pass); showToast('Admin criado no Authentication'); } catch(e){ showToast('Erro ao criar auth: ' + e.message); } }
-        showToast('Jogador cadastrado'); document.getElementById('modals').innerHTML='';
-      });
+      </div>
+    </main>
+  </section>
+</div>
+
+<!-- Modal container used by scripts -->
+<div id="player-modal" class="fixed inset-0 hidden items-center justify-center z-50">
+  <div class="bg-white p-4 rounded max-w-2xl w-full card">
+    <div class="modal-body"></div>
+  </div>
+</div>
+
+<!-- Toast area -->
+<div id="toast-container"></div>
+
+<!-- Firebase and App logic (module) -->
+<script type="module">
+/* app.js - Combined Firebase-enabled logic for Game UAU (inlined)
+   Features:
+   - Firebase Auth (email/password) and Realtime Database integration
+   - Public ranking in real-time (sum of saturday points)
+   - Admin login, dashboard, create game (with saturdays), manage players, manage points
+   - Points entry per saturday (with instant search and localStorage cache)
+   - Print ranking via html2canvas
+   - Export annual CSV (function available)
+*/
+
+/* ---------- Firebase imports ---------- */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+import { getDatabase, ref, set, push, onValue, update, get, remove } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+/* ---------- Your Firebase config (provided) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCh9-eS5xStmP6IL_fwhRHqTFejk8BkGjU",
+  authDomain: "gameuau-ba9bb.firebaseapp.com",
+  databaseURL: "https://gameuau-ba9bb-default-rtdb.firebaseio.com",
+  projectId: "gameuau-ba9bb",
+  storageBucket: "gameuau-ba9bb.firebasestorage.app",
+  messagingSenderId: "540955198809",
+  appId: "1:540955198809:web:6b05a8dbe0cf200fceb848",
+  measurementId: "G-VKE7K7KGQ9"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getDatabase(app);
+const auth = getAuth(app);
+
+/* ---------- Small helpers ---------- */
+function $(sel){ return document.querySelector(sel); }
+function showToast(msg, time=3000){
+  const t = document.getElementById('toast-container') || document.body;
+  const el = document.createElement('div');
+  el.className = 'fixed bottom-4 right-4 bg-black text-white px-3 py-2 rounded shadow';
+  el.textContent = msg;
+  t.appendChild(el);
+  setTimeout(()=> el.remove(), time);
+}
+
+/* Print ranking using html2canvas */
+async function printRanking(nodeSelector='#ranking-list', filename='ranking_gameUAU.png'){
+  const node = document.querySelector(nodeSelector);
+  if(!node){ showToast('Área de ranking não encontrada'); return; }
+  if(typeof html2canvas === 'undefined'){ showToast('html2canvas não carregado'); return;}
+  const canvas = await html2canvas(node);
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* Utility: compute saturdays inclusive between dates */
+function computeSaturdaysBetween(startISO, endISO){
+  const start = new Date(startISO); const end = new Date(endISO);
+  const saturdays = [];
+  let d = new Date(start); d.setHours(0,0,0,0);
+  while(d <= end){
+    if(d.getDay()===6) saturdays.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate()+1);
+  }
+  return saturdays;
+}
+
+/* CSV export helper */
+function exportCSV(rows, filename='export.csv'){
+  const csv = rows.map(r=> r.map(c=> `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+}
+
+/* ---------- PUBLIC RANKING (real-time) ---------- */
+async function renderPublicRanking(){
+  const list = document.getElementById('ranking-list');
+  if(!list) return;
+  list.innerHTML = '<div class="p-4">Carregando ranking...</div>';
+  const gamesRef = ref(db, 'games');
+  onValue(gamesRef, async snap => {
+    const games = snap.val() || {};
+    const activeEntry = Object.entries(games).find(([k,v]) => v && v.active);
+    if(!activeEntry){ list.innerHTML = '<div class="p-4">Nenhum game ativo</div>'; return; }
+    const [gameId, game] = activeEntry;
+    // load players and points
+    const playersSnap = await get(ref(db, 'players')); const players = playersSnap.exists()? playersSnap.val() : {};
+    const pointsSnap = await get(ref(db, `games/${gameId}/points`)); const points = pointsSnap.exists()? pointsSnap.val() : {};
+    const totals = {}; Object.keys(players).forEach(pid => totals[pid]=0);
+    Object.values(points).forEach(sat => { Object.entries(sat).forEach(([pid,val])=> totals[pid] = (totals[pid]||0)+Number(val||0)); });
+    const rows = Object.entries(totals).map(([pid,total])=> ({ id:pid, name: players[pid]?.name||'—', total}));
+    rows.sort((a,b)=> b.total - a.total);
+    // render list
+    list.innerHTML = '';
+    rows.forEach((r,i)=>{
+      const el = document.createElement('div');
+      el.className = 'grid grid-cols-3 gap-4 bg-white p-3 border-2 border-black';
+      el.innerHTML = `<div class="pixel-text text-xs">${i<3? (i===0?'🥇':i===1?'🥈':'🥉') : (i+1)+'º'}</div><div class="pixel-text text-xs">${r.name}</div><div class="pixel-text text-xs text-right">${r.total}</div>`;
+      list.appendChild(el);
+    });
+    // total players
+    const totalEl = document.getElementById('total-players');
+    if(totalEl) totalEl.innerHTML = `<p class="pixel-text text-xs text-gray-600">TOTAL: ${rows.length} JOGADOR${rows.length !== 1 ? 'ES' : ''}</p>`;
+  });
+}
+
+/* ---------- LOGIN PAGE ---------- */
+function setupLoginPage(){
+  const loginBtn = document.getElementById('login-button');
+  if(!loginBtn) return;
+  loginBtn.addEventListener('click', async (ev)=>{
+    ev.preventDefault();
+    const email = (document.getElementById('username')||{}).value;
+    const pass = (document.getElementById('password')||{}).value;
+    if(!email || !pass){ showToast('Preencha email e senha'); return; }
+    try{
+      await signInWithEmailAndPassword(auth, email, pass);
+      showToast('Logado com sucesso');
+      setTimeout(()=> location.hash = '/adm/dashboard', 600);
+    }catch(e){ showToast('Erro no login: ' + e.message); }
+  });
+  const toggle = document.getElementById('toggle-password');
+  if(toggle){
+    toggle.addEventListener('click', ()=>{
+      const p = document.getElementById('password');
+      if(p.type==='password'){ p.type='text'; toggle.innerHTML='🙈'; } else { p.type='password'; toggle.innerHTML='👁️'; }
+    });
+  }
+  onAuthStateChanged(auth, user => { if(user) location.hash = '/adm/dashboard'; });
+}
+
+/* ---------- DASHBOARD (admin) ---------- */
+async function setupDashboardPage(){
+  // ensure auth
+  const user = auth.currentUser;
+  if(!user){
+    onAuthStateChanged(auth, u => { if(!u) location.hash = '/adm/login'; else initDashboard(); });
+  } else initDashboard();
+
+  async function initDashboard(){
+    // bind buttons
+    document.getElementById('btnNewGame')?.addEventListener('click', ()=> openCreateGameModal());
+    document.getElementById('btnPoints')?.addEventListener('click', ()=> openPointsManager());
+    document.getElementById('btnUsers')?.addEventListener('click', ()=> openPlayersManager());
+    document.getElementById('btnLogout')?.addEventListener('click', async ()=>{ await signOut(auth); location.hash='/adm/login'; });
+
+    // render ranking area for admin as well (subscribe)
+    renderPublicRanking();
+  }
+}
+
+/* ---------- Create Game Modal ---------- */
+function openCreateGameModal(){
+  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
+  const container = modal.querySelector('.modal-body');
+  container.innerHTML = `<div class="space-y-2"><label>Data Início: <input id="gstart" type="date" class="border p-2" /></label><label>Data Fim: <input id="gend" type="date" class="border p-2" /></label><div class="pt-2"><button id="create-game" class="btn-game bg-black text-white px-3 py-1">Criar</button><button id="cancel-game" class="btn-game bg-white px-3 py-1 border-black ml-2">Cancelar</button></div></div>`;
+  document.getElementById('cancel-game').addEventListener('click', ()=> modal.classList.add('hidden'));
+  document.getElementById('create-game').addEventListener('click', async ()=>{
+    const s = document.getElementById('gstart').value; const e = document.getElementById('gend').value;
+    if(!s || !e){ showToast('Datas inválidas'); return; } if(new Date(s)>new Date(e)){ showToast('Início após término'); return; }
+    const newG = push(ref(db, 'games')); const saturdays = computeSaturdaysBetween(s,e);
+    await set(newG, { start:s, end:e, saturdays, active:true, createdAt: Date.now() });
+    // deactivate others
+    const all = await get(ref(db, 'games')); if(all.exists()){ Object.entries(all.val()).forEach(async ([gid,g])=>{ if(gid!==newG.key && g && g.active){ await update(ref(db, `games/${gid}`), { active:false }); } }); }
+    showToast('Game criado e ativado'); modal.classList.add('hidden');
+  });
+}
+
+/* ---------- Points Manager ---------- */
+async function openPointsManager(){
+  // find active game
+  const gamesSnap = await get(ref(db,'games')); const games = gamesSnap.exists()? gamesSnap.val():{};
+  const active = Object.entries(games).find(([k,v])=> v && v.active);
+  if(!active){ showToast('Nenhum game ativo'); return; }
+  const [gameId, game] = active;
+  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
+  const container = modal.querySelector('.modal-body');
+  const saturdays = game.saturdays || [];
+  container.innerHTML = `<h3 class="font-bold">Sábados (${saturdays.length})</h3><div class="grid grid-cols-2 gap-2 mt-2">${saturdays.map(d=>`<button class="sat-btn btn-game bg-white border-black" data-date="${d}">${d}</button>`).join('')}</div><div class="pt-3"><button id="close-sats" class="btn-game bg-black text-white px-3 py-1">Fechar</button></div>`;
+  container.querySelectorAll('.sat-btn').forEach(b=> b.addEventListener('click', ()=> openSaturdayEditor(gameId, b.dataset.date)));
+  document.getElementById('close-sats').addEventListener('click', ()=> modal.classList.add('hidden'));
+}
+
+/* Open Saturday editor modal: list players, allow typing points, cache localStorage */
+async function openSaturdayEditor(gameId, dateISO){
+  const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
+  const ptsSnap = await get(ref(db, `games/${gameId}/points/${dateISO}`)); const savedPoints = ptsSnap.exists()? ptsSnap.val(): {};
+  const cacheKey = `cache_${gameId}_${dateISO}`; const cached = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
+  const container = modal.querySelector('.modal-body');
+  container.innerHTML = `<div class="flex justify-between items-center"><h3 class="font-bold">Lançar pontos — ${dateISO}</h3><div><button id="close-sat" class="btn-game">Fechar</button><button id="save-sat" class="btn-game bg-black text-white">Salvar</button></div></div><input id="searchPlayer" placeholder="Pesquisar jogador..." class="w-full border p-2 my-2" />`;
+  const list = document.createElement('div'); list.className='max-h-72 overflow-auto border rounded p-2 space-y-2';
+  Object.entries(players).forEach(([pid,p])=>{
+    const val = cached[pid] ?? savedPoints[pid] ?? 0;
+    const row = document.createElement('div'); row.className='flex items-center justify-between gap-2';
+    row.innerHTML = `<div class="flex-1">${p.name}</div><input data-pid="${pid}" value="${val}" class="w-20 border p-1 points-input" />`;
+    list.appendChild(row);
+  });
+  container.appendChild(list);
+  document.getElementById('close-sat').addEventListener('click', ()=> modal.classList.add('hidden'));
+  document.getElementById('searchPlayer').addEventListener('input', (e)=>{ const q = e.target.value.toLowerCase(); list.querySelectorAll('div').forEach(div=>{ const name = div.querySelector('.flex-1').innerText.toLowerCase(); div.style.display = name.includes(q)? 'flex' : 'none'; }); });
+  list.querySelectorAll('.points-input').forEach(inp=> inp.addEventListener('input', ()=>{ const all = {}; list.querySelectorAll('.points-input').forEach(i=> all[i.dataset.pid] = i.value.trim()); localStorage.setItem(cacheKey, JSON.stringify(all)); }));
+  document.getElementById('save-sat').addEventListener('click', async ()=>{
+    const values = {}; list.querySelectorAll('.points-input').forEach(i=> values[i.dataset.pid] = Number(i.value.trim() || 0));
+    await set(ref(db, `games/${gameId}/points/${dateISO}`), values);
+    localStorage.removeItem(cacheKey);
+    showToast('Pontos salvos!');
+    modal.classList.add('hidden');
+  });
+}
+
+/* ---------- Player quick-create modal ---------- */
+function openPlayerModal(){
+  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
+  const container = modal.querySelector('.modal-body');
+  container.innerHTML = `<form id="quick-player-form" class="space-y-2"><label>Nome (obrigatório)<input id="p_name" class="w-full border p-2" /></label><label>Telefone (opcional)<input id="p_phone" class="w-full border p-2" /></label><label><input id="p_isAdmin" type="checkbox" /> É administrador</label><div id="adminFields" style="display:none"><label>Email<input id="p_email" class="w-full border p-2" /></label><label>Senha<input id="p_pass" type="password" class="w-full border p-2" /></label><label>Confirmar Senha<input id="p_pass2" type="password" class="w-full border p-2" /></label></div><div class="pt-2"><button id="save-player" class="btn-game bg-black text-white">Salvar</button><button id="cancel-player" class="btn-game ml-2">Cancelar</button></div></form>`;
+  const chk = document.getElementById('player-modal').querySelector('#p_isAdmin');
+  const adminFields = document.getElementById('player-modal').querySelector('#adminFields');
+  modal.querySelector('#p_isAdmin').addEventListener('change', (e)=> adminFields.style.display = e.target.checked? 'block':'none');
+  modal.querySelector('#cancel-player').addEventListener('click', ()=> modal.classList.add('hidden'));
+  modal.querySelector('#save-player').addEventListener('click', async (ev)=>{
+    ev.preventDefault();
+    const name = modal.querySelector('#p_name').value.trim();
+    const phone = modal.querySelector('#p_phone').value.trim();
+    const isAdmin = modal.querySelector('#p_isAdmin').checked;
+    if(!name){ showToast('Nome é obrigatório'); return; }
+    const newP = push(ref(db, 'players'));
+    await set(newP, { name, phone: phone||'', isAdmin: !!isAdmin, createdAt: Date.now() });
+    if(isAdmin){
+      const email = modal.querySelector('#p_email').value.trim();
+      const pass = modal.querySelector('#p_pass').value;
+      const pass2 = modal.querySelector('#p_pass2').value;
+      if(!email || !pass || pass !== pass2){ showToast('Preencha email e senhas corretamente'); return; }
+      try{ await createUserWithEmailAndPassword(auth, email, pass); showToast('Admin criado no Authentication'); } catch(e){ showToast('Erro ao criar auth: '+e.message); }
     }
+    showToast('Jogador cadastrado'); modal.classList.add('hidden');
+  });
+}
 
-    // --- Admin Users ---
-    async function renderAdminUsers(container){
-      const user = auth.currentUser; if(!user){ navigate('/adm/login'); return; }
-      container.innerHTML = `
-        <div class="card p-4">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold pixel-text">Gerenciar Jogadores</h2>
-            <div>
-              <button id="btnAddUserPage" class="btn-primary">Novo jogador</button>
-              <button id="btnBack" class="btn-ghost">Voltar</button>
-            </div>
-          </div>
-          <div id="usersList" class="bg-white p-3 rounded border"></div>
-        </div>
-      `;
-      document.getElementById('btnBack').addEventListener('click', ()=>navigate('/adm/dashboard'));
-      document.getElementById('btnAddUserPage').addEventListener('click', ()=> openPlayerModal());
-      const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
-      const rows = Object.entries(players).map(([pid,p])=>`<div class="p-2 border-b flex justify-between items-center"><div><div class="font-medium">${p.name}</div><div class="text-xs">${p.phone||''} ${p.isAdmin? '- (admin)':''}</div></div><div class="flex gap-2"><button data-id="${pid}" class="edit-btn px-2 py-1 rounded bg-yellow-300">Editar</button><button data-id="${pid}" class="del-btn px-2 py-1 rounded bg-red-500 text-white">Excluir</button></div></div>`).join('');
-      document.getElementById('usersList').innerHTML = rows || '<div class="p-4">Nenhum jogador cadastrado</div>';
-      document.querySelectorAll('.del-btn').forEach(b=> b.addEventListener('click', async ()=>{ if(!confirm('Excluir jogador?')) return; await remove(ref(db, `players/${b.dataset.id}`)); showToast('Jogador excluído'); renderAdminUsers(container); }));
-      document.querySelectorAll('.edit-btn').forEach(b=> b.addEventListener('click', ()=> openEditPlayerModal(b.dataset.id)));
-    }
+/* ---------- Players Manager (list, edit, delete) ---------- */
+async function openPlayersManager(){
+  const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
+  const container = modal.querySelector('.modal-body');
+  const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
+  container.innerHTML = '<div class="space-y-2"><h3 class="font-bold">Gerenciar Jogadores</h3><div id="players-list" class="mt-2 space-y-2"></div><div class="pt-2"><button id="close-players" class="btn-game">Fechar</button></div></div>';
+  const listEl = container.querySelector('#players-list');
+  Object.entries(players).forEach(([pid,p])=>{
+    const row = document.createElement('div'); row.className='flex justify-between items-center border p-2';
+    row.innerHTML = `<div><div class="font-medium">${p.name}</div><div class="text-xs">${p.phone||''} ${p.isAdmin? '- (admin)':''}</div></div><div class="flex gap-2"><button class="edit-btn btn-game" data-id="${pid}">Editar</button><button class="del-btn btn-game bg-red-500 text-white" data-id="${pid}">Excluir</button></div>`;
+    listEl.appendChild(row);
+  });
+  container.querySelectorAll('.del-btn').forEach(b=> b.addEventListener('click', async ()=>{ if(!confirm('Excluir jogador?')) return; await remove(ref(db, `players/${b.dataset.id}`)); showToast('Jogador excluído'); openPlayersManager(); }));
+  container.querySelectorAll('.edit-btn').forEach(b=> b.addEventListener('click', ()=> openEditPlayerModal(b.dataset.id)));
+  container.querySelector('#close-players').addEventListener('click', ()=> modal.classList.add('hidden'));
+}
 
-    function openEditPlayerModal(pid){ get(ref(db, `players/${pid}`)).then(snap=>{ const p = snap.val()||{}; const modals = document.getElementById('modals'); modals.innerHTML = `
-          <div class="fixed inset-0 modal-backdrop flex items-center justify-center">
-            <div class="bg-white p-4 rounded max-w-md w-full card">
-              <h3 class="font-bold">Editar Jogador</h3>
-              <label class="block text-xs mt-2">Nome</label>
-              <input id="e_name" class="w-full border p-2" value="${p.name||''}" />
-              <label class="block text-xs mt-2">Telefone</label>
-              <input id="e_phone" class="w-full border p-2" value="${p.phone||''}" />
-              <label class="flex items-center gap-2 mt-2"><input id="e_isAdmin" type="checkbox" ${p.isAdmin? 'checked':''} /> É administrador</label>
-              <div class="flex gap-2 mt-4">
-                <button id="btnSaveEdit" class="btn-primary">Salvar</button>
-                <button id="btnCancelEdit" class="btn-ghost">Cancelar</button>
-              </div>
-            </div>
-          </div>
-        `;
-        document.getElementById('btnCancelEdit').addEventListener('click', ()=> modals.innerHTML='');
-        document.getElementById('btnSaveEdit').addEventListener('click', async ()=>{ const name = document.getElementById('e_name').value.trim(); const phone = document.getElementById('e_phone').value.trim(); const isAdmin = document.getElementById('e_isAdmin').checked; await update(ref(db, `players/${pid}`), { name, phone, isAdmin }); showToast('Atualizado'); modals.innerHTML=''; }); }); }
+/* Edit player modal */
+function openEditPlayerModal(pid){
+  get(ref(db, `players/${pid}`)).then(snap=>{
+    const p = snap.val()||{};
+    const modal = document.getElementById('player-modal'); modal.classList.remove('hidden');
+    const container = modal.querySelector('.modal-body');
+    container.innerHTML = `<div class="space-y-2"><h3 class="font-bold">Editar Jogador</h3><label>Nome<input id="e_name" class="w-full border p-2" value="${(p.name||'').replace(/"/g,'&quot;')}" /></label><label>Telefone<input id="e_phone" class="w-full border p-2" value="${(p.phone||'')}" /></label><label><input id="e_isAdmin" type="checkbox" ${(p.isAdmin? 'checked':'')} /> É administrador</label><div class="pt-2"><button id="save-edit" class="btn-game bg-black text-white">Salvar</button><button id="cancel-edit" class="btn-game ml-2">Cancelar</button></div></div>`;
+    modal.querySelector('#cancel-edit').addEventListener('click', ()=> modal.classList.add('hidden'));
+    modal.querySelector('#save-edit').addEventListener('click', async ()=>{
+      const name = modal.querySelector('#e_name').value.trim(); const phone = modal.querySelector('#e_phone').value.trim(); const isAdmin = modal.querySelector('#e_isAdmin').checked;
+      await update(ref(db, `players/${pid}`), { name, phone, isAdmin }); showToast('Atualizado'); modal.classList.add('hidden');
+    });
+  });
+}
 
-    onAuthStateChanged(auth, user => { const r = getRoute(); if(r.startsWith('/adm') && !user) navigate('/adm/login'); });
-    window._gameUAU = { navigate };
-  </script></body>
+/* ---------- Annual export ---------- */
+async function exportAnnualCSV(year){
+  const gamesSnap = await get(ref(db, 'games')); const games = gamesSnap.exists()? gamesSnap.val(): {};
+  const gameIds = Object.entries(games).filter(([gid,g])=> g && new Date(g.start).getFullYear()===Number(year)).map(([gid,g])=> gid);
+  const playersSnap = await get(ref(db,'players')); const players = playersSnap.exists()? playersSnap.val(): {};
+  const rows = [['Nome','Total']];
+  const totals = {}; Object.keys(players).forEach(pid=> totals[pid]=0);
+  for(const gid of gameIds){
+    const pSnap = await get(ref(db, `games/${gid}/points`)); const points = pSnap.exists()? pSnap.val(): {};
+    Object.values(points).forEach(sat=> Object.entries(sat).forEach(([pid,val])=> totals[pid] = (totals[pid]||0)+Number(val||0)));
+  }
+  Object.entries(totals).forEach(([pid,total])=> rows.push([players[pid]?.name||'—', total]));
+  exportCSV(rows, `ranking_${year}.csv`);
+}
+
+/* ---------- Init on DOMContentLoaded ---------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // detect which page to initialize
+  if(document.getElementById('ranking-list')) renderPublicRanking();
+  if(document.getElementById('login-button')) setupLoginPage();
+  if(document.getElementById('btnNewGame')) setupDashboardPage();
+
+  // attach global helpers
+  window.printRanking = () => printRanking('#ranking-list');
+  window.openPlayerModal = openPlayerModal;
+  window.openCreateGameModal = openCreateGameModal;
+  window.openPointsManager = openPointsManager;
+  window.openPlayersManager = openPlayersManager;
+  window.exportAnnualCSV = exportAnnualCSV;
+});
+</script>
+
+<script>
+// Simple SPA router to show/hide pages based on hash
+function showPage(page){
+  document.getElementById('page-ranking').style.display = 'none';
+  document.getElementById('page-login').style.display = 'none';
+  document.getElementById('page-dashboard').style.display = 'none';
+  if(page === '/adm/login') document.getElementById('page-login').style.display = '';
+  else if(page === '/adm/dashboard') document.getElementById('page-dashboard').style.display = '';
+  else document.getElementById('page-ranking').style.display = '';
+}
+window.addEventListener('hashchange', ()=> showPage(location.hash.replace('#','') || '/ranking'));
+showPage(location.hash.replace('#','') || '/ranking');
+// initialize lucide icons
+if(window.lucide) window.lucide.createIcons();
+</script>
+
+</body>
 </html>
