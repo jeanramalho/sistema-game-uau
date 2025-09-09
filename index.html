@@ -7,743 +7,905 @@
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Pixel font (Google) -->
+  <!-- Pixel font -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Firebase compat libs (Auth + Realtime DB) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
   <style>
     :root{
       --pixel-border: 6px;
       --pixel-shadow: 6px;
-      --bg-light: #eaf7f9; /* azul claro do layout */
+      --bg-light: #eaf7f9;
       --card-blue: #c9e9ee;
     }
-
-    body {
-      font-family: "Press Start 2P", monospace;
-      background: linear-gradient(90deg,#f7feff 0%, #eaf7f9 100%);
-      margin: 0;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* Pixel box style used across UI */
-    .pixel-box {
-      background: white;
-      border: var(--pixel-border) solid #000;
-      box-shadow: var(--pixel-shadow) var(--pixel-shadow) 0 #000;
-      border-radius: 4px;
-    }
-
-    .pixel-card {
-      background: var(--card-blue);
-      border: 4px solid #000;
-      box-shadow: 6px 6px 0 #000;
-    }
-
-    /* Modal overlay centered */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.25);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index: 60;
-    }
-    .modal-center {
-      width: min(900px, 95%);
-      max-height: 90vh;
-      overflow:auto;
-      background: #fff;
-      border: 8px solid #000;
-      box-shadow: 10px 10px 0 #000;
-      padding: 20px;
-      border-radius: 4px;
-    }
-
-    /* Buttons style */
-    .pixel-btn {
-      display:inline-block;
-      background: #bfeaf0;
-      border: 6px solid #000;
-      box-shadow: 6px 6px 0 #000;
-      padding: 8px 18px;
-      cursor:pointer;
-      font-family: "Press Start 2P", monospace;
-      font-size: 12px;
-    }
-
-    /* Small accent tag */
-    .tag {
-      background:#bfeaf0;
-      padding:6px 12px;
-      border:4px solid #000;
-      box-shadow:4px 4px 0 #000;
-      font-size:12px;
-      margin-right:8px;
-    }
-
-    /* table */
-    .ranking-row {
-      border: 4px solid #000;
-      padding: 12px;
-      margin-bottom: 8px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      background: #dff3f5;
-    }
-
-    /* form inputs pixel */
-    .pixel-input{
-      background: #fff;
-      border:6px solid #000;
-      padding:10px;
-      width:100%;
-      box-shadow: 6px 6px 0 #000;
-      margin-bottom:12px;
-    }
-
-    /* mobile tweaks */
-    @media (max-width: 640px){
-      .modal-center{ padding:12px; }
-    }
-
+    body { font-family: "Press Start 2P", monospace; background: linear-gradient(90deg,#f7feff 0%, #eaf7f9 100%); margin:0; }
+    .pixel-box { background:white; border:var(--pixel-border) solid #000; box-shadow:var(--pixel-shadow) var(--pixel-shadow) 0 #000; border-radius:4px; }
+    .pixel-card { background:var(--card-blue); border:4px solid #000; box-shadow:6px 6px 0 #000; }
+    .pixel-btn { background:#bfeaf0; border:6px solid #000; box-shadow:6px 6px 0 #000; padding:8px 14px; cursor:pointer; font-size:12px; }
+    .pixel-input { background:#fff; border:6px solid #000; padding:10px; width:100%; box-shadow:6px 6px 0 #000; margin-bottom:12px; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; z-index:60; }
+    .modal-center { width:min(900px,95%); max-height:90vh; overflow:auto; background:#fff; border:8px solid #000; box-shadow:10px 10px 0 #000; padding:20px; border-radius:4px; }
+    .ranking-row { border:4px solid #000; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:#dff3f5; }
+    .tag { background:#bfeaf0; padding:6px 12px; border:4px solid #000; box-shadow:4px 4px 0 #000; font-size:12px; margin-right:8px; display:inline-block; }
+    @media (max-width:640px){ .modal-center{ padding:12px } }
   </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-  <div class="max-w-7xl mx-auto py-6 px-4">
-
-    <!-- Header -->
-    <header class="mb-6">
-      <div class="flex items-center gap-4">
-        <div class="pixel-box p-2 inline-flex items-center">
-          <div class="w-12 h-12 bg-black mr-2"></div>
-          <div class="px-3 py-1 bg-white border-4 border-black">GAME UAU</div>
-        </div>
-        <div class="text-lg">SISTEMA DE RANKING</div>
-        <div class="ml-auto">
-          <button id="logoutBtn" class="pixel-btn">SAIR</button>
-        </div>
+  <!-- Simple hash-based navigation -->
+  <nav class="p-4 bg-[--card-blue] border-b-4 border-black">
+    <div class="max-w-6xl mx-auto flex items-center gap-4">
+      <div class="pixel-box p-2 inline-flex items-center">
+        <div class="w-10 h-10 bg-black mr-2"></div>
+        <div class="px-3 py-1 bg-white border-4 border-black">GAME UAU</div>
       </div>
-    </header>
+      <a href="#/" class="ml-4">INÍCIO</a>
+      <a href="#/ranking" class="">RANKING PÚBLICO</a>
+      <a href="#/admin" class="">ÁREA ADMIN</a>
+      <div class="ml-auto flex items-center gap-3">
+        <div id="nextSaturdayTag" class="tag">Próx. sábado: --</div>
+        <button id="logoutBtn" class="pixel-btn">SAIR</button>
+      </div>
+    </div>
+  </nav>
 
-    <!-- Main Hero -->
-    <main>
-      <section class="mx-auto mb-8">
-        <div class="pixel-box p-8 text-center bg-[--card-blue]">
-          <h1 style="font-size:28px">DASHBOARD ADMINISTRATIVO</h1>
-        </div>
-      </section>
-
-      <!-- Top tags -->
-      <div class="mb-6 flex items-center">
-        <div id="activeTag" class="tag">TRIMESTRE INATIVO</div>
-        <div id="playersCount" class="tag">0 JOGADORES</div>
-        <div id="saturdayTag" class="tag">SÁBADO --</div>
+  <main id="app" class="max-w-6xl mx-auto mt-6 mb-12 px-4">
+    <!-- Home -->
+    <section id="view-home" class="view">
+      <div class="pixel-box p-8 text-center bg-[--card-blue]">
+        <h1 style="font-size:28px">GAME UAU</h1>
+        <div class="mt-4">Sistema de ranking trimestral</div>
       </div>
 
-      <!-- Ações rápidas (cards) -->
-      <section class="mb-8">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div class="pixel-card p-6 cursor-pointer" id="card-manage-players">
-            <h3>GERENCIAR JOGADORES</h3>
-            <p class="mt-2 text-xs">Cadastrar, editar e excluir jogadores</p>
-          </div>
-
-          <div class="pixel-card p-6 cursor-pointer" id="card-launch-points">
-            <h3>LANÇAR PONTOS</h3>
-            <p class="mt-2 text-xs">Cadastrar pontos dos sábados</p>
-          </div>
-
-          <div class="pixel-card p-6 cursor-pointer" id="card-annual-ranking">
-            <h3>RANKING ANUAL</h3>
-            <p class="mt-2 text-xs">Soma dos pontos dos trimestres do ano</p>
-          </div>
-
-          <div class="pixel-card p-6 cursor-pointer" id="card-register-player">
-            <h3>CADASTRAR JOGADOR</h3>
-            <p class="mt-2 text-xs">Adicionar jogador ou administrador</p>
-          </div>
-
-          <div class="pixel-card p-6 cursor-pointer flex items-center justify-center" id="card-create-end-game" >
-            <h3 id="createEndTitle">NOVO GAME UAU</h3>
-          </div>
-
-          <div class="pixel-card p-6 cursor-pointer" id="card-settings">
-            <h3>CONFIGURAÇÕES</h3>
-            <p class="mt-2 text-xs">Configurar sistema</p>
+      <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="pixel-box p-6">
+          <h2>RANKING PÚBLICO</h2>
+          <p class="mt-2 text-xs">Veja a classificação atual de todos os jogadores.</p>
+          <div class="mt-4">
+            <button id="btnGoRanking" class="pixel-btn">VER RANKING</button>
           </div>
         </div>
-      </section>
 
-      <!-- Ranking atual + sidebar -->
-      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 pixel-box p-6">
-          <h2>RANKING ATUAL</h2>
-          <div id="rankingList" class="mt-4">
-            <!-- rows injected by JS -->
+        <div class="pixel-box p-6">
+          <h2>ÁREA ADMINISTRATIVA</h2>
+          <p class="mt-2 text-xs">Gerencie jogadores, pontos e configurações</p>
+          <div class="mt-4">
+            <a href="#/admin" class="pixel-btn">ÁREA ADMIN</a>
           </div>
-
-          <div class="mt-4 text-center text-xs">TOTAL: <span id="totalPlayers">0</span> JOGADORES</div>
         </div>
+      </div>
+    </section>
 
-        <aside class="pixel-box p-6">
-          <h3>ESTATÍSTICAS</h3>
-          <div class="mt-3 text-xs">
-            <div>MAIOR PONTUAÇÃO: <span id="statMax">0</span></div>
-            <div>MÉDIA GERAL: <span id="statAvg">0</span></div>
-            <div>SÁBADOS JOGADOS: <span id="statSábados">0</span></div>
-            <div>PRÓXIMO JOGO: <span id="statNextGame">--</span></div>
-          </div>
+    <!-- Public ranking -->
+    <section id="view-ranking" class="view hidden">
+      <div class="pixel-box p-6">
+        <h2>RANKING PÚBLICO</h2>
+        <div id="publicRanking" class="mt-4"></div>
+        <div class="mt-4">
+          <button id="btnPrintPublic" class="pixel-btn">PRINT</button>
+        </div>
+      </div>
+    </section>
 
-          <div class="mt-6">
-            <h4>ADICIONAR JOGADOR</h4>
-            <button id="quickRegisterBtn" class="pixel-btn mt-3">CADASTRAR JOGADOR</button>
-          </div>
-        </aside>
-      </section>
-    </main>
-  </div>
+    <!-- Admin (requires login) -->
+    <section id="view-admin" class="view hidden">
+      <div class="pixel-box p-6 mb-6">
+        <h2>DASHBOARD ADMINISTRATIVO</h2>
+        <div class="mt-3">
+          <span id="activeTag" class="tag">TRIMESTRE INATIVO</span>
+          <span id="playersCount" class="tag">0 JOGADORES</span>
+        </div>
+      </div>
 
-  <!-- Modal container (JS injects content here) -->
+      <!-- Actions -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+        <div class="pixel-card p-6 cursor-pointer" id="card-manage-players"><h3>GERENCIAR JOGADORES</h3></div>
+        <div class="pixel-card p-6 cursor-pointer" id="card-launch-points"><h3>LANÇAR PONTOS</h3></div>
+        <div class="pixel-card p-6 cursor-pointer" id="card-annual-ranking"><h3>RANKING ANUAL</h3></div>
+        <div class="pixel-card p-6 cursor-pointer" id="card-register-player"><h3>CADASTRAR JOGADOR</h3></div>
+        <div class="pixel-card p-6 cursor-pointer text-center" id="card-create-end-game"><h3 id="createEndTitle">NOVO GAME UAU</h3></div>
+        <div class="pixel-card p-6 cursor-pointer" id="card-settings"><h3>CONFIGURAÇÕES</h3></div>
+      </div>
+
+      <!-- Ranking preview -->
+      <div class="pixel-box p-6">
+        <h3>RANKING ATUAL</h3>
+        <div id="rankingPreview" class="mt-4"></div>
+        <div class="mt-4">TOTAL: <span id="totalPlayers">0</span> JOGADORES</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal root -->
   <div id="modal-root"></div>
 
-  <script>
-  /***********************
-   * Utility & State
-   ***********************/
-  const STORAGE_KEY = "gameuau_state_v1";
+<script>
+/* ------------- CONFIGURE FIREBASE -------------
+  Substitua este firebaseConfig pelo seu objeto de configuração do Firebase
+  (apiKey, authDomain, databaseURL, projectId, storageBucket, messagingSenderId, appId).
+  Exemplo:
+  const firebaseConfig = {
+    apiKey: "AIza....",
+    authDomain: "seu-projeto.firebaseapp.com",
+    databaseURL: "https://seu-projeto-default-rtdb.firebaseio.com",
+    projectId: "seu-projeto",
+    storageBucket: "...",
+    messagingSenderId: "...",
+    appId: "1:...:web:..."
+  };
+*/
+const firebaseConfig = {
+  // COLE AQUI SEU CONFIG DO FIREBASE
+};
 
-  function formatBR(dateInput){
-    if(!dateInput) return "";
-    const d = new Date(dateInput);
-    const dd = String(d.getDate()).padStart(2,'0');
-    const mm = String(d.getMonth()+1).padStart(2,'0');
-    const yyyy = d.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
+/* Fim config */
+let firebaseEnabled = false;
+try {
+  if (firebaseConfig && firebaseConfig.apiKey) {
+    firebase.initializeApp(firebaseConfig);
+    firebaseEnabled = true;
+    console.log("Firebase inicializado (modo REAL).");
+  } else {
+    console.warn("Firebase não configurado — operando em modo local (localStorage).");
   }
+} catch(e) {
+  console.error("Erro init firebase:", e);
+  firebaseEnabled = false;
+}
 
-  function todaySaturdayLabel(){
-    // example: display today's date as saturday label (the UI shows sábado/current)
-    return formatBR(new Date());
-  }
-
-  // default seed data (for demo). It will persist in localStorage after first load.
-  const seedState = {
-    players: [
-      { id: "p1", name: "João Silva", role: "player", createdAt: new Date().toISOString() },
-      { id: "p2", name: "Maria Santos", role: "player", createdAt: new Date().toISOString() },
-      { id: "p3", name: "Carlos Oliveira", role: "player", createdAt: new Date().toISOString() },
-      { id: "p4", name: "Ana Costa", role: "player", createdAt: new Date().toISOString() },
-      { id: "p5", name: "Pedro Souza", role: "player", createdAt: new Date().toISOString() },
-      { id: "admin1", name: "Admin Demo", role: "admin", createdAt: new Date().toISOString() }
-    ],
-    // games: array newest first
-    games: [
-      {
-        id: "g1",
-        year: new Date().getFullYear(),
-        trimester: 1,
-        startedAt: new Date().toISOString(),
-        endedAt: null,
-        playersPoints: { p1:1250, p2:1100, p3:950, p4:800, p5:750 }
+/* ------------- Simple local fallback + state ------------- */
+const STORAGE_KEY = "gameuau_state_v2";
+function defaultSeed(){
+  const now = new Date().toISOString();
+  return {
+    players: {
+      p1: { id: "p1", name: "João Silva", phone:"(11) 99999-0001", role:"player", createdAt: now },
+      p2: { id: "p2", name: "Maria Santos", phone:"(11) 99999-0002", role:"player", createdAt: now },
+      p3: { id: "p3", name: "Carlos Oliveira", phone:"(11) 99999-0003", role:"player", createdAt: now },
+    },
+    games: {
+      g1: { id:"g1", year: new Date().getFullYear(), trimester:1, startedAt: now, endedAt: null,
+        playersPoints: { p1:1250, p2:1100, p3:950 }
       }
-    ],
+    },
     activeGameId: "g1"
   };
+}
+function loadLocal(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) { const seed = defaultSeed(); localStorage.setItem(STORAGE_KEY, JSON.stringify(seed)); return seed; }
+    return JSON.parse(raw);
+  } catch(e) { const seed = defaultSeed(); localStorage.setItem(STORAGE_KEY, JSON.stringify(seed)); return seed; }
+}
+function saveLocal(state){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-  function loadState(){
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seedState, null, 2));
-        return JSON.parse(JSON.stringify(seedState));
-      }
-      return JSON.parse(raw);
-    } catch(e){
-      console.error("loadState err", e);
-      return JSON.parse(JSON.stringify(seedState));
+/* ------------- App state ---------------- */
+let state = loadLocal(); // mirrored from DB if firebase enabled
+let currentUser = null;
+
+/* Helpers */
+function uidGen(prefix='id'){ return prefix + Date.now(); }
+function formatBR(d){ if(!d) return ""; const dt = new Date(d); return String(dt.getDate()).padStart(2,'0') + "-" + String(dt.getMonth()+1).padStart(2,'0') + "-" + dt.getFullYear(); }
+function toNumberSafe(v){ return Number(v) || 0; }
+
+/* ------------- Firebase helpers (if enabled) -------------- */
+function dbRef(path){ return firebase.database().ref(path); }
+
+async function syncFromFirebase(){
+  if(!firebaseEnabled) return;
+  // Listen players and games
+  const playersRef = dbRef('/players');
+  playersRef.on('value', snap=>{
+    const players = snap.val() || {};
+    state.players = players;
+    renderAll();
+  });
+  const gamesRef = dbRef('/games');
+  gamesRef.on('value', snap=>{
+    const games = snap.val() || {};
+    state.games = games;
+    // activeGameId stored at /meta/activeGameId or inferred
+    dbRef('/meta/activeGameId').once('value').then(s => {
+      const aid = s.val();
+      state.activeGameId = aid || Object.keys(games)[0] || null;
+      renderAll();
+    });
+  });
+  // meta
+  dbRef('/meta/activeGameId').on('value', snap=>{
+    state.activeGameId = snap.val();
+    renderAll();
+  });
+}
+
+if(firebaseEnabled) {
+  syncFromFirebase();
+  // Auth state
+  firebase.auth().onAuthStateChanged(user=>{
+    currentUser = user;
+    renderAll();
+  });
+} else {
+  // local fallback: ensure state has players/games structure
+  if(!state.players) state.players = defaultSeed().players;
+  if(!state.games) state.games = defaultSeed().games;
+  if(!state.activeGameId) state.activeGameId = defaultSeed().activeGameId;
+}
+
+/* ------------- Utility: compute saturdays for a trimester -------------
+   We'll generate 15 consecutive saturdays starting from the first Saturday >= startedAt
+*/
+function generateSaturdays(startIso, count=15){
+  const start = startIso ? new Date(startIso) : new Date();
+  // find first saturday (weekday 6)
+  const s = new Date(start);
+  const day = s.getDay(); // 0 sunday, 6 saturday
+  let delta = (6 - day);
+  if(delta < 0) delta += 7;
+  s.setDate(s.getDate() + delta);
+  const arr = [];
+  for(let i=0;i<count;i++){
+    const d = new Date(s);
+    d.setDate(s.getDate() + i*7);
+    arr.push(d.toISOString());
+  }
+  return arr;
+}
+
+/* ------------- CRUD operations (works with firebase if enabled, else localStorage) ------------- */
+async function savePlayerToBackend(player){
+  if(firebaseEnabled){
+    // if player has id that looks like auth uid (admin created), use that id, else push new
+    if(player.role === 'admin' && player.id){ // id is auth uid
+      await dbRef('/players/' + player.id).set(player);
+      return player;
+    } else {
+      const newRef = dbRef('/players').push();
+      player.id = newRef.key;
+      await newRef.set(player);
+      return player;
     }
-  }
-
-  function saveState(s){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s, null, 2));
-  }
-
-  let state = loadState();
-
-  /***********************
-   * Core model functions
-   ***********************/
-  function reopenUI(){
-    renderTopTags();
-    renderRanking();
-    renderStats();
-  }
-
-  function createPlayer({name, role="player", email=null}){
-    const id = "p" + Date.now();
-    const player = { id, name, role, email, createdAt: new Date().toISOString() };
-    state.players.push(player);
-    saveState(state);
-    reopenUI();
+  } else {
+    // local
+    if(!player.id) player.id = uidGen('p');
+    state.players = state.players || {};
+    state.players[player.id] = player;
+    saveLocal(state);
+    renderAll();
     return player;
   }
+}
 
-  function createGame({year, trimester}){
-    if(state.activeGameId) throw new Error("Já existe um trimestre ativo. Encerre antes de criar outro.");
-    const id = "g" + Date.now();
-    const g = { id, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
-    state.games.unshift(g);
+async function createAdminWithAuth(email, password, playerObj){
+  if(!firebaseEnabled) throw new Error("Firebase não configurado");
+  const res = await firebase.auth().createUserWithEmailAndPassword(email, password);
+  const user = res.user;
+  const uid = user.uid;
+  playerObj.id = uid;
+  await dbRef('/players/' + uid).set(playerObj);
+  // optionally set role mapping
+  return playerObj;
+}
+
+async function createPlayerFlow(data){
+  // data: {name, phone, role, email, password}
+  const player = { name: data.name, phone: data.phone, role: data.role, createdAt: new Date().toISOString() };
+  if(data.role === 'admin'){
+    if(!firebaseEnabled) {
+      alert("Para criar administradores é necessário configurar o Firebase (Auth).");
+      return;
+    }
+    const created = await createAdminWithAuth(data.email, data.password, player);
+    return created;
+  } else {
+    const saved = await savePlayerToBackend(player);
+    return saved;
+  }
+}
+
+async function createGameFlow({year, trimester}){
+  if(state.activeGameId){
+    throw new Error("Já existe um trimestre ativo. Encerre antes de criar outro.");
+  }
+  const id = firebaseEnabled ? dbRef('/games').push().key : uidGen('g');
+  const game = { id, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
+
+  if(firebaseEnabled){
+    await dbRef('/games/' + id).set(game);
+    await dbRef('/meta/activeGameId').set(id);
+  } else {
+    state.games = state.games || {};
+    state.games[id] = game;
     state.activeGameId = id;
-    saveState(state);
-    reopenUI();
-    return g;
+    saveLocal(state);
+    renderAll();
   }
+  return game;
+}
 
-  function endGame(gameId){
-    state.games = state.games.map(g => {
-      if(g.id === gameId) return {...g, endedAt: new Date().toISOString()};
-      return g;
-    });
-    if(state.activeGameId === gameId) state.activeGameId = null;
-    saveState(state);
-    reopenUI();
+async function endGameFlow(gameId){
+  if(firebaseEnabled){
+    await dbRef('/games/' + gameId + '/endedAt').set(new Date().toISOString());
+    await dbRef('/meta/activeGameId').set(null);
+  } else {
+    state.games[gameId].endedAt = new Date().toISOString();
+    state.activeGameId = null;
+    saveLocal(state);
+    renderAll();
   }
+}
 
-  function addPoints(gameId, playerId, points){
-    state.games = state.games.map(g => {
-      if(g.id !== gameId) return g;
-      const copy = {...g, playersPoints: {...g.playersPoints}};
-      copy.playersPoints[playerId] = (copy.playersPoints[playerId] || 0) + Number(points);
-      return copy;
-    });
-    saveState(state);
-    reopenUI();
+async function addPointsFlow(gameId, playerId, points){
+  if(firebaseEnabled){
+    const ref = dbRef('/games/' + gameId + '/playersPoints/' + playerId);
+    // use transaction to add points
+    await ref.transaction(current => (Number(current || 0) + Number(points)));
+  } else {
+    const g = state.games[gameId];
+    if(!g.playersPoints) g.playersPoints = {};
+    g.playersPoints[playerId] = (g.playersPoints[playerId] || 0) + Number(points);
+    saveLocal(state);
+    renderAll();
   }
+}
 
-  function computeAnnualRanking(year){
-    const map = {}; // playerId -> total
-    state.games.forEach(g => {
-      const gameYear = new Date(g.startedAt).getFullYear();
-      if(gameYear !== year) return;
-      Object.entries(g.playersPoints || {}).forEach(([pid, pts]) => {
-        map[pid] = (map[pid] || 0) + Number(pts || 0);
-      });
-    });
-    const arr = Object.entries(map).map(([id, points]) => ({ id, points }));
-    arr.sort((a,b)=> b.points - a.points);
-    return arr;
+/* ------------- Print helper ------------- */
+function printRankingWithLogo(rankingHtml){
+  const win = window.open('', '_blank', 'width=900,height=1000');
+  const logoHtml = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <div style="width:60px;height:60px;background:#000"></div>
+    <div style="font-family: 'Press Start 2P', monospace;font-size:18px">GAME UAU</div>
+  </div>`;
+  win.document.write(`
+    <html><head><title>Game UAU - Ranking</title>
+    <style>
+      body{ font-family: 'Press Start 2P', monospace; padding:20px; }
+      table{ width:100%; border-collapse: collapse; }
+      th,td{ border:1px solid #000; padding:12px; text-align:left; }
+    </style>
+    </head><body>
+    ${logoHtml}
+    ${rankingHtml}
+    </body></html>`);
+  win.document.close();
+  setTimeout(()=> { win.print(); }, 500);
+}
+
+/* ------------- UI rendering and wiring ------------- */
+const views = {
+  home: document.getElementById('view-home'),
+  ranking: document.getElementById('view-ranking'),
+  admin: document.getElementById('view-admin')
+};
+
+function showView(route){
+  Object.values(views).forEach(v=>v.classList.add('hidden'));
+  if(route === 'ranking') views.ranking.classList.remove('hidden');
+  else if(route === 'admin') views.admin.classList.remove('hidden');
+  else views.home.classList.remove('hidden');
+  // minor re-render
+  renderAll();
+}
+
+window.addEventListener('hashchange', ()=> {
+  const r = location.hash.replace('#','').replace('/','') || '';
+  if(r === 'admin') showView('admin');
+  else if(r === 'ranking') showView('ranking');
+  else showView('home');
+});
+if(!location.hash) location.hash = '#/';
+
+/* DOM refs */
+const nextSaturdayTag = document.getElementById('nextSaturdayTag');
+const logoutBtn = document.getElementById('logoutBtn');
+const btnGoRanking = document.getElementById('btnGoRanking');
+const btnPrintPublic = document.getElementById('btnPrintPublic');
+const cardRegister = document.getElementById('card-register-player');
+const cardCreateEnd = document.getElementById('card-create-end-game');
+const cardLaunchPoints = document.getElementById('card-launch-points');
+const cardManagePlayers = document.getElementById('card-manage-players');
+const cardAnnualRanking = document.getElementById('card-annual-ranking');
+const rankingPreviewEl = document.getElementById('rankingPreview');
+const totalPlayersEl = document.getElementById('totalPlayers');
+const playersCountTag = document.getElementById('playersCount');
+const activeTag = document.getElementById('activeTag');
+const createEndTitle = document.getElementById('createEndTitle');
+const publicRankingEl = document.getElementById('publicRanking');
+
+/* Attach nav actions */
+btnGoRanking.addEventListener('click', ()=> location.hash = '#/ranking');
+btnPrintPublic.addEventListener('click', ()=> {
+  // build ranking HTML
+  const html = buildPublicRankingHtmlForPrint();
+  printRankingWithLogo(html);
+});
+
+/* logout behavior */
+logoutBtn.addEventListener('click', async ()=>{
+  if(firebaseEnabled && firebase.auth().currentUser){
+    await firebase.auth().signOut();
+    alert('Logout efetuado.');
+    currentUser = null;
+    location.hash = '#/';
+    renderAll();
+  } else {
+    // local fallback: just navigate to home
+    alert('Logout (modo local)');
+    currentUser = null;
+    location.hash = '#/';
+    renderAll();
   }
+});
 
-  /***********************
-   * UI Rendering
-   ***********************/
-  const playersCountEl = document.getElementById("playersCount");
-  const activeTagEl = document.getElementById("activeTag");
-  const saturdayTagEl = document.getElementById("saturdayTag");
-  const createEndTitleEl = document.getElementById("createEndTitle");
-  const rankingListEl = document.getElementById("rankingList");
-  const totalPlayersEl = document.getElementById("totalPlayers");
-  const statMaxEl = document.getElementById("statMax");
-  const statAvgEl = document.getElementById("statAvg");
-  const statSabadosEl = document.getElementById("statSábados");
-  const statNextGameEl = document.getElementById("statNextGame");
+/* Cards */
+cardRegister.addEventListener('click', ()=> openModal('playerRegister'));
+cardManagePlayers.addEventListener('click', ()=> openModal('managePlayers'));
+cardCreateEnd.addEventListener('click', async ()=>{
+  if(state.activeGameId) openModal('endGame');
+  else openModal('createGame');
+});
+cardLaunchPoints.addEventListener('click', ()=> openModal('launchPoints'));
+cardAnnualRanking.addEventListener('click', ()=> openModal('annualRanking'));
 
-  function renderTopTags(){
-    playersCountEl.textContent = state.players.length + " JOGADORES";
-    if(state.activeGameId){
-      activeTagEl.textContent = "TRIMESTRE ATIVO";
-      createEndTitleEl.textContent = "ENCERRAR GAME";
-    } else {
-      activeTagEl.textContent = "TRIMESTRE INATIVO";
-      createEndTitleEl.textContent = "NOVO GAME UAU";
-    }
-    saturdayTagEl.textContent = "SÁBADO " + todaySaturdayLabel();
+/* Renders */
+function renderAll(){
+  // update derived UI (players count, active tag, next saturday)
+  const players = state.players || {};
+  const games = state.games || {};
+  const playerCount = Object.keys(players).length;
+  playersCountTag.textContent = playerCount + ' JOGADORES';
+  if(state.activeGameId) { activeTag.textContent = 'TRIMESTRE ATIVO'; createEndTitle.textContent = 'ENCERRAR GAME'; }
+  else { activeTag.textContent = 'TRIMESTRE INATIVO'; createEndTitle.textContent = 'NOVO GAME UAU'; }
+
+  // compute next saturday for active game (first saturday >= now in list)
+  let nextSatText = '--';
+  if(state.activeGameId && state.games && state.games[state.activeGameId]){
+    const g = state.games[state.activeGameId];
+    const saturdays = generateSaturdays(g.startedAt, 15);
+    const next = saturdays.find(s => new Date(s) >= new Date());
+    nextSatText = next ? formatBR(next) : formatBR(saturdays[0]);
+  } else {
+    // use today
+    nextSatText = formatBR(new Date());
   }
+  nextSaturdayTag.textContent = 'Próx. sábado: ' + nextSatText;
 
-  function renderRanking(){
-    rankingListEl.innerHTML = "";
-    const activeGame = state.games.find(g => g.id === state.activeGameId) || state.games[0] || null;
-    if(!activeGame){
-      rankingListEl.innerHTML = "<div class='text-sm'>Nenhum trimestre disponível</div>";
-      totalPlayersEl.textContent = "0";
-      return;
-    }
-    // build ranking rows
-    // compute ordering by points desc
-    const pts = activeGame.playersPoints || {};
-    const arr = state.players.map(p => {
-      return { id: p.id, name: p.name, points: pts[p.id] || 0 };
-    });
-    arr.sort((a,b)=> b.points - a.points);
+  // render ranking preview
+  renderRankingPreview();
+  renderPublicRankingList();
+}
 
-    arr.forEach((r, idx)=>{
-      const row = document.createElement("div");
-      row.className = "ranking-row pixel-box";
-      row.innerHTML = `
-        <div class="flex items-center gap-3">
-          <div style="width:30px;text-align:center">${ idx < 3 ? (idx+1 + "º") : ( (r.points>0) ? (idx+1+"º") : (idx+1+"º"))}</div>
-          <div>${r.name}</div>
+function renderRankingPreview(){
+  rankingPreviewEl.innerHTML = '';
+  const game = (state.activeGameId && state.games && state.games[state.activeGameId]) ? state.games[state.activeGameId] : (state.games && Object.values(state.games)[0]);
+  if(!game){ rankingPreviewEl.innerHTML = '<div>Nenhum trimestre</div>'; totalPlayersEl.textContent = '0'; return; }
+  const pts = game.playersPoints || {};
+  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name, points: pts[p.id] || 0 }));
+  playersArr.sort((a,b)=> b.points - a.points);
+  playersArr.forEach((r,i)=>{
+    const row = document.createElement('div'); row.className = 'ranking-row pixel-box';
+    row.innerHTML = `<div>${i+1}º • ${r.name}</div><div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>`;
+    rankingPreviewEl.appendChild(row);
+  });
+  totalPlayersEl.textContent = (Object.keys(state.players||{}).length || 0);
+}
+
+/* Public ranking list */
+function renderPublicRankingList(){
+  publicRankingEl.innerHTML = '';
+  // pick latest finished game? For public ranking, show active game's ranking
+  const game = (state.activeGameId && state.games && state.games[state.activeGameId]) ? state.games[state.activeGameId] : (state.games && Object.values(state.games)[0]);
+  if(!game) { publicRankingEl.innerHTML = '<div>Nenhum ranking</div>'; return; }
+  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name, points: (game.playersPoints||{})[p.id] || 0 }));
+  playersArr.sort((a,b)=> b.points - a.points);
+  const container = document.createElement('div');
+  container.innerHTML = playersArr.map((r,i)=> `<div style="display:flex;justify-content:space-between;padding:10px;border:2px solid #000;margin-bottom:6px;background:#dff3f5">${i+1}º ${r.name} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('');
+  publicRankingEl.appendChild(container);
+}
+
+/* Build print html portion (table) */
+function buildPublicRankingHtmlForPrint(){
+  const game = (state.activeGameId && state.games && state.games[state.activeGameId]) ? state.games[state.activeGameId] : (state.games && Object.values(state.games)[0]);
+  if(!game) return '<div>Nenhum ranking</div>';
+  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name, points: (game.playersPoints||{})[p.id] || 0 }));
+  playersArr.sort((a,b)=> b.points - a.points);
+  let html = '<table><thead><tr><th>Posição</th><th>Jogador</th><th>Pontos</th></tr></thead><tbody>';
+  playersArr.forEach((r,i)=> html += `<tr><td>${i+1}º</td><td>${r.name}</td><td>${r.points.toLocaleString('pt-BR')}</td></tr>`);
+  html += '</tbody></table>';
+  return html;
+}
+
+/* ------------- Modal system ------------- */
+const modalRoot = document.getElementById('modal-root');
+let currentModal = null;
+function openModal(type, payload){
+  closeModal();
+  document.body.style.overflow = 'hidden';
+  const overlay = document.createElement('div'); overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay';
+  overlay.addEventListener('click', closeModal);
+  const center = document.createElement('div'); center.className = 'modal-center'; center.addEventListener('click', e=>e.stopPropagation());
+  overlay.appendChild(center);
+  modalRoot.appendChild(overlay);
+  currentModal = { type, payload, overlay, center };
+  // mount content
+  if(type === 'playerRegister') center.innerHTML = playerRegisterHtml();
+  else if(type === 'managePlayers') center.innerHTML = managePlayersHtml();
+  else if(type === 'createGame') center.innerHTML = createGameHtml();
+  else if(type === 'endGame') center.innerHTML = endGameHtml();
+  else if(type === 'launchPoints') center.innerHTML = launchPointsHtml();
+  else if(type === 'annualRanking') center.innerHTML = annualRankingHtml();
+  else if(type === 'login') center.innerHTML = loginHtml();
+  else center.innerHTML = '<div>Em construção</div>';
+  attachModalHandlers(type, payload);
+}
+function closeModal(){
+  const o = document.getElementById('modal-overlay');
+  if(o) o.remove();
+  currentModal = null;
+  document.body.style.overflow = '';
+}
+
+/* Modal html builders + attachers */
+function playerRegisterHtml(){
+  return `
+    <h2>CADASTRAR JOGADOR / ADMIN</h2>
+    <form id="form-player" class="mt-4">
+      <label>Nome</label>
+      <input id="player-name" class="pixel-input" placeholder="Nome completo" required />
+      <label>Telefone</label>
+      <input id="player-phone" class="pixel-input" placeholder="(11) 9xxxx-xxxx" />
+      <label>Perfil</label>
+      <select id="player-role" class="pixel-input">
+        <option value="player">Jogador</option>
+        <option value="admin">Administrador</option>
+      </select>
+
+      <div id="admin-credentials" style="display:none">
+        <label>Email</label>
+        <input id="player-email" class="pixel-input" placeholder="admin@exemplo.com" />
+        <label>Senha</label>
+        <div style="display:flex;gap:8px;">
+          <input id="player-pass" type="password" class="pixel-input" placeholder="Senha" style="flex:1" />
+          <button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button>
         </div>
-        <div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>
-      `;
-      rankingListEl.appendChild(row);
+        <label>Confirmar senha</label>
+        <input id="player-pass2" type="password" class="pixel-input" placeholder="Confirmar senha" />
+      </div>
+
+      <div class="flex gap-3">
+        <button type="submit" class="pixel-btn">CADASTRAR</button>
+        <button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button>
+      </div>
+    </form>
+  `;
+}
+function attachModalHandlers(type, payload){
+  if(type === 'playerRegister'){
+    document.getElementById('player-role').addEventListener('change', (e)=>{
+      const isAdmin = e.target.value === 'admin';
+      document.getElementById('admin-credentials').style.display = isAdmin ? 'block' : 'none';
     });
-
-    totalPlayersEl.textContent = state.players.length;
-  }
-
-  function renderStats(){
-    // compute stats for current year (or active game)
-    const activeGame = state.games.find(g => g.id === state.activeGameId) || state.games[0] || null;
-    if(!activeGame){
-      statMaxEl.textContent = "0";
-      statAvgEl.textContent = "0";
-      statSabadosEl.textContent = "0";
-      statNextGameEl.textContent = "--";
-      return;
-    }
-    const pts = Object.values(activeGame.playersPoints || {});
-    const max = pts.length ? Math.max(...pts) : 0;
-    const avg = pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : 0;
-    statMaxEl.textContent = max.toLocaleString('pt-BR');
-    statAvgEl.textContent = avg.toLocaleString('pt-BR');
-    // sábados jogados: we store number as sample here using points as hint: we use game's config? for demo:
-    statSabadosEl.textContent = Object.keys(activeGame.playersPoints || {}).length + "/15";
-    statNextGameEl.textContent = "SÁBADO " + formatBR(new Date());
-  }
-
-  /***********************
-   * Modal logic
-   ***********************/
-  const modalRoot = document.getElementById("modal-root");
-  let currentModal = null;
-
-  function openModal(type, payload){
-    closeModal(); // ensure single
-    currentModal = { type, payload };
-    document.body.style.overflow = "hidden";
-    const overlay = document.createElement("div");
-    overlay.className = "modal-overlay";
-    overlay.id = "modal-overlay";
-    overlay.addEventListener("click", closeModal);
-
-    const center = document.createElement("div");
-    center.className = "modal-center";
-    center.addEventListener("click", e => e.stopPropagation());
-
-    // build content
-    if(type === "player"){
-      center.innerHTML = playerModalHtml();
-      overlay.appendChild(center);
-      modalRoot.appendChild(overlay);
-      attachPlayerModalHandlers();
-    } else if(type === "createGame"){
-      center.innerHTML = createGameModalHtml();
-      overlay.appendChild(center);
-      modalRoot.appendChild(overlay);
-      attachCreateGameHandlers();
-    } else if(type === "endGame"){
-      center.innerHTML = endGameModalHtml();
-      overlay.appendChild(center);
-      modalRoot.appendChild(overlay);
-      attachEndGameHandlers(payload);
-    } else if(type === "annualRanking"){
-      center.innerHTML = annualRankingModalHtml();
-      overlay.appendChild(center);
-      modalRoot.appendChild(overlay);
-      attachAnnualRankingHandlers();
-    } else if(type === "managePlayers"){
-      center.innerHTML = managePlayersModalHtml();
-      overlay.appendChild(center);
-      modalRoot.appendChild(overlay);
-      attachManagePlayersHandlers();
-    } else if(type === "launchPoints"){
-      center.innerHTML = launchPointsModalHtml();
-      overlay.appendChild(center);
-      modalRoot.appendChild(overlay);
-      attachLaunchPointsHandlers();
-    } else {
-      center.innerHTML = "<div>Em desenvolvimento</div>";
-      overlay.appendChild(center);
-      modalRoot.appendChild(overlay);
-    }
-  }
-
-  function closeModal(){
-    const overlay = document.getElementById("modal-overlay");
-    if(overlay) overlay.remove();
-    currentModal = null;
-    document.body.style.overflow = "";
-  }
-
-  /***********************
-   * Modal templates + handlers
-   ***********************/
-  function playerModalHtml(){
-    return `
-      <h2>CADASTRAR JOGADOR / ADMIN</h2>
-      <form id="form-player" class="mt-4">
-        <label>Nome</label>
-        <input id="player-name" class="pixel-input" placeholder="Nome completo" required />
-        <label>Email (opcional)</label>
-        <input id="player-email" class="pixel-input" placeholder="email@exemplo.com" />
-        <label>Perfil</label>
-        <select id="player-role" class="pixel-input">
-          <option value="player">Jogador</option>
-          <option value="admin">Administrador</option>
-        </select>
-        <div class="flex gap-3">
-          <button type="submit" class="pixel-btn">CADASTRAR</button>
-          <button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button>
-        </div>
-      </form>
-    `;
-  }
-
-  function attachPlayerModalHandlers(){
-    const form = document.getElementById("form-player");
-    form.addEventListener("submit", (e)=>{
+    document.getElementById('toggle-pass').addEventListener('click', ()=>{
+      const p = document.getElementById('player-pass');
+      p.type = (p.type === 'password') ? 'text' : 'password';
+      document.getElementById('toggle-pass').textContent = p.type === 'password' ? 'Mostrar' : 'Esconder';
+    });
+    document.getElementById('form-player').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const name = document.getElementById("player-name").value.trim();
-      const email = document.getElementById("player-email").value.trim();
-      const role = document.getElementById("player-role").value;
-      if(!name) return alert("Digite o nome");
-      createPlayer({name, role, email: email || null});
-      alert("Jogador cadastrado com sucesso!");
-      closeModal();
-    });
-    document.getElementById("cancel-player").addEventListener("click", closeModal);
-  }
-
-  function createGameModalHtml(){
-    const year = new Date().getFullYear();
-    return `
-      <h2>NOVO GAME UAU</h2>
-      <form id="form-create-game" class="mt-4">
-        <label>Trimestre</label>
-        <select id="create-trim" class="pixel-input">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-        </select>
-        <label>Ano</label>
-        <input id="create-year" type="number" class="pixel-input" value="${year}" />
-        <div class="flex gap-3">
-          <button class="pixel-btn" type="submit">CRIAR</button>
-          <button type="button" id="cancel-create" class="pixel-btn">CANCELAR</button>
-        </div>
-      </form>
-    `;
-  }
-
-  function attachCreateGameHandlers(){
-    document.getElementById("form-create-game").addEventListener("submit", (e)=>{
-      e.preventDefault();
-      const trimester = Number(document.getElementById("create-trim").value);
-      const year = Number(document.getElementById("create-year").value);
-      try {
-        createGame({year, trimester});
-        alert("Trimestre criado!");
-        closeModal();
-      } catch(err){
-        alert(err.message);
+      const name = document.getElementById('player-name').value.trim();
+      const phone = document.getElementById('player-phone').value.trim();
+      const role = document.getElementById('player-role').value;
+      if(!name) return alert('Digite o nome');
+      if(role === 'admin'){
+        const email = document.getElementById('player-email').value.trim();
+        const pass = document.getElementById('player-pass').value;
+        const pass2 = document.getElementById('player-pass2').value;
+        if(!email || !pass) return alert('Email e senha obrigatórios para admin');
+        if(pass !== pass2) return alert('Senhas não conferem');
+        try {
+          await createPlayerFlow({name, phone, role, email, password: pass});
+          alert('Administrador criado com sucesso!');
+          closeModal();
+        } catch(err){
+          console.error(err);
+          alert('Erro ao criar admin: '+ err.message);
+        }
+      } else {
+        try {
+          await createPlayerFlow({name, phone, role});
+          alert('Jogador criado com sucesso!');
+          closeModal();
+        } catch(err){
+          console.error(err);
+          alert('Erro ao criar jogador: '+ err.message);
+        }
       }
     });
-    document.getElementById("cancel-create").addEventListener("click", closeModal);
+    document.getElementById('cancel-player').addEventListener('click', closeModal);
   }
 
-  function endGameModalHtml(){
-    return `
-      <h2>ENCERRAR TRIMESTRE</h2>
-      <p>Deseja encerrar o trimestre em andamento?</p>
-      <div class="flex gap-3 mt-4">
-        <button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button>
-        <button id="cancel-end" class="pixel-btn">CANCELAR</button>
-      </div>
-    `;
-  }
-
-  function attachEndGameHandlers(payload){
-    document.getElementById("confirm-end").addEventListener("click", ()=>{
-      const id = state.activeGameId;
-      if(!id) { alert("Nenhum trimestre ativo."); return; }
-      endGame(id);
-      alert("Trimestre encerrado.");
-      closeModal();
-    });
-    document.getElementById("cancel-end").addEventListener("click", closeModal);
-  }
-
-  function annualRankingModalHtml(){
-    const rank = computeAnnualRanking(new Date().getFullYear());
-    const rows = rank.map((r, i)=> {
-      const player = state.players.find(p => p.id === r.id);
-      const name = player ? player.name : "Desconhecido";
-      return `<div class="flex justify-between py-2 border-b"><div>${i+1}. ${name}</div><div>${r.points.toLocaleString('pt-BR')}</div></div>`;
-    }).join("") || "<div>Nenhum registro</div>";
-    return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
-  }
-
-  function attachAnnualRankingHandlers(){
-    document.getElementById("close-annual").addEventListener("click", closeModal);
-  }
-
-  function managePlayersModalHtml(){
-    const rows = state.players.map(p => `
-      <div class="flex justify-between items-center py-2 border-b">
-        <div>
-          <div>${p.name}</div>
-          <div class="text-xs">${p.role}</div>
-        </div>
-        <div>
-          <button class="pixel-btn btn-edit" data-id="${p.id}">EDIT</button>
-          <button class="pixel-btn btn-del" data-id="${p.id}">DEL</button>
-        </div>
-      </div>
-    `).join("");
-    return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
-  }
-
-  function attachManagePlayersHandlers(){
-    document.querySelectorAll(".btn-del").forEach(btn=>{
-      btn.addEventListener("click", e=>{
-        const id = e.currentTarget.dataset.id;
-        if(!confirm("Excluir jogador?")) return;
-        state.players = state.players.filter(p=>p.id !== id);
-        // also remove from points
-        state.games.forEach(g => { if(g.playersPoints && g.playersPoints[id]) delete g.playersPoints[id]; });
-        saveState(state);
-        alert("Excluído");
+  if(type === 'createGame'){
+    document.getElementById('form-create-game').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const trimester = Number(document.getElementById('create-trim').value);
+      const year = Number(document.getElementById('create-year').value);
+      try {
+        await createGameFlow({year, trimester});
+        alert('Trimestre criado!');
         closeModal();
-        reopenUI();
+      } catch(err){
+        alert(err.message || 'Erro');
+      }
+    });
+    document.getElementById('cancel-create').addEventListener('click', closeModal);
+  }
+
+  if(type === 'endGame'){
+    document.getElementById('confirm-end').addEventListener('click', async ()=>{
+      const id = state.activeGameId;
+      if(!id) return alert('Nenhum trimestre ativo');
+      try {
+        await endGameFlow(id);
+        alert('Trimestre encerrado!');
+        closeModal();
+      } catch(err){ alert('Erro: '+err.message); }
+    });
+    document.getElementById('cancel-end').addEventListener('click', closeModal);
+  }
+
+  if(type === 'managePlayers'){
+    document.querySelectorAll('.btn-del').forEach(btn=>{
+      btn.addEventListener('click', async (e)=>{
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Excluir jogador?')) return;
+        if(firebaseEnabled){
+          await dbRef('/players/' + id).remove();
+          // also remove from games points
+          // iterate games and remove
+          const gSnap = await dbRef('/games').once('value');
+          const games = gSnap.val() || {};
+          for(const gid in games){
+            if(games[gid].playersPoints && games[gid].playersPoints[id]) {
+              await dbRef('/games/' + gid + '/playersPoints/' + id).remove();
+            }
+          }
+        } else {
+          delete state.players[id];
+          for(const gid in state.games) { if(state.games[gid].playersPoints) delete state.games[gid].playersPoints[id]; }
+          saveLocal(state);
+          renderAll();
+        }
+        alert('Excluído');
+        closeModal();
       });
     });
-    document.getElementById("close-manage").addEventListener("click", closeModal);
+    document.getElementById('close-manage').addEventListener('click', closeModal);
   }
 
-  function launchPointsModalHtml(){
-    const activeGame = state.games.find(g => g.id === state.activeGameId) || null;
-    if(!activeGame) return `<h2>LANÇAR PONTOS</h2><div class="mt-4">Nenhum trimestre ativo.</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
-    const playerOptions = state.players.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
-    return `
-      <h2>LANÇAR PONTOS - TRIMESTRE ATIVO</h2>
-      <form id="form-points" class="mt-4">
-        <label>Jogador</label>
-        <select id="points-player" class="pixel-input">${playerOptions}</select>
-        <label>Pontos (ex: 250)</label>
-        <input id="points-value" class="pixel-input" type="number" value="0" />
-        <div class="flex gap-3">
-          <button class="pixel-btn" type="submit">ADICIONAR</button>
-          <button type="button" id="cancel-launch" class="pixel-btn">CANCELAR</button>
-        </div>
-      </form>
-    `;
-  }
-
-  function attachLaunchPointsHandlers(){
-    const activeGame = state.games.find(g => g.id === state.activeGameId) || null;
-    if(!activeGame){
-      document.getElementById("close-launch").addEventListener("click", closeModal);
-      return;
-    }
-    document.getElementById("form-points").addEventListener("submit", (e)=>{
-      e.preventDefault();
-      const pid = document.getElementById("points-player").value;
-      const pts = Number(document.getElementById("points-value").value) || 0;
-      if(!pid) return alert("Selecione jogador");
-      addPoints(activeGame.id, pid, pts);
-      alert("Pontos adicionados");
-      closeModal();
+  if(type === 'launchPoints'){
+    // Clicking a saturday button expands the table area below (attached in that modal markup)
+    document.querySelectorAll('.sat-btn').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const iso = e.currentTarget.dataset.iso;
+        renderPointsTableForSaturday(iso);
+      });
     });
-    document.getElementById("cancel-launch").addEventListener("click", closeModal);
-  }
 
-  /***********************
-   * wiring up cards/buttons
-   ***********************/
-  document.getElementById("card-register-player").addEventListener("click", ()=> openModal("player"));
-  document.getElementById("quickRegisterBtn").addEventListener("click", ()=> openModal("player"));
-  document.getElementById("card-manage-players").addEventListener("click", ()=> openModal("managePlayers"));
-  document.getElementById("card-annual-ranking").addEventListener("click", ()=> openModal("annualRanking"));
-  document.getElementById("card-launch-points").addEventListener("click", ()=> openModal("launchPoints"));
-  document.getElementById("card-settings").addEventListener("click", ()=> alert("Configurações - ainda sem backend"));
-
-  document.getElementById("card-create-end-game").addEventListener("click", ()=>{
-    if(state.activeGameId) openModal("endGame");
-    else openModal("createGame");
-  });
-
-  // logout demo
-  document.getElementById("logoutBtn").addEventListener("click", ()=> alert("Logout (demo)"));
-
-  // make sure modal openers call right handlers
-  // dynamic attach for modal type 'launchPoints' route to template name "launchPoints"
-  function attachHandlersForModalType(type){
-    // not used now because we pass explicit attachers
-  }
-
-  /***********************
-   * Initial render
-   ***********************/
-  function computeAnnualRanking(){
-    return (function(year){
-      const map = {};
-      state.games.forEach(g=>{
-        const gy = new Date(g.startedAt).getFullYear();
-        if(gy !== year) return;
-        Object.entries(g.playersPoints || {}).forEach(([pid, pts])=>{
-          map[pid] = (map[pid] || 0) + Number(pts || 0);
+    // search input filtering
+    const search = document.getElementById('points-search');
+    if(search){
+      search.addEventListener('input', (e)=>{
+        const q = e.target.value.toLowerCase();
+        document.querySelectorAll('.pts-row').forEach(row=>{
+          const name = row.dataset.name.toLowerCase();
+          row.style.display = name.includes(q) ? '' : 'none';
         });
       });
-      const arr = Object.entries(map).map(([id, points])=>({id, points}));
-      arr.sort((a,b)=> b.points - a.points);
-      return arr;
-    })(new Date().getFullYear());
-  }
+    }
 
-  // expose helper computeAnnualRanking globally used in modal template
-  window.computeAnnualRanking = function(year = new Date().getFullYear()){
-    const map = {};
-    state.games.forEach(g=>{
-      const gy = new Date(g.startedAt).getFullYear();
-      if(gy !== year) return;
-      Object.entries(g.playersPoints || {}).forEach(([pid, pts])=>{
-        map[pid] = (map[pid] || 0) + Number(pts || 0);
-      });
+    // submit points (catch event via delegation)
+    document.getElementById('points-table-area')?.addEventListener('click', (e)=>{
+      if(e.target && e.target.matches('.save-point-btn')){
+        const pid = e.target.dataset.pid;
+        const val = document.getElementById('pts-' + pid).value;
+        const iso = e.target.dataset.iso;
+        const pts = Number(val) || 0;
+        // Add points to selected game for that player for that saturday
+        const gameId = state.activeGameId;
+        addPointsFlow(gameId, pid, pts).then(()=> {
+          alert('Pontos registrados');
+          // optionally mark this saturday as used? For now we just add points
+          renderAll();
+        }).catch(err=> alert('Erro: '+err.message));
+      }
     });
-    return Object.entries(map).map(([id, points])=>({ id, points })).sort((a,b)=> b.points - a.points);
-  };
 
-  // helper used in templates
-  function computeAnnualRankingForTemplate(year = new Date().getFullYear()){
-    const arr = window.computeAnnualRanking(year);
-    return arr;
+    document.getElementById('close-launch')?.addEventListener('click', closeModal);
   }
 
-  // renderData used at start
-  reopenUI();
+  if(type === 'annualRanking'){
+    document.getElementById('close-annual')?.addEventListener('click', closeModal);
+  }
 
-  // Also export some functions to console for quick demo use
-  window.__gameuau = {
-    state,
-    createPlayer,
-    createGame,
-    endGame,
-    addPoints,
-    saveState,
-    loadState
-  };
+  if(type === 'login'){
+    document.getElementById('form-login')?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-pass').value;
+      if(!firebaseEnabled) { alert('Firebase não configurado (modo local)'); return; }
+      try {
+        await firebase.auth().signInWithEmailAndPassword(email, password);
+        alert('Login OK');
+        closeModal();
+        location.hash = '#/admin'; // go to admin
+        renderAll();
+      } catch(err){ alert('Erro login: ' + err.message); }
+    });
+    document.getElementById('cancel-login')?.addEventListener('click', closeModal);
+  }
+}
 
-  // When modal root receives a new child, the attach functions above will wire events.
-  // initial sample: nothing to do
+/* Modal HTML fragments */
 
-  </script>
+function managePlayersHtml(){
+  const rows = Object.values(state.players || {}).map(p=>{
+    return `<div class="flex justify-between items-center py-2 border-b">
+      <div><div>${p.name}</div><div style="font-size:12px">${p.role} ${p.phone ? '• ' + p.phone : ''}</div></div>
+      <div><button class="pixel-btn btn-del" data-id="${p.id}">DEL</button></div>
+    </div>`;
+  }).join('');
+  return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
+}
+
+function createGameHtml(){
+  const year = new Date().getFullYear();
+  return `<h2>NOVO GAME UAU</h2>
+    <form id="form-create-game" class="mt-4">
+      <label>Trimestre</label>
+      <select id="create-trim" class="pixel-input"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+      <label>Ano</label>
+      <input id="create-year" class="pixel-input" type="number" value="${year}" />
+      <div class="flex gap-3"><button class="pixel-btn" type="submit">CRIAR</button><button id="cancel-create" type="button" class="pixel-btn">CANCELAR</button></div>
+    </form>`;
+}
+
+function endGameHtml(){
+  return `<h2>ENCERRAR TRIMESTRE</h2><p>Deseja encerrar o trimestre em andamento?</p>
+    <div class="flex gap-3 mt-4"><button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button><button id="cancel-end" class="pixel-btn">CANCELAR</button></div>`;
+}
+
+function launchPointsHtml(){
+  // show list of saturdays for active game
+  const game = state.activeGameId && state.games && state.games[state.activeGameId] ? state.games[state.activeGameId] : null;
+  if(!game) return `<h2>LANÇAR PONTOS</h2><div class="mt-4">Nenhum trimestre ativo.</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+  const saturdays = generateSaturdays(game.startedAt, 15);
+  const satsHtml = saturdays.map(s => `<button class="pixel-btn sat-btn" data-iso="${s}" style="margin:4px">${formatBR(s)}</button>`).join('');
+  return `<h2>LANÇAR PONTOS - TRIMESTRE ATIVO</h2>
+    <div class="mt-4">Escolha o sábado:</div>
+    <div class="mt-3">${satsHtml}</div>
+    <div class="mt-4">Pesquisar jogador:</div>
+    <input id="points-search" class="pixel-input" placeholder="Digite para filtrar" />
+    <div id="points-table-area" class="mt-4"></div>
+    <div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+}
+
+function renderPointsTableForSaturday(iso){
+  const playersArr = Object.values(state.players || {}).map(p => ({ id:p.id, name:p.name }));
+  playersArr.sort((a,b)=> a.name.localeCompare(b.name));
+  const rows = playersArr.map(p=> `<div class="pts-row flex justify-between items-center py-2 border-b" data-name="${p.name}">
+    <div>${p.name}</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="pts-${p.id}" class="pixel-input" style="width:120px;padding:6px" type="number" placeholder="0" />
+      <button class="pixel-btn save-point-btn" data-pid="${p.id}" data-iso="${iso}">SALVAR</button>
+    </div>
+  </div>`).join('');
+  const area = document.getElementById('points-table-area');
+  area.innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
+}
+
+function annualRankingHtml(){
+  // compute sum of all games in current year
+  const arr = computeAnnualRanking(new Date().getFullYear());
+  const rows = arr.map((r,i)=>{
+    const p = state.players && state.players[r.id];
+    const name = p ? p.name : 'Desconhecido';
+    return `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i+1}. ${name} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`;
+  }).join('') || '<div>Nenhum registro</div>';
+  return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
+}
+
+function loginHtml(){
+  return `<h2>LOGIN ADMIN</h2>
+    <form id="form-login" class="mt-4">
+      <label>Email</label><input id="login-email" class="pixel-input" type="email" />
+      <label>Senha</label><input id="login-pass" class="pixel-input" type="password" />
+      <div class="flex gap-3"><button class="pixel-btn" type="submit">ENTRAR</button><button id="cancel-login" type="button" class="pixel-btn">CANCELAR</button></div>
+    </form>`;
+}
+
+/* ------------- annual ranking compute ------------- */
+function computeAnnualRanking(year){
+  const map = {};
+  for(const gid in (state.games||{})){
+    const g = state.games[gid];
+    const gy = new Date(g.startedAt).getFullYear();
+    if(gy !== year) continue;
+    const ppts = g.playersPoints || {};
+    for(const pid in ppts){ map[pid] = (map[pid] || 0) + Number(ppts[pid] || 0); }
+  }
+  return Object.entries(map).map(([id, points])=>({ id, points })).sort((a,b)=> b.points - a.points);
+}
+
+/* ------------- Navigation guard for admin: show login if not authed ------------- */
+function ensureAdminAccess(){
+  if(firebaseEnabled){
+    const user = firebase.auth().currentUser;
+    if(!user) { openModal('login'); return false; }
+    // Optionally check role in DB -> allow only if /players/{uid}.role === 'admin'
+    return true;
+  } else {
+    // local mode: allow admin area
+    return true;
+  }
+}
+
+/* When user navigates to admin hash, if not logged prompt login */
+window.addEventListener('hashchange', ()=>{
+  if(location.hash.startsWith('#/admin')){
+    if(!ensureAdminAccess()) {
+      // redirect to home view and show login modal
+      showView('home');
+      return;
+    }
+  }
+});
+
+/* ------------- Initial boot ------------- */
+function initialRender(){
+  // if firebase enabled but not synced to state yet, state will update via listeners
+  renderAll();
+}
+initialRender();
+
+/* ------------- Event: show admin modal on clicking admin link if not authed ------------- */
+document.querySelectorAll('a[href="#/admin"]').forEach(a=>{
+  a.addEventListener('click', (e)=>{
+    // wait for hashchange to fire; ensure authentication
+    setTimeout(()=> { if(!ensureAdminAccess()) openModal('login'); }, 50);
+  });
+});
+
+/* ------------- On load, show proper view ------------- */
+if(location.hash.startsWith('#/admin')) {
+  if(!ensureAdminAccess()) { showView('home'); openModal('login'); } else showView('admin');
+} else if(location.hash.startsWith('#/ranking')) showView('ranking'); else showView('home');
+
+/* ------------- Open modal shortcuts for admin actions that require login ------------- */
+cardCreateEnd.addEventListener('click', ()=>{
+  if(!ensureAdminAccess()) return;
+  // open create or end accordingly
+  if(state.activeGameId) openModal('endGame'); else openModal('createGame');
+});
+
+/* ------------- Sync local state with firebase when firebaseEnabled (write operations already use DB) ------------- */
+if(!firebaseEnabled){
+  // keep local state variable
+} else {
+  // when using firebase, writes already go to DB. Keep state updated from listeners.
+}
+
+/* Expose for debugging */
+window.__gameuau = {
+  state,
+  firebaseEnabled
+};
+</script>
 
 </body>
 </html>
