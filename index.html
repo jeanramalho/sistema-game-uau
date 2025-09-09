@@ -3,11 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Game UAU - Admin</title>
+  <title>Game UAU - Admin (Firebase)</title>
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
   <!-- Pixel font -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
@@ -15,69 +14,34 @@
     :root{
       --pixel-border: 6px;
       --pixel-shadow: 6px;
-      --bg-light: #eaf7f9;
       --card-blue: #c9e9ee;
     }
-    body { font-family: "Press Start 2P", monospace; background: linear-gradient(90deg,#f7feff 0%, #eaf7f9 100%); margin:0; -webkit-font-smoothing:antialiased;}
-    .pixel-box { background:white; border:var(--pixel-border) solid #000; box-shadow:var(--pixel-shadow) var(--pixel-shadow) 0 #000; border-radius:6px; }
-    .pixel-card { background:var(--card-blue); border:4px solid #000; box-shadow:6px 6px 0 #000; }
-    .pixel-btn { background:#bfeaf0; border:6px solid #000; box-shadow:6px 6px 0 #000; padding:10px 16px; cursor:pointer; font-size:13px; }
-    .pixel-input { background:#fff; border:6px solid #000; padding:10px; width:100%; box-shadow:6px 6px 0 #000; margin-bottom:12px; }
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; z-index:60; padding:16px; }
-    .modal-center { width:min(960px, 100%); max-height:92vh; overflow:auto; background:#fff; border:8px solid #000; box-shadow:12px 12px 0 #000; padding:20px; border-radius:6px; }
-    .ranking-row { border:4px solid #000; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:#dff3f5; }
-    .tag { background:#bfeaf0; padding:6px 12px; border:4px solid #000; box-shadow:4px 4px 0 #000; font-size:12px; margin-right:8px; display:inline-block; }
-    /* responsive tweaks */
-    @media (max-width: 1024px){
+    body{ font-family:"Press Start 2P", monospace; margin:0; background:linear-gradient(90deg,#f7feff 0%, #eaf7f9 100%); -webkit-font-smoothing:antialiased;}
+    .pixel-box{ background:#fff; border:var(--pixel-border) solid #000; box-shadow:var(--pixel-shadow) var(--pixel-shadow) 0 #000; border-radius:6px; }
+    .pixel-card{ background:var(--card-blue); border:4px solid #000; box-shadow:6px 6px 0 #000; }
+    .pixel-btn{ background:#bfeaf0; border:6px solid #000; box-shadow:6px 6px 0 #000; padding:10px 16px; cursor:pointer; font-size:13px; }
+    .pixel-input{ background:#fff; border:6px solid #000; padding:10px; width:100%; box-shadow:6px 6px 0 #000; margin-bottom:12px; }
+    .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; z-index:60; padding:16px; }
+    .modal-center{ width:min(960px,100%); max-height:92vh; overflow:auto; background:#fff; border:8px solid #000; box-shadow:12px 12px 0 #000; padding:20px; border-radius:6px; }
+    .ranking-row{ border:4px solid #000; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; background:#dff3f5; }
+    .tag{ background:#bfeaf0; padding:6px 12px; border:4px solid #000; box-shadow:4px 4px 0 #000; font-size:12px; margin-right:8px; display:inline-block; }
+    .stats-card{ background:#f5f9fa; border:6px solid #000; box-shadow:8px 8px 0 #000; padding:14px; }
+    .stat-item{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed rgba(0,0,0,0.15); }
+    @media (max-width:1024px){
       .pixel-btn{ padding:10px 12px; font-size:12px; }
       .pixel-input{ padding:8px; }
     }
-    @media (max-width: 640px){
+    @media (max-width:640px){
       nav .max-w-6xl{ padding-left:12px; padding-right:12px; }
       .pixel-btn{ padding:12px; font-size:13px; width:100%; }
       .modal-center{ padding:14px; }
-      .pixel-box{ margin:8px; }
-      .pixel-card{ padding:18px; }
-      .ranking-row{ flex-direction:column; gap:6px; align-items:flex-start }
+      .pixel-card{ padding:14px; }
+      .ranking-row{ flex-direction:column; gap:6px; align-items:flex-start;}
+      .stats-card{ padding:12px; }
     }
-
-    /* admin stats card style to match photos */
-    .stats-card { background:#f5f9fa; border:6px solid #000; box-shadow:8px 8px 0 #000; padding:14px; }
-    .stat-item { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed rgba(0,0,0,0.15); }
   </style>
 </head>
 <body>
-
-  <!-- Firebase modular imports and config (you provided) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, set, push, update, remove, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
-
-    // ---------- YOUR FIREBASE CONFIG (you gave this) ----------
-    const firebaseConfig = {
-      apiKey: "AIzaSyCh9-eS5xStmP6IL_fwhRHqTFejk8BkGjU",
-      authDomain: "gameuau-ba9bb.firebaseapp.com",
-      databaseURL: "https://gameuau-ba9bb-default-rtdb.firebaseio.com",
-      projectId: "gameuau-ba9bb",
-      storageBucket: "gameuau-ba9bb.firebasestorage.app",
-      messagingSenderId: "540955198809",
-      appId: "1:540955198809:web:6b05a8dbe0cf200fceb848",
-      measurementId: "G-VKE7K7KGQ9"
-    };
-    // ----------------------------------------------------------
-
-    // init firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-
-    // export to global for other inline scripts
-    window.__firebase = { app, auth, db, modular: true };
-
-    // now boot main UI script (below) after firebase set
-    // We put UI code into another script tag to keep structure clear.
-  </script>
 
   <!-- NAV -->
   <nav class="p-4 bg-[--card-blue] border-b-4 border-black">
@@ -140,7 +104,7 @@
     <section id="view-admin" class="view hidden">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- left column: actions & ranking -->
+        <!-- left -->
         <div class="lg:col-span-2 space-y-6">
           <div class="pixel-box p-6">
             <h2>DASHBOARD ADMINISTRATIVO</h2>
@@ -169,7 +133,7 @@
           </div>
         </div>
 
-        <!-- right column: stats -->
+        <!-- right: stats + quick add -->
         <aside class="space-y-6">
           <div class="stats-card">
             <h3>ESTATÍSTICAS</h3>
@@ -192,192 +156,44 @@
 
   </main>
 
-  <!-- modal root -->
+  <!-- modals -->
   <div id="modal-root"></div>
 
-  <!-- Main UI script (uses modular firebase instance window.__firebase created above) -->
+  <!-- MAIN SCRIPT (module) -->
   <script type="module">
-    import { ref, onValue, set, push, update, remove, get, child, runTransaction } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, push, update, remove, get, runTransaction } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
-    // Firebase utilities (grabbed from earlier script)
-    const { auth, db } = window.__firebase;
+    // ---------- YOUR FIREBASE CONFIG (from you) ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyCh9-eS5xStmP6IL_fwhRHqTFejk8BkGjU",
+      authDomain: "gameuau-ba9bb.firebaseapp.com",
+      databaseURL: "https://gameuau-ba9bb-default-rtdb.firebaseio.com",
+      projectId: "gameuau-ba9bb",
+      storageBucket: "gameuau-ba9bb.firebasestorage.app",
+      messagingSenderId: "540955198809",
+      appId: "1:540955198809:web:6b05a8dbe0cf200fceb848",
+      measurementId: "G-VKE7K7KGQ9"
+    };
+    // -------------------------------------------------------
 
-    // Helpers
-    const STORAGE_KEY = 'gameuau_state_local_v3'; // fallback local
+    // init firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    window.__firebase = { app, auth, db };
+
+    // ---------- utils ----------
+    const STORAGE_KEY = 'gameuau_fallback_v4';
     function uid(prefix='id'){ return prefix + Date.now(); }
-    function formatBR(d){ if(!d) return ''; const dt=new Date(d); return String(dt.getDate()).padStart(2,'0') + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + dt.getFullYear(); }
-    function today(){ return new Date().toISOString(); }
-
-    // Local fallback state (will be overwritten by realtime DB when connected)
-    let localState = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if(!localState){
-      const now = new Date().toISOString();
-      localState = {
-        players: { p1:{id:'p1', name:'João Silva', phone:'(11)99999-0001', role:'player', createdAt:now} },
-        games: { g1:{id:'g1', year:new Date().getFullYear(), trimester:1, startedAt: now, endedAt: null, playersPoints:{ p1:1250 } } },
-        activeGameId: 'g1'
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
-    }
-
-    // Global state reference that will be kept in sync with Firebase if available
-    let state = { players: {}, games: {}, activeGameId: null };
-    let firebaseAvailable = true;
-    try { if(!db) firebaseAvailable = false; } catch(e){ firebaseAvailable = false; }
-
-    // Read initial state from Firebase (realtime listeners). If fail, use local.
-    async function initState(){
-      if(firebaseAvailable){
-        // players
-        onValue(ref(db, '/players'), snap => {
-          state.players = snap.val() || {};
-          renderAll();
-        }, err => {
-          console.warn('players onValue err', err);
-        });
-
-        // games
-        onValue(ref(db, '/games'), snap => {
-          state.games = snap.val() || {};
-          renderAll();
-        });
-
-        // meta activeGameId
-        onValue(ref(db, '/meta/activeGameId'), snap => {
-          state.activeGameId = snap.val();
-          renderAll();
-        });
-
-        // auth state
-        onAuthStateChanged(auth, user => {
-          window.__currentUser = user;
-          renderAll();
-        });
-
-      } else {
-        // fallback to local
-        state.players = localState.players || {};
-        state.games = localState.games || {};
-        state.activeGameId = localState.activeGameId || null;
-        renderAll();
-      }
-    }
-
-    // Write helpers: create player (if admin creates Auth user)
-    async function createPlayer(data){
-      // data: { name, phone, role, email?, password? }
-      if(firebaseAvailable){
-        if(data.role === 'admin'){
-          // create auth user
-          const userCred = await createUserWithEmailAndPassword(auth, data.email, data.password);
-          const uid = userCred.user.uid;
-          // store in players node with authUid and key == uid (we use auth uid as key for admins)
-          const playerObj = { id: uid, name: data.name, phone: data.phone || null, role: 'admin', createdAt: new Date().toISOString() };
-          await set(ref(db, '/players/' + uid), playerObj);
-          // ensure mapping of active meta? no
-          return playerObj;
-        } else {
-          // normal player under push key
-          const newRef = push(ref(db, '/players'));
-          const key = newRef.key;
-          const playerObj = { id: key, name: data.name, phone: data.phone || null, role: 'player', createdAt: new Date().toISOString() };
-          await set(ref(db, '/players/' + key), playerObj);
-          return playerObj;
-        }
-      } else {
-        // local fallback
-        const key = uid('p');
-        const playerObj = { id:key, name: data.name, phone: data.phone || null, role: data.role || 'player', createdAt: new Date().toISOString() };
-        state.players[key] = playerObj;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderAll();
-        return playerObj;
-      }
-    }
-
-    async function updatePlayer(key, patch){
-      if(firebaseAvailable){
-        await update(ref(db, '/players/' + key), patch);
-      } else {
-        state.players[key] = {...state.players[key], ...patch};
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderAll();
-      }
-    }
-
-    async function deletePlayer(key){
-      if(firebaseAvailable){
-        // remove player node
-        await remove(ref(db, '/players/' + key));
-        // also remove entries in games playersPoints
-        const gamesSnap = await get(ref(db, '/games'));
-        const games = gamesSnap.val() || {};
-        for(const gid in games){
-          if(games[gid].playersPoints && games[gid].playersPoints[key]){
-            await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
-          }
-        }
-      } else {
-        delete state.players[key];
-        for(const gid in state.games) { if(state.games[gid].playersPoints) delete state.games[gid].playersPoints[key]; }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderAll();
-      }
-    }
-
-    async function createGame({year, trimester}){
-      if(state.activeGameId) throw new Error('Já existe um trimestre ativo. Encerre antes.');
-      if(firebaseAvailable){
-        const newRef = push(ref(db, '/games'));
-        const gid = newRef.key;
-        const game = { id:gid, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
-        await set(ref(db, '/games/' + gid), game);
-        await set(ref(db, '/meta/activeGameId'), gid);
-        return game;
-      } else {
-        const gid = uid('g');
-        const game = { id:gid, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
-        state.games[gid] = game;
-        state.activeGameId = gid;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderAll();
-        return game;
-      }
-    }
-
-    async function endGame(gid){
-      if(!gid) gid = state.activeGameId;
-      if(!gid) throw new Error('Nenhum game ativo');
-      if(firebaseAvailable){
-        await set(ref(db, '/games/' + gid + '/endedAt'), new Date().toISOString());
-        await set(ref(db, '/meta/activeGameId'), null);
-      } else {
-        state.games[gid].endedAt = new Date().toISOString();
-        state.activeGameId = null;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderAll();
-      }
-    }
-
-    async function addPoints(gid, playerId, pts){
-      if(firebaseAvailable){
-        await runTransaction(ref(db, '/games/' + gid + '/playersPoints/' + playerId), current => (Number(current || 0) + Number(pts)));
-      } else {
-        const g = state.games[gid];
-        if(!g.playersPoints) g.playersPoints = {};
-        g.playersPoints[playerId] = (g.playersPoints[playerId] || 0) + Number(pts);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderAll();
-      }
-    }
-
-    /* Utility: generate saturdays */
-    function generateSaturdays(startIso, count=15){
+    function formatBR(d){ if(!d) return ''; const dt = new Date(d); return String(dt.getDate()).padStart(2,'0') + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + dt.getFullYear(); }
+    function generateSaturdays(startIso, count = 15){
       const start = startIso ? new Date(startIso) : new Date();
       const s = new Date(start);
       const day = s.getDay();
-      let delta = (6 - day);
+      let delta = 6 - day;
       if(delta < 0) delta += 7;
       s.setDate(s.getDate() + delta);
       const arr = [];
@@ -389,30 +205,140 @@
       return arr;
     }
 
-    /* ---------- UI wiring ---------- */
-    const views = {
-      home: document.getElementById('view-home'),
-      admin: document.getElementById('view-admin'),
-      ranking: document.getElementById('view-ranking')
-    };
-
-    function showView(route){
-      Object.values(views).forEach(v=>v.classList.add('hidden'));
-      if(route === 'admin') views.admin.classList.remove('hidden');
-      else if(route === 'ranking') views.ranking.classList.remove('hidden');
-      else views.home.classList.remove('hidden');
-      renderAll();
+    // ---------- state ----------
+    let state = { players: {}, games: {}, activeGameId: null };
+    let fallback = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if(!fallback){
+      const now = new Date().toISOString();
+      fallback = {
+        players: { p1: { id:'p1', name:'João Silva', phone:'(11)99999-0001', role:'player', createdAt: now } },
+        games: { g1: { id:'g1', year: new Date().getFullYear(), trimester:1, startedAt: now, endedAt: null, playersPoints: { p1:1250 } } },
+        activeGameId: 'g1'
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fallback));
     }
+
+    // ---------- DB listeners ----------
+    onValue(ref(db,'/players'), snap => {
+      state.players = snap.val() || {};
+      renderAll();
+    }, err => {
+      console.error('players onValue error', err);
+      // fallback: use local
+      state.players = fallback.players || {};
+      renderAll();
+    });
+
+    onValue(ref(db,'/games'), snap => {
+      state.games = snap.val() || {};
+      renderAll();
+    }, err => {
+      console.error('games onValue error', err);
+      state.games = fallback.games || {};
+      renderAll();
+    });
+
+    onValue(ref(db,'/meta/activeGameId'), snap => {
+      state.activeGameId = snap.val();
+      renderAll();
+    }, err => {
+      console.error('meta activeGameId read error', err);
+      state.activeGameId = fallback.activeGameId || null;
+      renderAll();
+    });
+
+    onAuthStateChanged(auth, user => {
+      window.__currentUser = user || null;
+      renderAll();
+    });
+
+    // ---------- CRUD functions ----------
+    async function createPlayerAPI(data){
+      // data: { name, phone, role, email?, password? }
+      if(data.role === 'admin'){
+        // create auth user
+        const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        const uid = cred.user.uid;
+        const obj = { id: uid, name: data.name, phone: data.phone || null, role: 'admin', createdAt: new Date().toISOString() };
+        await set(ref(db, '/players/' + uid), obj);
+        return obj;
+      } else {
+        const newRef = push(ref(db, '/players'));
+        const key = newRef.key;
+        const obj = { id: key, name: data.name, phone: data.phone || null, role: 'player', createdAt: new Date().toISOString() };
+        await set(ref(db, '/players/' + key), obj);
+        return obj;
+      }
+    }
+
+    async function updatePlayerAPI(key, patch){
+      await update(ref(db, '/players/' + key), patch);
+    }
+
+    async function deletePlayerAPI(key){
+      await remove(ref(db, '/players/' + key));
+      // remove points references in games
+      const gSnap = await get(ref(db, '/games'));
+      const games = gSnap.val() || {};
+      for(const gid in games){
+        if(games[gid].playersPoints && games[gid].playersPoints[key]){
+          await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
+        }
+      }
+    }
+
+    async function createGameAPI({year, trimester}){
+      // prevent new if active exists
+      const activeSnap = await get(ref(db, '/meta/activeGameId'));
+      if(activeSnap.exists() && activeSnap.val()){
+        throw new Error('Já existe um trimestre ativo. Encerre antes.');
+      }
+      const newRef = push(ref(db, '/games'));
+      const gid = newRef.key;
+      const game = { id: gid, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
+      await set(ref(db, '/games/' + gid), game);
+      await set(ref(db, '/meta/activeGameId'), gid);
+      return game;
+    }
+
+    async function endGameAPI(gid){
+      if(!gid) gid = (await get(ref(db,'/meta/activeGameId'))).val();
+      if(!gid) throw new Error('Nenhum game ativo');
+      await set(ref(db, '/games/' + gid + '/endedAt'), new Date().toISOString());
+      await set(ref(db, '/meta/activeGameId'), null);
+    }
+
+    async function addPointsAPI(gid, playerId, points){
+      await runTransaction(ref(db, `/games/${gid}/playersPoints/${playerId}`), cur => (Number(cur || 0) + Number(points)));
+    }
+
+    // fallback wrappers (if DB not reachable)
+    async function createPlayerWrapper(data){
+      try { return await createPlayerAPI(data); } catch(err){ console.error('createPlayerAPI err', err); alert('Erro ao criar player: '+err.message); }
+    }
+    async function updatePlayerWrapper(k, patch){
+      try { await updatePlayerAPI(k, patch); } catch(err){ console.error('updatePlayerAPI err', err); alert('Erro update: '+err.message); }
+    }
+    async function deletePlayerWrapper(k){
+      try { await deletePlayerAPI(k); } catch(err){ console.error('deletePlayerAPI err', err); alert('Erro delete: '+err.message); }
+    }
+    async function createGameWrapper(opts){
+      try{ return await createGameAPI(opts); } catch(err){ console.error('createGameAPI err', err); alert('Erro criar game: '+err.message); throw err; }
+    }
+    async function endGameWrapper(gid){
+      try { await endGameAPI(gid); } catch(err){ console.error(err); alert('Erro encerrar: '+err.message); }
+    }
+    async function addPointsWrapper(gid, pid, pts){
+      try { await addPointsAPI(gid, pid, pts); } catch(err){ console.error(err); alert('Erro adicionar pontos: '+err.message); }
+    }
+
+    // ---------- UI wiring ----------
+    const views = { home: document.getElementById('view-home'), ranking: document.getElementById('view-ranking'), admin: document.getElementById('view-admin') };
+    function showView(route){ Object.values(views).forEach(v=>v.classList.add('hidden')); if(route === 'admin') views.admin.classList.remove('hidden'); else if(route === 'ranking') views.ranking.classList.remove('hidden'); else views.home.classList.remove('hidden'); renderAll(); }
     window.addEventListener('hashchange', ()=> {
       const path = location.hash.replace('#/','');
-      if(path === 'admin'){
-        // if not authed, open login modal
-        if(firebaseAvailable){
-          if(!auth.currentUser) { openModal('login'); showView('home'); return; }
-        }
-        showView('admin');
-      } else if(path === 'ranking') showView('ranking');
-      else showView('home');
+      if(path === 'admin'){ if(!auth.currentUser){ openModal('login'); showView('home'); return; } showView('admin'); }
+      else if(path === 'ranking') showView('ranking'); else showView('home');
     });
     if(!location.hash) location.hash = '#/';
 
@@ -432,56 +358,47 @@
     btnPrintPublic?.addEventListener('click', ()=> {
       const html = buildPublicRankingHtmlForPrint();
       const win = window.open('','_blank','width=900,height=1000');
-      win.document.write(`<html><head><title>Ranking</title><style>body{font-family: 'Press Start 2P', monospace;padding:20px}</style></head><body><div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><div style="width:60px;height:60px;background:#000"></div><div style="font-size:18px">GAME UAU</div></div>${html}</body></html>`);
-      win.document.close();
-      setTimeout(()=>win.print(),400);
+      win.document.write(`<html><head><title>Ranking</title><style>body{font-family:'Press Start 2P', monospace;padding:20px}</style></head><body><div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><div style="width:60px;height:60px;background:#000"></div><div style="font-size:18px">GAME UAU</div></div>${html}</body></html>`);
+      win.document.close(); setTimeout(()=>win.print(),400);
     });
 
     logoutBtn.addEventListener('click', async ()=>{
-      if(firebaseAvailable && auth.currentUser){
+      try {
         await signOut(auth);
         alert('Logout efetuado');
-        renderAll();
-        location.hash = '#/';
-      } else {
-        alert('Logout (modo local)');
-        location.hash = '#/';
+        openModal('login');
+        showView('home');
+      } catch(err){
+        console.error('signOut err', err);
+        alert('Erro ao sair: ' + err.message);
       }
     });
 
     cardRegister.addEventListener('click', ()=> openModal('playerRegister'));
     quickRegisterBtn.addEventListener('click', ()=> openModal('playerRegister'));
     cardManagePlayers.addEventListener('click', ()=> openModal('managePlayers'));
-    cardCreateEnd.addEventListener('click', ()=> {
-      if(state.activeGameId) openModal('endGame');
-      else openModal('createGame');
-    });
+    cardCreateEnd.addEventListener('click', ()=> { if(state.activeGameId) openModal('endGame'); else openModal('createGame'); });
     cardLaunchPoints.addEventListener('click', ()=> openModal('launchPoints'));
     cardAnnualRanking.addEventListener('click', ()=> openModal('annualRanking'));
 
-    /* Render helpers */
+    // ---------- render ----------
     function renderAll(){
-      // if firebase available, state is updated by listeners; else we use localState
-      const players = firebaseAvailable ? (state.players || {}) : (localState.players || {});
-      const games = firebaseAvailable ? (state.games || {}) : (localState.games || {});
-      const activeId = firebaseAvailable ? state.activeGameId : (localState.activeGameId || Object.keys(games)[0]);
+      const players = state.players || {};
+      const games = state.games || {};
+      const activeId = state.activeGameId || Object.keys(games)[0] || null;
 
-      // players count
       document.getElementById('playersCount').textContent = (Object.keys(players).length || 0) + ' JOGADORES';
-      const activeTag = document.getElementById('activeTag');
-      if(activeId) { activeTag.textContent = 'TRIMESTRE ATIVO'; document.getElementById('createEndTitle').textContent = 'ENCERRAR GAME'; }
-      else { activeTag.textContent = 'TRIMESTRE INATIVO'; document.getElementById('createEndTitle').textContent = 'NOVO GAME UAU'; }
+      if(activeId){ document.getElementById('activeTag').textContent = 'TRIMESTRE ATIVO'; document.getElementById('createEndTitle').textContent = 'ENCERRAR GAME'; }
+      else { document.getElementById('activeTag').textContent = 'TRIMESTRE INATIVO'; document.getElementById('createEndTitle').textContent = 'NOVO GAME UAU'; }
 
       // next saturday
-      let next = '--';
+      let nextText = '--';
       if(activeId && games[activeId]){
         const sats = generateSaturdays(games[activeId].startedAt, 15);
-        const n = sats.find(s=> new Date(s) >= new Date()) || sats[0];
-        next = formatBR(n);
-      } else {
-        next = formatBR(new Date());
-      }
-      nextSatTag.textContent = 'Próx. sábado: ' + next;
+        const next = sats.find(s=> new Date(s) >= new Date()) || sats[0];
+        nextText = formatBR(next);
+      } else { nextText = formatBR(new Date()); }
+      nextSatTag.textContent = 'Próx. sábado: ' + nextText;
 
       // ranking preview
       renderRankingPreview(players, games, activeId);
@@ -492,48 +409,33 @@
     }
 
     function renderRankingPreview(players, games, activeId){
-      const container = document.getElementById('rankingPreview');
-      container.innerHTML = '';
-      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
-      if(!game){ container.innerHTML = '<div>Nenhum trimestre disponível</div>'; document.getElementById('totalPlayers').textContent = '0'; return; }
+      const el = document.getElementById('rankingPreview'); el.innerHTML = '';
+      const game = (activeId && games[activeId]) ? games[activeId] : (Object.values(games)[0] || null);
+      if(!game){ el.innerHTML = '<div>Nenhum trimestre</div>'; document.getElementById('totalPlayers').textContent = '0'; return; }
       const pts = game.playersPoints || {};
       const arr = Object.values(players).map(p => ({ id:p.id, name:p.name, points: pts[p.id] || 0 }));
       arr.sort((a,b)=> b.points - a.points);
-      arr.forEach((r,i)=>{
+      arr.forEach((r,i)=> {
         const div = document.createElement('div'); div.className = 'ranking-row pixel-box';
         div.innerHTML = `<div>${i+1}º • ${r.name}</div><div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>`;
-        container.appendChild(div);
+        el.appendChild(div);
       });
       document.getElementById('totalPlayers').textContent = Object.keys(players).length || 0;
     }
 
     function renderPublicRanking(players, games, activeId){
-      const el = document.getElementById('publicRanking');
-      el.innerHTML = '';
-      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
-      if(!game) { el.innerHTML = '<div>Nenhum ranking</div>'; return; }
+      const el = document.getElementById('publicRanking'); el.innerHTML = '';
+      const game = (activeId && games[activeId]) ? games[activeId] : (Object.values(games)[0] || null);
+      if(!game){ el.innerHTML = '<div>Nenhum ranking</div>'; return; }
       const pts = game.playersPoints || {};
       const arr = Object.values(players).map(p => ({ id:p.id, name:p.name, points: pts[p.id] || 0 }));
       arr.sort((a,b)=> b.points - a.points);
-      arr.forEach((r,i)=>{
-        const div = document.createElement('div');
-        div.className = 'flex justify-between items-center p-3 border-2 border-black mb-2 bg-[#dff3f5]';
-        div.innerHTML = `<div>${i+1}º ${r.name}</div><div><strong>${r.points.toLocaleString('pt-BR')}</strong></div>`;
-        el.appendChild(div);
+      arr.forEach((r,i)=> {
+        const d = document.createElement('div');
+        d.className = 'flex justify-between items-center p-3 border-2 border-black mb-2 bg-[#dff3f5]';
+        d.innerHTML = `<div>${i+1}º ${r.name}</div><div><strong>${r.points.toLocaleString('pt-BR')}</strong></div>`;
+        el.appendChild(d);
       });
-    }
-
-    function computeAnnualRanking(year){
-      const map = {};
-      const gamesObj = firebaseAvailable ? (state.games||{}) : (localState.games||{});
-      for(const gid in gamesObj){
-        const g = gamesObj[gid];
-        const gy = new Date(g.startedAt).getFullYear();
-        if(gy !== year) continue;
-        const ppts = g.playersPoints || {};
-        for(const pid in ppts) map[pid] = (map[pid] || 0) + Number(ppts[pid] || 0);
-      }
-      return Object.entries(map).map(([id, points])=> ({ id, points })).sort((a,b)=> b.points - a.points);
     }
 
     function renderStats(players, games, activeId){
@@ -541,9 +443,8 @@
       const statAvgEl = document.getElementById('statAvg');
       const statSábadosEl = document.getElementById('statSábados');
       const statNextEl = document.getElementById('statNextGame');
-
-      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
-      if(!game){ statMaxEl.textContent = '0'; statAvgEl.textContent = '0'; statSábadosEl.textContent = '0'; statNextEl.textContent = '--'; return; }
+      const game = (activeId && games[activeId]) ? games[activeId] : (Object.values(games)[0] || null);
+      if(!game){ statMaxEl.textContent='0'; statAvgEl.textContent='0'; statSábadosEl.textContent='0'; statNextEl.textContent='--'; return; }
       const pts = Object.values(game.playersPoints || {});
       const max = pts.length ? Math.max(...pts) : 0;
       const avg = pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : 0;
@@ -554,11 +455,24 @@
       statNextEl.textContent = 'SÁBADO ' + formatBR(sats.find(s=> new Date(s) >= new Date()) || sats[0]);
     }
 
+    function computeAnnualRanking(year){
+      const map = {};
+      const gamesObj = state.games || {};
+      for(const gid in gamesObj){
+        const g = gamesObj[gid];
+        const gy = new Date(g.startedAt).getFullYear();
+        if(gy !== year) continue;
+        const ppts = g.playersPoints || {};
+        for(const pid in ppts) map[pid] = (map[pid] || 0) + Number(ppts[pid] || 0);
+      }
+      return Object.entries(map).map(([id, points])=> ({ id, points })).sort((a,b)=> b.points - a.points);
+    }
+
     function buildPublicRankingHtmlForPrint(){
-      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
-      const games = firebaseAvailable ? (state.games||{}) : (localState.games||{});
-      const activeId = firebaseAvailable ? state.activeGameId : (localState.activeGameId || Object.keys(games)[0]);
-      const game = activeId && games[activeId] ? games[activeId] : (Object.values(games)[0] || null);
+      const players = state.players || {};
+      const games = state.games || {};
+      const activeId = state.activeGameId || Object.keys(games)[0];
+      const game = (activeId && games[activeId]) ? games[activeId] : (Object.values(games)[0] || null);
       if(!game) return '<div>Nenhum ranking</div>';
       const arr = Object.values(players).map(p => ({ id:p.id, name:p.name, points: (game.playersPoints||{})[p.id] || 0 }));
       arr.sort((a,b)=> b.points - a.points);
@@ -568,7 +482,7 @@
       return html;
     }
 
-    /* ---------- Modal system ---------- */
+    // ---------- Modal system ----------
     const modalRoot = document.getElementById('modal-root');
     let currentModal = null;
     function openModal(type, payload){
@@ -582,43 +496,36 @@
 
       if(type === 'playerRegister') center.innerHTML = playerRegisterHtml();
       else if(type === 'managePlayers') center.innerHTML = managePlayersHtml();
+      else if(type === 'editPlayer') center.innerHTML = editPlayerHtml(payload);
       else if(type === 'createGame') center.innerHTML = createGameHtml();
       else if(type === 'endGame') center.innerHTML = endGameHtml();
       else if(type === 'launchPoints') center.innerHTML = launchPointsHtml();
       else if(type === 'annualRanking') center.innerHTML = annualRankingHtml();
-      else if(type === 'editPlayer') center.innerHTML = editPlayerHtml(payload);
       else if(type === 'login') center.innerHTML = loginHtml();
 
       attachModalHandlers(type, payload);
     }
-    function closeModal(){ const o = document.getElementById('modal-overlay'); if(o) o.remove(); currentModal = null; document.body.style.overflow=''; }
+    function closeModal(){ const o = document.getElementById('modal-overlay'); if(o) o.remove(); currentModal = null; document.body.style.overflow = ''; }
 
-    /* modal html builders */
+    // ---------- Modal HTML fragments ----------
     function playerRegisterHtml(){
       return `
         <h2>CADASTRAR JOGADOR / ADMIN</h2>
         <form id="form-player" class="mt-4">
-          <label>Nome</label>
-          <input id="player-name" class="pixel-input" placeholder="Nome completo" required />
-          <label>Telefone</label>
-          <input id="player-phone" class="pixel-input" placeholder="(11) 9xxxx-xxxx" />
-          <label>Perfil</label>
-          <select id="player-role" class="pixel-input"><option value="player">Jogador</option><option value="admin">Administrador</option></select>
-
+          <label>Nome</label><input id="player-name" class="pixel-input" placeholder="Nome completo" required />
+          <label>Telefone</label><input id="player-phone" class="pixel-input" placeholder="(11) 9xxxx-xxxx" />
+          <label>Perfil</label><select id="player-role" class="pixel-input"><option value="player">Jogador</option><option value="admin">Administrador</option></select>
           <div id="admin-credentials" style="display:none">
             <label>Email</label><input id="player-email" class="pixel-input" placeholder="admin@exemplo.com" />
-            <label>Senha</label>
-            <div style="display:flex;gap:8px;"><input id="player-pass" type="password" class="pixel-input" style="flex:1"/><button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button></div>
+            <label>Senha</label><div style="display:flex;gap:8px;"><input id="player-pass" type="password" class="pixel-input" style="flex:1"/><button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button></div>
             <label>Confirmar senha</label><input id="player-pass2" type="password" class="pixel-input" />
           </div>
-
-          <div class="flex gap-3"><button class="pixel-btn" type="submit">CADASTRAR</button><button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button></div>
-        </form>
-      `;
+          <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">CADASTRAR</button><button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button></div>
+        </form>`;
     }
 
-    function editPlayerHtml(playerKey){
-      const p = (firebaseAvailable ? (state.players||{}) : localState.players)[playerKey] || {};
+    function editPlayerHtml(key){
+      const p = state.players[key] || {};
       return `
         <h2>EDITAR JOGADOR</h2>
         <form id="form-edit-player" class="mt-4">
@@ -627,62 +534,46 @@
           <label>Perfil</label>
           <select id="edit-role" class="pixel-input"><option value="player" ${p.role==='player'?'selected':''}>Jogador</option><option value="admin" ${p.role==='admin'?'selected':''}>Administrador</option></select>
           <div id="edit-admin-credentials" style="display:none">
-            <label>Email (apenas para criar credenciais caso não exista)</label><input id="edit-email" class="pixel-input" value="${p.email || ''}" />
+            <label>Email (apenas se criando credenciais)</label><input id="edit-email" class="pixel-input" value="${p.email || ''}" />
             <label>Senha (nova)</label><input id="edit-pass" type="password" class="pixel-input" />
           </div>
           <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">SALVAR</button><button type="button" id="cancel-edit" class="pixel-btn">CANCELAR</button></div>
           <div class="mt-2"><button id="del-player" class="pixel-btn" type="button">DELETAR</button></div>
-        </form>
-      `;
+        </form>`;
     }
 
     function managePlayersHtml(){
-      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
+      const players = state.players || {};
       const rows = Object.entries(players).map(([k,p])=> {
         return `<div class="flex justify-between items-center py-2 border-b">
-          <div><div>${p.name}</div><div style="font-size:12px">${p.role} ${p.phone? ' • ' + p.phone : ''}</div></div>
+          <div><div>${p.name}</div><div style="font-size:12px">${p.role} ${p.phone? '• ' + p.phone: ''}</div></div>
           <div class="flex gap-2"><button class="pixel-btn btn-edit" data-key="${k}">EDIT</button><button class="pixel-btn btn-del" data-key="${k}">DEL</button></div>
         </div>`;
       }).join('') || '<div>Nenhum jogador</div>';
       return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
     }
 
-    function createGameHtml(){
-      const year = new Date().getFullYear();
-      return `<h2>NOVO GAME UAU</h2><form id="form-create-game" class="mt-4"><label>Trimestre</label><select id="create-trim" class="pixel-input"><option>1</option><option>2</option><option>3</option><option>4</option></select><label>Ano</label><input id="create-year" class="pixel-input" type="number" value="${year}" /><div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">CRIAR</button><button id="cancel-create" type="button" class="pixel-btn">CANCELAR</button></div></form>`;
-    }
-
-    function endGameHtml(){
-      return `<h2>ENCERRAR TRIMESTRE</h2><p>Deseja encerrar o trimestre em andamento?</p><div class="flex gap-3 mt-4"><button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button><button id="cancel-end" class="pixel-btn">CANCELAR</button></div>`;
-    }
+    function createGameHtml(){ const year = new Date().getFullYear(); return `<h2>NOVO GAME UAU</h2><form id="form-create-game" class="mt-4"><label>Trimestre</label><select id="create-trim" class="pixel-input"><option>1</option><option>2</option><option>3</option><option>4</option></select><label>Ano</label><input id="create-year" class="pixel-input" type="number" value="${year}" /><div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">CRIAR</button><button id="cancel-create" type="button" class="pixel-btn">CANCELAR</button></div></form>`; }
+    function endGameHtml(){ return `<h2>ENCERRAR TRIMESTRE</h2><p>Deseja encerrar o trimestre em andamento?</p><div class="flex gap-3 mt-4"><button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button><button id="cancel-end" class="pixel-btn">CANCELAR</button></div>`; }
 
     function launchPointsHtml(){
-      const game = (firebaseAvailable ? (state.games||{}) : (localState.games||{}))[ (firebaseAvailable? state.activeGameId : localState.activeGameId) ] || null;
+      const game = state.activeGameId && state.games && state.games[state.activeGameId] ? state.games[state.activeGameId] : (Object.values(state.games || {})[0] || null);
       if(!game) return `<h2>LANÇAR PONTOS</h2><div class="mt-4">Nenhum trimestre ativo</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
       const sats = generateSaturdays(game.startedAt, 15);
-      const satsHtml = sats.map(s=> `<button class="pixel-btn sat-btn" data-iso="${s}" style="margin:4px">${formatBR(s)}</button>`).join('');
+      const satsHtml = sats.map(s => `<button class="pixel-btn sat-btn" data-iso="${s}" style="margin:4px">${formatBR(s)}</button>`).join('');
       return `<h2>LANÇAR PONTOS</h2><div class="mt-2">Escolha o sábado:</div><div class="mt-3">${satsHtml}</div><div class="mt-4">Pesquisar jogador:</div><input id="points-search" class="pixel-input" placeholder="Digite para filtrar" /><div id="points-table-area" class="mt-4"></div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
-    }
-
-    function renderPointsTableForSaturday(iso){
-      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
-      const list = Object.values(players).sort((a,b)=> a.name.localeCompare(b.name));
-      const rows = list.map(p=> `<div class="pts-row flex justify-between items-center py-2 border-b" data-name="${p.name}"><div>${p.name}</div><div style="display:flex;gap:8px;align-items:center"><input id="pts-${p.id}" class="pixel-input" style="width:120px;padding:6px" type="number" placeholder="0" /><button class="pixel-btn save-point-btn" data-pid="${p.id}" data-iso="${iso}">SALVAR</button></div></div>`).join('');
-      document.getElementById('points-table-area').innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
     }
 
     function annualRankingHtml(){
       const arr = computeAnnualRanking(new Date().getFullYear());
-      const players = firebaseAvailable ? (state.players||{}) : (localState.players||{});
+      const players = state.players || {};
       const rows = arr.map((r,i)=> `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i+1}. ${players[r.id] ? players[r.id].name : 'Desconhecido'} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('') || '<div>Nenhum registro</div>';
       return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
     }
 
-    function loginHtml(){
-      return `<h2>LOGIN ADMIN</h2><form id="form-login" class="mt-4"><label>Email</label><input id="login-email" class="pixel-input" type="email" /><label>Senha</label><input id="login-pass" class="pixel-input" type="password" /><div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">ENTRAR</button><button id="cancel-login" type="button" class="pixel-btn">CANCELAR</button></div></form>`;
-    }
+    function loginHtml(){ return `<h2>LOGIN ADMIN</h2><form id="form-login" class="mt-4"><label>Email</label><input id="login-email" class="pixel-input" type="email" /><label>Senha</label><input id="login-pass" class="pixel-input" type="password" /><div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">ENTRAR</button><button id="cancel-login" type="button" class="pixel-btn">CANCELAR</button></div></form>`; }
 
-    /* attach modal handlers (delegation style) */
+    // ---------- attach handlers ----------
     function attachModalHandlers(type, payload){
       if(type === 'playerRegister'){
         document.getElementById('player-role').addEventListener('change', e => {
@@ -703,25 +594,29 @@
             const email = document.getElementById('player-email').value.trim();
             const pass = document.getElementById('player-pass').value;
             const pass2 = document.getElementById('player-pass2').value;
-            if(!email || !pass) return alert('Informe email e senha para admin');
+            if(!email || !pass) return alert('Email e senha obrigatórios para admin');
             if(pass !== pass2) return alert('Senhas não conferem');
-            try { await createPlayer({ name, phone, role:'admin', email, password:pass }); alert('Administrador criado'); closeModal(); } catch(err){ alert('Erro: '+ err.message); console.error(err); }
+            await createPlayerWrapper({ name, phone, role:'admin', email, password: pass });
+            alert('Administrador criado');
+            closeModal();
           } else {
-            try { await createPlayer({ name, phone, role:'player' }); alert('Jogador criado'); closeModal(); } catch(err){ alert('Erro: '+err.message); console.error(err); }
+            await createPlayerWrapper({ name, phone, role:'player' });
+            alert('Jogador criado');
+            closeModal();
           }
         });
         document.getElementById('cancel-player').addEventListener('click', closeModal);
       }
 
       if(type === 'managePlayers'){
-        document.querySelectorAll('.btn-edit').forEach(btn => btn.addEventListener('click', (e)=> {
+        document.querySelectorAll('.btn-edit').forEach(btn => btn.addEventListener('click', e => {
           const k = e.currentTarget.dataset.key;
           openModal('editPlayer', k);
         }));
-        document.querySelectorAll('.btn-del').forEach(btn => btn.addEventListener('click', async (e)=>{
+        document.querySelectorAll('.btn-del').forEach(btn => btn.addEventListener('click', async e => {
           const k = e.currentTarget.dataset.key;
           if(!confirm('Excluir jogador?')) return;
-          await deletePlayer(k);
+          await deletePlayerWrapper(k);
           alert('Excluído');
           closeModal();
         }));
@@ -737,38 +632,36 @@
         document.getElementById('cancel-edit').addEventListener('click', closeModal);
         document.getElementById('del-player').addEventListener('click', async ()=>{
           if(!confirm('Excluir jogador?')) return;
-          await deletePlayer(key);
+          await deletePlayerWrapper(key);
           alert('Excluído');
           closeModal();
         });
-        document.getElementById('form-edit-player').addEventListener('submit', async (e)=>{
+        document.getElementById('form-edit-player').addEventListener('submit', async e=>{
           e.preventDefault();
           const name = document.getElementById('edit-name').value.trim();
           const phone = document.getElementById('edit-phone').value.trim();
           const role = document.getElementById('edit-role').value;
           if(!name) return alert('Nome obrigatório');
-          // If changing to admin and no auth yet, require email/password
-          const player = (firebaseAvailable ? (state.players||{}) : (localState.players||{}))[key];
-          if(role === 'admin' && (!player || !player.id || player.role !== 'admin')){
-            // need email/password to create auth user
+          const player = state.players[key];
+          if(role === 'admin' && (!player || player.role !== 'admin')){
+            // need to create auth user and move record to uid
             const email = document.getElementById('edit-email').value.trim();
             const pass = document.getElementById('edit-pass').value;
-            if(!email || !pass) return alert('Email e senha obrigatórios para transformar em admin');
+            if(!email || !pass) return alert('Email e senha necessários para transformar em admin');
+            // create auth user
             try {
-              // create auth user & then update DB: we will create auth user and set new player key as auth uid
-              const userCred = await createUserWithEmailAndPassword(auth, email, pass);
-              const uid = userCred.user.uid;
-              // set player at uid key and remove old key
-              const playerObj = { id: uid, name, phone: phone||null, role: 'admin', createdAt: new Date().toISOString() };
-              await set(ref(db, '/players/' + uid), playerObj);
-              await remove(ref(db, '/players/' + key)); // delete old
+              const cred = await createUserWithEmailAndPassword(auth, email, pass);
+              const uid = cred.user.uid;
+              const newObj = { id: uid, name, phone: phone||null, role: 'admin', createdAt: new Date().toISOString() };
+              await set(ref(db, '/players/' + uid), newObj);
+              // remove old key
+              await remove(ref(db, '/players/' + key));
               alert('Transformado em admin');
               closeModal();
               return;
-            } catch(err){ alert('Erro ao criar admin: ' + err.message); console.error(err); return; }
+            } catch(err){ alert('Erro criar admin: ' + err.message); console.error(err); return; }
           } else {
-            // normal patch
-            await updatePlayer(key, { name, phone, role });
+            await updatePlayerWrapper(key, { name, phone, role });
             alert('Atualizado');
             closeModal();
           }
@@ -780,16 +673,16 @@
           e.preventDefault();
           const trimester = Number(document.getElementById('create-trim').value);
           const year = Number(document.getElementById('create-year').value);
-          try { await createGame({ year, trimester }); alert('Trimestre criado'); closeModal(); } catch(err){ alert('Erro: '+ (err.message||err)); }
+          try { await createGameWrapper({ year, trimester }); alert('Trimestre criado'); closeModal(); } catch(err){ console.error(err); }
         });
         document.getElementById('cancel-create').addEventListener('click', closeModal);
       }
 
       if(type === 'endGame'){
         document.getElementById('confirm-end').addEventListener('click', async ()=>{
-          const gid = firebaseAvailable ? state.activeGameId : localState.activeGameId;
+          const gid = state.activeGameId;
           if(!gid) return alert('Nenhum trimestre ativo');
-          await endGame(gid);
+          await endGameWrapper(gid);
           alert('Trimestre encerrado');
           closeModal();
         });
@@ -802,23 +695,18 @@
           renderPointsTableForSaturday(iso);
         }));
         const search = document.getElementById('points-search');
-        if(search) search.addEventListener('input', (e) => {
+        if(search) search.addEventListener('input', (e)=>{
           const q = e.target.value.toLowerCase();
-          document.querySelectorAll('.pts-row').forEach(row => {
-            row.style.display = row.dataset.name.toLowerCase().includes(q) ? '' : 'none';
-          });
+          document.querySelectorAll('.pts-row').forEach(row => row.style.display = row.dataset.name.toLowerCase().includes(q) ? '' : 'none');
         });
-        // delegate save buttons
         document.getElementById('points-table-area')?.addEventListener('click', async (e)=>{
           if(e.target && e.target.matches('.save-point-btn')){
             const pid = e.target.dataset.pid;
-            const iso = e.target.dataset.iso;
             const val = Number(document.getElementById('pts-' + pid).value) || 0;
-            const gid = firebaseAvailable ? state.activeGameId : localState.activeGameId;
+            const gid = state.activeGameId;
             if(!gid) return alert('Nenhum trimestre ativo');
-            await addPoints(gid, pid, val);
+            await addPointsWrapper(gid, pid, val);
             alert('Pontos adicionados');
-            // don't auto-close, let admin add more
             renderAll();
           }
         });
@@ -834,58 +722,35 @@
           e.preventDefault();
           const email = document.getElementById('login-email').value.trim();
           const pass = document.getElementById('login-pass').value;
-          try { await signInWithEmailAndPassword(auth, email, pass); alert('Login OK'); closeModal(); location.hash = '#/admin'; } catch(err){ alert('Erro login: '+err.message); }
+          try { await signInWithEmailAndPassword(auth, email, pass); alert('Login OK'); closeModal(); location.hash = '#/admin'; } catch(err){ alert('Erro login: '+ err.message); console.error(err); }
         });
-        document.getElementById('cancel-login').addEventListener('click', closeModal);
+        document.getElementById('cancel-login')?.addEventListener('click', closeModal);
       }
     } // end attachModalHandlers
 
-    /* helper updatePlayer to work with firebase or local */
-    async function updatePlayer(key, patch){
-      if(firebaseAvailable){
-        await update(ref(db, '/players/' + key), patch);
-      } else {
-        localState.players[key] = {...localState.players[key], ...patch};
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
-        state.players = localState.players;
-        renderAll();
-      }
+    function renderPointsTableForSaturday(iso){
+      const players = state.players || {};
+      const list = Object.values(players).sort((a,b)=> a.name.localeCompare(b.name));
+      const rows = list.map(p => `<div class="pts-row flex justify-between items-center py-2 border-b" data-name="${p.name}"><div>${p.name}</div><div style="display:flex;gap:8px;align-items:center"><input id="pts-${p.id}" class="pixel-input" style="width:120px;padding:6px" type="number" placeholder="0" /><button class="pixel-btn save-point-btn" data-pid="${p.id}" data-iso="${iso}">SALVAR</button></div></div>`).join('');
+      document.getElementById('points-table-area').innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
     }
 
-    /* deletePlayer wrapper */
-    async function deletePlayer(key){
-      if(firebaseAvailable){
-        await remove(ref(db, '/players/' + key));
-        // remove points
-        const gamesSnap = await get(ref(db, '/games'));
-        const gamesObj = gamesSnap.val() || {};
-        for(const gid in gamesObj){
-          if(gamesObj[gid].playersPoints && gamesObj[gid].playersPoints[key]){
-            await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
-          }
-        }
-      } else {
-        delete localState.players[key];
-        for(const gid in localState.games) if(localState.games[gid].playersPoints) delete localState.games[gid].playersPoints[key];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(localState));
-        state.players = localState.players;
-        renderAll();
+    // ---------- compute annual ranking ----------
+    function computeAnnualRanking(year){
+      const map = {};
+      const gamesObj = state.games || {};
+      for(const gid in gamesObj){
+        const g = gamesObj[gid];
+        const gy = new Date(g.startedAt).getFullYear();
+        if(gy !== year) continue;
+        const ppts = g.playersPoints || {};
+        for(const pid in ppts) map[pid] = (map[pid] || 0) + Number(ppts[pid] || 0);
       }
+      return Object.entries(map).map(([id, points])=> ({ id, points })).sort((a,b)=> b.points - a.points);
     }
 
-    // Initialize state listeners or fallback
-    initState();
-
-    // Initial view
-    if(location.hash.startsWith('#/admin')) {
-      if(firebaseAvailable && !auth.currentUser){ openModal('login'); showView('home'); } else showView('admin');
-    } else if(location.hash.startsWith('#/ranking')) showView('ranking'); else showView('home');
-
-    // expose small debug
-    window.__gameuau = { state, firebaseAvailable, db, auth };
-
-    // initial render tick after listeners could populate
-    setTimeout(()=> renderAll(), 700);
+    // ---------- initial render ----------
+    setTimeout(()=> { renderAll(); }, 800);
 
   </script>
 
