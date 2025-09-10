@@ -4,24 +4,41 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Game UAU - Home</title>
+
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- global styles -->
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- firebase & app scripts -->
   <script type="module" src="js/firebase.js"></script>
   <script type="module" src="js/common.js" defer></script>
   <script type="module" src="js/home.js" defer></script>
   <script type="module" src="js/print.js" defer></script>
+  <!-- html2canvas for image save -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 </head>
 <body>
-  <nav class="p-4 bg-[--card-blue] border-b-4 border-black">
+
+  <!-- NAV -->
+  <nav class="p-3 bg-[--card-blue] border-b-4 border-black">
     <div class="max-w-6xl mx-auto flex items-center gap-4">
-      <div class="pixel-box p-2 inline-flex items-center">
-        <img src="assets/logo.png" alt="logo" class="w-10 h-10 mr-2"/>
-        <div class="px-3 py-1 bg-white border-4 border-black">GAME UAU</div>
+      <!-- logo rectangle with stacked words -->
+      <div class="logo-rect pixel-box flex items-center justify-center">
+        <div class="logo-text">
+          <div class="logo-line">GAME</div>
+          <div class="logo-line">UAU</div>
+        </div>
       </div>
-      <a href="#/" class="ml-4 nav-link">INÍCIO</a>
-      <a href="#/ranking" class="nav-link">RANKING PÚBLICO</a>
-      <a href="admin.html" class="nav-link">ÁREA ADMIN</a>
+
+      <div class="flex items-center gap-4 nav-links">
+        <a href="#/" class="nav-link">INÍCIO</a>
+        <a href="#/ranking" class="nav-link">RANKING</a>
+        <a href="admin.html" class="nav-link">ÁREA ADMIN</a>
+      </div>
+
       <div class="ml-auto flex items-center gap-3">
         <div id="nextSaturdayTag" class="tag">Próx. sábado: --</div>
         <a href="login.html" class="pixel-btn">LOGIN</a>
@@ -30,20 +47,21 @@
   </nav>
 
   <main id="app" class="max-w-6xl mx-auto mt-6 mb-12 px-4">
-    <!-- Home content (same visual as antes) -->
+
+    <!-- HOME -->
     <section id="view-home" class="view">
       <div class="pixel-box p-8 text-center bg-[--card-blue]">
         <h1 style="font-size:28px">GAME UAU</h1>
-        <div class="mt-4">Sistema de ranking trimestral</div>
+        <div class="mt-2 text-sm">Sistema de ranking trimestral</div>
       </div>
 
       <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 home-cards">
         <div class="pixel-box p-6">
-          <h2>RANKING PÚBLICO</h2>
+          <h2>RANKING</h2>
           <p class="mt-2 text-xs">Veja a classificação atual dos jogadores.</p>
           <div class="mt-4">
-            <a href="#/ranking" class="pixel-btn">VER RANKING</a>
-            <button id="btnSaveImagePublic" class="pixel-btn mt-3">SALVAR IMAGEM</button>
+            <button id="btnGoRanking" class="pixel-btn">VER RANKING</button>
+            <!-- NOTE: botão de salvar imagem REMOVIDO do card home (aparece só na página de ranking) -->
           </div>
         </div>
 
@@ -56,13 +74,14 @@
         </div>
       </div>
 
-      <div id="homeTop5" class="home-top5"></div>
+      <!-- mini top5 (estilizado igual ao ranking) -->
+      <div id="homeTop5" class="home-top5 mt-6"></div>
     </section>
 
-    <!-- Public Ranking view (client-side routed) -->
+    <!-- RANKING VIEW (client-side switched by home.js) -->
     <section id="view-ranking" class="view hidden">
       <div class="pixel-box p-6">
-        <h2>RANKING PÚBLICO</h2>
+        <h2>RANKING</h2>
         <div id="publicRanking" class="mt-4"></div>
         <div class="mt-4 flex gap-3">
           <button id="btnSaveImage" class="pixel-btn">SALVAR IMAGEM</button>
@@ -70,8 +89,11 @@
         </div>
       </div>
     </section>
+
   </main>
 
-  <script>/* small boot handled by home.js */</script>
+  <!-- modal root (used by other pages when opened as modal) -->
+  <div id="modal-root"></div>
+
 </body>
 </html>
