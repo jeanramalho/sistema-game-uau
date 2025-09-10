@@ -4,24 +4,34 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Game UAU - Admin</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Firebase + admin logic -->
   <script type="module" src="js/firebase.js"></script>
   <script type="module" src="js/common.js" defer></script>
   <script type="module" src="js/admin.js" defer></script>
   <script type="module" src="js/print.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 </head>
 <body>
-  <!-- navigation simplified: admin.html is protected client-side; unauthenticated -> redirect to login.html -->
-  <nav class="p-4 bg-[--card-blue] border-b-4 border-black">
+
+  <nav class="p-3 bg-[--card-blue] border-b-4 border-black">
     <div class="max-w-6xl mx-auto flex items-center gap-4">
-      <div class="pixel-box p-2 inline-flex items-center">
-        <img src="assets/logo.png" alt="logo" class="w-10 h-10 mr-2"/>
-        <div class="px-3 py-1 bg-white border-4 border-black">GAME UAU</div>
+      <div class="logo-rect pixel-box flex items-center justify-center">
+        <div class="logo-text">
+          <div class="logo-line">GAME</div>
+          <div class="logo-line">UAU</div>
+        </div>
       </div>
-      <a href="index.html" class="ml-4 nav-link">INÍCIO</a>
-      <a href="index.html#/ranking" class="nav-link">RANKING PÚBLICO</a>
+
+      <div class="flex items-center gap-4 nav-links">
+        <a href="index.html" class="nav-link">INÍCIO</a>
+        <a href="index.html#/ranking" class="nav-link">RANKING</a>
+      </div>
+
       <div class="ml-auto flex items-center gap-3">
         <div id="nextSaturdayTag" class="tag">Próx. sábado: --</div>
         <button id="logoutBtn" class="pixel-btn">SAIR</button>
@@ -30,9 +40,15 @@
   </nav>
 
   <main class="max-w-6xl mx-auto mt-6 mb-12 px-4">
-    <!-- full dashboard content uses admin.js to populate and attach handlers -->
-    <section id="admin-root"></section>
+    <!-- admin.js verifica autenticação antes de renderizar (redireciona se necessário) -->
+    <section id="admin-root" class="min-h-[320px]">
+      <!-- loading placeholder -->
+      <div class="pixel-box p-6 text-center">Carregando painel administrativo...</div>
+    </section>
   </main>
+
+  <!-- modal root (used by admin.js for modals) -->
+  <div id="modal-root"></div>
 
 </body>
 </html>
