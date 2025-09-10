@@ -1,4 +1,4 @@
-// js/home.js
+// js/home.jss
 import { db, auth } from './firebase.js';
 import { ref, onValue } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
