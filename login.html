@@ -4,22 +4,50 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Login - Game UAU</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+
   <script type="module" src="js/firebase.js" defer></script>
+  <script type="module" src="js/common.js" defer></script>
   <script type="module" defer>
-    import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
+    import { signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
     import { auth } from './js/firebase.js';
+
+    // read optional ?next=... param to redirect after login
+    function getQueryParam(name){
+      const u = new URL(location.href);
+      return u.searchParams.get(name);
+    }
+
     window.addEventListener('load', ()=>{
+
+      // If already logged in, redirect to next or admin
+      onAuthStateChanged(auth, user => {
+        if(user){
+          const next = getQueryParam('next') || 'admin.html';
+          location.href = next;
+        }
+      });
+
       const form = document.getElementById('form-login');
-      form.addEventListener('submit', async e=>{
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('login-email').value.trim();
         const pass = document.getElementById('login-pass').value;
-        try { await signInWithEmailAndPassword(auth, email, pass); alert('Login OK'); window.location = 'admin.html'; }
-        catch(err){ alert('Erro login: ' + err.message); }
+        if(!email || !pass) return alert('Preencha email e senha');
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          // success -> redirect (auth state listener will also redirect)
+          const next = getQueryParam('next') || 'admin.html';
+          location.href = next;
+        } catch(err){
+          console.error('login err', err);
+          alert('Erro ao autenticar: ' + (err.message || err));
+        }
       });
+
     });
   </script>
 </head>
@@ -32,7 +60,10 @@
         <input id="login-email" class="pixel-input" type="email" />
         <label>Senha</label>
         <input id="login-pass" class="pixel-input" type="password" />
-        <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">ENTRAR</button><a href="index.html" class="pixel-btn">VOLTAR</a></div>
+        <div class="flex gap-3 mt-2">
+          <button class="pixel-btn" type="submit">ENTRAR</button>
+          <a href="index.html" class="pixel-btn">VOLTAR</a>
+        </div>
       </form>
     </div>
   </main>
