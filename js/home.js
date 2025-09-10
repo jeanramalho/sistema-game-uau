@@ -6,54 +6,83 @@ import { saveElementAsImage } from './print.js';
 
 let state = { players: {}, games: {}, activeGameId: null };
 
+// Realtime listeners
 onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAll(); }, err => { console.warn('players read err', err); });
 onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAll(); }, err => { console.warn('games read err', err); });
 onValue(ref(db, '/meta/activeGameId'), snap => { state.activeGameId = snap.val(); renderAll(); }, err => { console.warn('meta err', err); });
 
-// Router (client-side simple)
+// Router (simple hash-based)
 function handleRoute(){
   const hash = (location.hash || '#/').replace('#/','');
   if(hash === 'ranking') showView('ranking');
   else showView('home');
 }
 window.addEventListener('hashchange', handleRoute);
-window.addEventListener('load', ()=> setTimeout(handleRoute, 150));
+window.addEventListener('load', ()=> {
+  // ensure button listener attached early
+  const btn = document.getElementById('btnGoRanking');
+  if(btn) btn.addEventListener('click', () => { location.hash = '#/ranking'; });
+  // ranking save/back handlers are delegated below; but attach immediate handler for btnSaveImagePublic if present
+  setTimeout(handleRoute, 120);
+});
 
-// view switch
+// View switching
 function showView(name){
   document.querySelectorAll('.view').forEach(v=> v.classList.add('hidden'));
   const el = document.getElementById('view-' + name);
   if(el) el.classList.remove('hidden');
-  // when showing ranking view, ensure save button visible (handled by DOM presence)
 }
 
-// renderers
+// Utility: check whether there's an active, not-ended game
+function getActiveGame(){
+  if(!state.activeGameId) return null;
+  const g = state.games && state.games[state.activeGameId] ? state.games[state.activeGameId] : null;
+  if(!g) return null;
+  // treat endedAt != null as not active
+  if(g.endedAt) return null;
+  return g;
+}
+
+// Render everything
 function renderAll(){
   renderHomeTop5();
   renderPublicRanking();
   renderRankingPreview();
-  // update next saturday tag
+  updateNextSaturdayTag();
+}
+
+function updateNextSaturdayTag(){
   const nextTag = document.getElementById('nextSaturdayTag');
-  const games = state.games || {};
-  const active = state.activeGameId && games[state.activeGameId] ? games[state.activeGameId] : (Object.values(games)[0] || null);
+  const active = getActiveGame();
   if(active){
-    const s = generateSaturdays(active.startedAt, 15).find(s=> new Date(s) >= new Date()) || generateSaturdays(active.startedAt,1)[0];
+    const s = generateSaturdays(active.startedAt, 15).find(s=> new Date(s) >= new Date()) || generateSaturdays(active.startedAt, 1)[0];
     if(nextTag) nextTag.textContent = 'Próx. sábado: ' + formatBR(s);
   } else {
-    if(nextTag) nextTag.textContent = 'Próx. sábado: ' + formatBR(new Date());
+    if(nextTag) nextTag.textContent = 'Próx. sábado: --';
   }
 }
 
+// RENDER: public ranking (page /view)
 function renderPublicRanking(){
   const container = document.getElementById('publicRanking');
   if(!container) return;
   container.innerHTML = '';
-  const games = state.games || {};
-  const activeId = state.activeGameId || Object.keys(games)[0];
-  const game = activeId && games[activeId] ? games[activeId] : null;
-  if(!game){ container.innerHTML = '<div>Nenhum ranking</div>'; return; }
-  const arr = Object.values(state.players).map(p=> ({ id:p.id, name:p.name, points:(game.playersPoints||{})[p.id]||0 }));
+
+  const active = getActiveGame();
+  if(!active){
+    container.innerHTML = '<div class="pixel-box p-4">Nenhum game UAU em andamento no momento.</div>';
+    return;
+  }
+
+  const players = state.players || {};
+  const arr = Object.values(players).map(p => ({ id:p.id, name:p.name, points: (active.playersPoints||{})[p.id] || 0 }));
   arr.sort((a,b)=> b.points - a.points);
+
+  if(arr.length === 0){
+    container.innerHTML = '<div class="pixel-box p-4">Nenhum jogador cadastrado.</div>';
+    return;
+  }
+
   arr.forEach((r,i)=>{
     const d = document.createElement('div');
     d.className = 'flex justify-between items-center p-3 border-2 border-black mb-2 bg-[#dff3f5]';
@@ -62,16 +91,21 @@ function renderPublicRanking(){
   });
 }
 
+// RENDER: ranking preview used in home admin preview block
 function renderRankingPreview(){
   const el = document.getElementById('rankingPreview');
   if(!el) return;
   el.innerHTML = '';
-  const games = state.games || {};
-  const activeId = state.activeGameId || Object.keys(games)[0];
-  const game = activeId && games[activeId] ? games[activeId] : null;
-  if(!game){ el.innerHTML = '<div>Nenhum trimestre</div>'; return; }
-  const arr = Object.values(state.players).map(p=> ({ id:p.id, name:p.name, points:(game.playersPoints||{})[p.id]||0 }));
+
+  const active = getActiveGame();
+  if(!active){
+    el.innerHTML = '<div>Nenhum trimestre em andamento</div>';
+    return;
+  }
+
+  const arr = Object.values(state.players).map(p => ({ id:p.id, name:p.name, points: (active.playersPoints||{})[p.id] || 0 }));
   arr.sort((a,b)=> b.points - a.points);
+
   arr.forEach((r,i)=>{
     const row = document.createElement('div');
     row.className = 'ranking-row pixel-box';
@@ -80,34 +114,43 @@ function renderRankingPreview(){
   });
 }
 
+// RENDER: home top5 (should match ranking visual)
 function renderHomeTop5(){
   const container = document.getElementById('homeTop5');
   if(!container) return;
   container.innerHTML = '';
-  const games = state.games || {};
-  const activeId = state.activeGameId || Object.keys(games)[0];
-  const game = activeId && games[activeId] ? games[activeId] : null;
-  if(!game) return;
-  const arr = Object.values(state.players).map(p=> ({ id:p.id, name:p.name, points:(game.playersPoints||{})[p.id]||0 }));
+
+  const active = getActiveGame();
+  if(!active){
+    // optional: show message or nothing
+    container.innerHTML = '<div class="pixel-box p-4">Nenhum game UAU em andamento no momento.</div>';
+    return;
+  }
+
+  const arr = Object.values(state.players).map(p=> ({ id:p.id, name:p.name, points: (active.playersPoints||{})[p.id] || 0 }));
   arr.sort((a,b)=> b.points - a.points);
   const top5 = arr.slice(0,5);
-  if(top5.length === 0) return;
+
+  if(top5.length === 0){
+    container.innerHTML = '<div class="pixel-box p-4">Nenhum jogador cadastrado.</div>';
+    return;
+  }
+
   const title = document.createElement('div'); title.className = 'pixel-box p-3'; title.innerHTML = '<strong>TOP 5</strong>';
   const list = document.createElement('div'); list.className = 'pixel-box p-4 mt-2 top5-list';
-  list.innerHTML = top5.map((r,i)=> `<div>${i+1}. ${r.name}<span style="margin-left:12px"></span><strong style="float:right">${r.points.toLocaleString('pt-BR')}</strong></div>`).join('');
+
+  list.innerHTML = top5.map((r,i)=> `<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px dashed #000">${i+1}. ${r.name} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('');
+
   container.appendChild(title); container.appendChild(list);
 }
 
-// save image handlers (ranking page)
-document.addEventListener('click', (e)=>{
+// Events delegated (print and navigation)
+document.addEventListener('click', (e) => {
   if(e.target && e.target.id === 'btnSaveImage'){
     const el = document.getElementById('publicRanking');
     saveElementAsImage(el);
   }
   if(e.target && e.target.id === 'btnBackHome'){
     location.hash = '#/';
-  }
-  if(e.target && e.target.id === 'btnGoRanking'){
-    location.hash = '#/ranking';
   }
 });
