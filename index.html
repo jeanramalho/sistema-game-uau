@@ -41,7 +41,8 @@
 
       <div class="ml-auto flex items-center gap-3">
         <div id="nextSaturdayTag" class="tag">Próx. sábado: --</div>
-        <a href="login.html" class="pixel-btn">LOGIN</a>
+        <!-- authBtn agora presente em todas as páginas -->
+        <button id="authBtn" class="pixel-btn">LOGIN</button>
       </div>
     </div>
   </nav>
@@ -61,7 +62,6 @@
           <p class="mt-2 text-xs">Veja a classificação atual dos jogadores.</p>
           <div class="mt-4">
             <button id="btnGoRanking" class="pixel-btn">VER RANKING</button>
-            <!-- NOTE: botão de salvar imagem REMOVIDO do card home (aparece só na página de ranking) -->
           </div>
         </div>
 
@@ -92,7 +92,6 @@
 
   </main>
 
-  <!-- modal root (used by other pages when opened as modal) -->
   <div id="modal-root"></div>
 
 </body>
