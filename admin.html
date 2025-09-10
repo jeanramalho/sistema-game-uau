@@ -34,20 +34,17 @@
 
       <div class="ml-auto flex items-center gap-3">
         <div id="nextSaturdayTag" class="tag">Próx. sábado: --</div>
-        <button id="logoutBtn" class="pixel-btn">SAIR</button>
+        <button id="authBtn" class="pixel-btn">LOGIN</button>
       </div>
     </div>
   </nav>
 
   <main class="max-w-6xl mx-auto mt-6 mb-12 px-4">
-    <!-- admin.js verifica autenticação antes de renderizar (redireciona se necessário) -->
     <section id="admin-root" class="min-h-[320px]">
-      <!-- loading placeholder -->
-      <div class="pixel-box p-6 text-center">Carregando painel administrativo...</div>
+      <div class="pixel-box p-6 text-center">Verificando autenticação...</div>
     </section>
   </main>
 
-  <!-- modal root (used by admin.js for modals) -->
   <div id="modal-root"></div>
 
 </body>
