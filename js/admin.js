@@ -5,50 +5,42 @@ import { ref, onValue, set, push, update, remove, get, runTransaction } from 'ht
 import { formatBR, generateSaturdays } from './common.js';
 import { saveElementAsImage } from './print.js';
 
-// Element that will receive the dashboard HTML
+// admin root
 const adminRoot = document.getElementById('admin-root');
 
-// show a loading state while checking auth
+// show checking auth
 adminRoot.innerHTML = '<div class="pixel-box p-6 text-center">Verificando autenticação...</div>';
 
-// Attach logout button handler (available in header). Works whether logged or not.
-const logoutBtn = document.getElementById('logoutBtn');
-if(logoutBtn){
-  logoutBtn.addEventListener('click', async () => {
-    try {
-      await signOut(auth);
-      // after sign out redirect to home
-      window.location = 'index.html';
-    } catch(err){
-      console.error('Logout err', err);
-      alert('Erro ao sair: ' + (err.message || err));
-    }
-  });
-}
-
-// Helper: redirect to login with next param
-function redirectToLogin(){
-  const next = encodeURIComponent('admin.html');
-  window.location = `login.html?next=${next}`;
-}
-
-// Only initialize admin panel if there's a logged user
+// Auth guard: only init if user logged
 let initialized = false;
 onAuthStateChanged(auth, user => {
+  // update header authBtn across pages
+  const authBtn = document.getElementById('authBtn');
+  if(authBtn){
+    if(user){ authBtn.textContent = 'SAIR'; authBtn.onclick = async ()=>{ await signOut(auth); location.href='index.html'; }; }
+    else { authBtn.textContent = 'LOGIN'; authBtn.onclick = ()=> location.href='login.html'; }
+  }
+
   if(user){
-    // user is logged in -> initialize admin panel once
     if(!initialized){
       initialized = true;
       initAdminPanel();
     }
   } else {
-    // not logged in -> redirect to login page (prevent access)
-    redirectToLogin();
+    // not authenticated -> redirect to login (prevent page access)
+    const next = encodeURIComponent('admin.html');
+    location.href = `login.html?next=${next}`;
   }
 });
 
+// STATE
+let state = { players: {}, games: {}, activeGameId: null };
+
+// unsub functions
+let unsubPlayers = null, unsubGames = null, unsubMeta = null;
+
 function initAdminPanel(){
-  // Inject HTML for the dashboard (keeps same layout you approved)
+  // Inject HTML skeleton
   adminRoot.innerHTML = `
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -100,18 +92,12 @@ function initAdminPanel(){
   </div>
   `;
 
-  // Now that DOM is injected, get references and wire behaviour
-  wireAdminBehavior();
+  // wire behavior
+  wireAdmin();
 }
 
-// STATE (populated from DB)
-let state = { players: {}, games: {}, activeGameId: null };
-
-// DB listeners (only called after initAdminPanel) -> created inside wire function to ensure auth
-let playersUnsub = null, gamesUnsub = null, metaUnsub = null;
-
-function wireAdminBehavior(){
-  // DOM refs
+function wireAdmin(){
+  // elements
   const cardRegister = document.getElementById('card-register-player');
   const cardCreateEnd = document.getElementById('card-create-end-game');
   const cardLaunchPoints = document.getElementById('card-launch-points');
@@ -119,40 +105,68 @@ function wireAdminBehavior(){
   const cardAnnualRanking = document.getElementById('card-annual-ranking');
   const quickRegisterBtn = document.getElementById('quickRegisterBtn');
 
-  // attach UI clicks
-  if(cardRegister) cardRegister.addEventListener('click', () => openModal('playerRegister'));
-  if(quickRegisterBtn) quickRegisterBtn.addEventListener('click', () => openModal('playerRegister'));
-  if(cardManagePlayers) cardManagePlayers.addEventListener('click', () => openModal('managePlayers'));
-  if(cardCreateEnd) cardCreateEnd.addEventListener('click', () => { if(state.activeGameId) openModal('endGame'); else openModal('createGame'); });
-  if(cardLaunchPoints) cardLaunchPoints.addEventListener('click', () => openModal('launchPoints'));
-  if(cardAnnualRanking) cardAnnualRanking.addEventListener('click', () => openModal('annualRanking'));
+  // attach card clicks
+  cardRegister.addEventListener('click', ()=> openModal('playerRegister'));
+  quickRegisterBtn.addEventListener('click', ()=> openModal('playerRegister'));
+  cardManagePlayers.addEventListener('click', ()=> openModal('managePlayers'));
+  cardCreateEnd.addEventListener('click', ()=> {
+    if(state.activeGameId) openModal('endGame');
+    else openModal('createGame');
+  });
+  cardLaunchPoints.addEventListener('click', ()=> openModal('launchPoints'));
+  cardAnnualRanking.addEventListener('click', ()=> openModal('annualRanking'));
 
-  // realtime listeners
-  playersUnsub = onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('players read err', err); state.players = {}; renderAllAdmin(); });
-  gamesUnsub = onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('games read err', err); state.games = {}; renderAllAdmin(); });
-  metaUnsub = onValue(ref(db, '/meta/activeGameId'), snap => { state.activeGameId = snap.val(); renderAllAdmin(); }, err => { console.warn('meta read err', err); state.activeGameId = null; renderAllAdmin(); });
+  // attach print to header? admin view can use print via print.js if needed — not required here.
 
-  // attach logout (again) - there is a logout button in header
-  const logoutBtnLocal = document.getElementById('logoutBtn');
-  if(logoutBtnLocal){
-    logoutBtnLocal.addEventListener('click', async () => {
+  // attach DB listeners (only once)
+  unsubPlayers = onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('players read err', err); state.players = {}; renderAllAdmin(); });
+  unsubGames = onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('games read err', err); state.games = {}; renderAllAdmin(); });
+  unsubMeta = onValue(ref(db, '/meta/activeGameId'), snap => { state.activeGameId = snap.val(); renderAllAdmin(); }, err => { console.warn('meta read err', err); state.activeGameId = null; renderAllAdmin(); });
+
+  // logout (header authBtn handled elsewhere but ensure fallback)
+  const authBtn = document.getElementById('authBtn');
+  if(authBtn) authBtn.onclick = async ()=> { try{ await signOut(auth); location.href='index.html'; } catch(err){ console.error(err); alert('Erro: '+err.message); } };
+
+  // delegation for modal actions (save points, etc.)
+  document.addEventListener('click', async (e)=>{
+    if(!e.target) return;
+    // save point button inside modal
+    if(e.target.matches('.save-point-btn')){
+      const pid = e.target.dataset.pid;
+      const iso = e.target.dataset.iso;
+      const input = document.getElementById('pts-' + pid);
+      const val = Number(input.value || 0);
+      const gid = state.activeGameId;
+      if(!gid) return alert('Nenhum trimestre ativo');
       try {
-        await signOut(auth);
-        window.location = 'index.html';
-      } catch(err){
-        console.error('logout err', err);
-        alert('Erro ao sair: ' + (err.message || err));
-      }
-    });
-  }
+        await runTransaction(ref(db, `/games/${gid}/playersPoints/${pid}`), cur => (Number(cur || 0) + Number(val)));
+        alert('Pontos adicionados com sucesso');
+        // refresh happens via realtime listener
+      } catch(err){ console.error(err); alert('Erro ao salvar ponto: '+err.message); }
+    }
 
-  // initial render
-  setTimeout(renderAllAdmin, 150);
+    // edit player button in managePlayers modal
+    if(e.target.matches('.btn-edit')){
+      const key = e.target.dataset.key;
+      openModal('editPlayer', key);
+    }
+
+    // delete player button in managePlayers modal
+    if(e.target.matches('.btn-del')){
+      const key = e.target.dataset.key;
+      if(!confirm('Excluir jogador?')) return;
+      try {
+        await remove(ref(db, '/players/' + key));
+        // also remove points references handled elsewhere or via rules
+        alert('Jogador excluído');
+      } catch(err){ console.error(err); alert('Erro ao excluir: '+err.message); }
+    }
+  });
 }
 
-/* ------------------ CRUD helper functions ------------------ */
-async function createPlayer(data){
-  // data: { name, phone, role, email?, password? }
+/* ------------------ HELPERS / CRUD ------------------ */
+
+async function createPlayerAPI(data){
   if(data.role === 'admin'){
     const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
     const uid = cred.user.uid;
@@ -168,45 +182,30 @@ async function createPlayer(data){
   }
 }
 
-async function updatePlayer(key, patch){
+async function updatePlayerAPI(key, patch){
   await update(ref(db, '/players/' + key), patch);
 }
 
-async function deletePlayer(key){
-  await remove(ref(db, '/players/' + key));
-  // remove points references in games
-  const gSnap = await get(ref(db, '/games'));
-  const games = gSnap.val() || {};
-  for(const gid in games){
-    if(games[gid].playersPoints && games[gid].playersPoints[key]){
-      await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
-    }
-  }
-}
-
-async function createGame({ year, trimester }){
+async function createGameAPI({ startIso, endIso, year, trimester }){
+  // Prevent new if active exists
   const activeSnap = await get(ref(db, '/meta/activeGameId'));
-  if(activeSnap.exists() && activeSnap.val()) throw new Error('Já existe um trimestre ativo.');
+  if(activeSnap.exists() && activeSnap.val()) throw new Error('Já existe um trimestre ativo. Encerre antes.');
   const newRef = push(ref(db, '/games'));
   const gid = newRef.key;
-  const game = { id: gid, year, trimester, startedAt: new Date().toISOString(), endedAt: null, playersPoints: {} };
+  const game = { id: gid, year: year || new Date(startIso).getFullYear(), trimester: trimester || 1, startedAt: startIso, plannedEndAt: endIso, endedAt: null, playersPoints: {} };
   await set(ref(db, '/games/' + gid), game);
   await set(ref(db, '/meta/activeGameId'), gid);
   return game;
 }
 
-async function endGame(gid){
+async function endGameAPI(gid){
   if(!gid) gid = state.activeGameId;
   if(!gid) throw new Error('Nenhum game ativo');
   await set(ref(db, '/games/' + gid + '/endedAt'), new Date().toISOString());
   await set(ref(db, '/meta/activeGameId'), null);
 }
 
-async function addPoints(gid, playerId, pts){
-  await runTransaction(ref(db, `/games/${gid}/playersPoints/${playerId}`), cur => (Number(cur || 0) + Number(pts)));
-}
-
-/* ------------------ Rendering ------------------ */
+/* ------------------ RENDER ------------------ */
 
 function getActiveGame(){
   if(!state.activeGameId) return null;
@@ -225,16 +224,17 @@ function renderAllAdmin(){
   if(active){ document.getElementById('activeTag').textContent = 'TRIMESTRE ATIVO'; document.getElementById('createEndTitle').textContent = 'ENCERRAR GAME'; }
   else { document.getElementById('activeTag').textContent = 'TRIMESTRE INATIVO'; document.getElementById('createEndTitle').textContent = 'NOVO GAME UAU'; }
 
-  // next saturday tag (header exists in admin.html)
+  // next saturday header
   const nextTag = document.getElementById('nextSaturdayTag');
   if(nextTag){
     if(active){
-      const sats = generateSaturdays(active.startedAt, 15);
+      const sats = generateSaturdays(active.startedAt, 50, active.plannedEndAt);
       const next = sats.find(s => new Date(s) >= new Date()) || sats[0];
       nextTag.textContent = 'Próx. sábado: ' + formatBR(next);
     } else nextTag.textContent = 'Próx. sábado: --';
   }
 
+  // ranking preview and stats
   renderRankingPreview();
   renderStats();
 }
@@ -272,12 +272,12 @@ function renderStats(){
   const avg = pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : 0;
   statMaxEl.textContent = max.toLocaleString('pt-BR');
   statAvgEl.textContent = avg.toLocaleString('pt-BR');
-  const sats = generateSaturdays(active.startedAt, 15);
+  const sats = generateSaturdays(active.startedAt, 50, active.plannedEndAt);
   statSábadosEl.textContent = (Object.keys(active.playersPoints||{}).length || 0) + '/' + sats.length;
   statNextEl.textContent = 'SÁBADO ' + formatBR(sats.find(s=> new Date(s) >= new Date()) || sats[0]);
 }
 
-/* ------------------ Modal system (reused from single file) ------------------ */
+/* ------------------ Modal system (full) ------------------ */
 
 const modalRoot = document.getElementById('modal-root') || (function(){ const d = document.createElement('div'); d.id = 'modal-root'; document.body.appendChild(d); return d; })();
 let currentModal = null;
@@ -296,17 +296,222 @@ function openModal(type, payload){
   else if(type === 'endGame') center.innerHTML = endGameHtml();
   else if(type === 'launchPoints') center.innerHTML = launchPointsHtml();
   else if(type === 'annualRanking') center.innerHTML = annualRankingHtml();
+
   attachModalHandlers(type, payload);
 }
 
 function closeModal(){ const o = document.getElementById('modal-overlay'); if(o) o.remove(); currentModal = null; document.body.style.overflow = ''; }
 
-/* Modal HTML builders & handlers (kept same as before) */
-// ... (for brevidade no chat, o conteúdo das funções html/handlers é idêntico ao que você já aprovou) ...
-// Já inseri essas funções no documento do projeto; ao copiar para o repositório, mantenha-as exatamente como no código anterior
-// (se quiser, eu colo tudo aqui novamente sem abreviação).
+/* Modal HTML generators */
 
-// render points table
+function playerRegisterHtml(){
+  return `
+    <h2>CADASTRAR JOGADOR / ADMIN</h2>
+    <form id="form-player" class="mt-4">
+      <label>Nome</label><input id="player-name" class="pixel-input" placeholder="Nome completo" required />
+      <label>Telefone</label><input id="player-phone" class="pixel-input" placeholder="(11) 9xxxx-xxxx" />
+      <label>Perfil</label><select id="player-role" class="pixel-input"><option value="player">Jogador</option><option value="admin">Administrador</option></select>
+      <div id="admin-credentials" style="display:none">
+        <label>Email</label><input id="player-email" class="pixel-input" placeholder="admin@exemplo.com" />
+        <label>Senha</label><div style="display:flex;gap:8px;"><input id="player-pass" type="password" class="pixel-input" style="flex:1"/><button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button></div>
+        <label>Confirmar senha</label><input id="player-pass2" type="password" class="pixel-input" />
+      </div>
+      <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">CADASTRAR</button><button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button></div>
+    </form>`;
+}
+
+function editPlayerHtml(key){
+  const p = state.players[key] || {};
+  return `
+    <h2>EDITAR JOGADOR</h2>
+    <form id="form-edit-player" class="mt-4">
+      <label>Nome</label><input id="edit-name" class="pixel-input" value="${p.name || ''}" />
+      <label>Telefone</label><input id="edit-phone" class="pixel-input" value="${p.phone || ''}" />
+      <label>Perfil</label><select id="edit-role" class="pixel-input"><option value="player" ${p.role==='player'?'selected':''}>Jogador</option><option value="admin" ${p.role==='admin'?'selected':''}>Administrador</option></select>
+      <div id="edit-admin-credentials" style="display:none">
+        <label>Email (apenas se criando credenciais)</label><input id="edit-email" class="pixel-input" value="${p.email || ''}" />
+        <label>Senha (nova)</label><input id="edit-pass" type="password" class="pixel-input" />
+      </div>
+      <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">SALVAR</button><button type="button" id="cancel-edit" class="pixel-btn">CANCELAR</button></div>
+      <div class="mt-2"><button id="del-player" class="pixel-btn" type="button">DELETAR</button></div>
+    </form>`;
+}
+
+function managePlayersHtml(){
+  const players = state.players || {};
+  const rows = Object.entries(players).map(([k,p]) => {
+    return `<div class="flex justify-between items-center py-2 border-b player-row" data-name="${p.name.toLowerCase()}"><div><div>${p.name}</div><div style="font-size:12px">${p.role} ${p.phone ? ' • ' + p.phone : ''}</div></div><div class="flex gap-2"><button class="pixel-btn btn-edit" data-key="${k}">EDIT</button><button class="pixel-btn btn-del" data-key="${k}">DEL</button></div></div>`;
+  }).join('') || '<div>Nenhum jogador</div>';
+  return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4"><div style="margin-bottom:8px"><input id="manage-search" class="pixel-input" placeholder="Pesquisar jogador..." /></div>${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
+}
+
+function createGameHtml(){
+  const year = new Date().getFullYear();
+  return `
+    <h2>NOVO GAME UAU</h2>
+    <form id="form-create-game" class="mt-4">
+      <label>Data de início</label><input id="create-start" class="pixel-input" type="date" required />
+      <label>Data de término</label><input id="create-end" class="pixel-input" type="date" required />
+      <label>Trimestre (opcional)</label><select id="create-trim" class="pixel-input"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+      <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">CRIAR</button><button id="cancel-create" type="button" class="pixel-btn">CANCELAR</button></div>
+    </form>
+  `;
+}
+
+function endGameHtml(){
+  return `<h2>ENCERRAR TRIMESTRE</h2><p>Deseja encerrar o trimestre em andamento?</p><div class="flex gap-3 mt-4"><button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button><button id="cancel-end" class="pixel-btn">CANCELAR</button></div>`;
+}
+
+function launchPointsHtml(){
+  const active = getActiveGame();
+  if(!active) return `<h2>LANÇAR PONTOS</h2><div class="mt-4 pixel-box p-4">Nenhum game UAU em andamento no momento.</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+  const sats = generateSaturdays(active.startedAt, 50, active.plannedEndAt);
+  const satsHtml = sats.map(s=> `<button class="pixel-btn sat-btn" data-iso="${s}" style="margin:4px">${formatBR(s)}</button>`).join('');
+  return `<h2>LANÇAR PONTOS</h2><div class="mt-2">Escolha o sábado:</div><div class="mt-3">${satsHtml}</div><div class="mt-4">Pesquisar jogador:</div><input id="points-search" class="pixel-input" placeholder="Digite para filtrar" /><div id="points-table-area" class="mt-4"></div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+}
+
+function annualRankingHtml(){
+  const arr = computeAnnualRanking(new Date().getFullYear());
+  const players = state.players || {};
+  const rows = arr.map((r,i)=> `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i+1}. ${players[r.id]?players[r.id].name:'Desconhecido'} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('') || '<div>Nenhum registro</div>';
+  return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
+}
+
+/* Attach handlers inside modal */
+function attachModalHandlers(type, payload){
+  if(type === 'playerRegister'){
+    document.getElementById('player-role').addEventListener('change', e => document.getElementById('admin-credentials').style.display = e.target.value === 'admin' ? 'block' : 'none');
+    document.getElementById('toggle-pass')?.addEventListener('click', ()=>{ const p = document.getElementById('player-pass'); p.type = p.type === 'password' ? 'text' : 'password'; document.getElementById('toggle-pass').textContent = p.type === 'password' ? 'Mostrar' : 'Esconder'; });
+    document.getElementById('form-player').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = document.getElementById('player-name').value.trim();
+      const phone = document.getElementById('player-phone').value.trim();
+      const role = document.getElementById('player-role').value;
+      if(!name) return alert('Digite o nome');
+      try{
+        if(role === 'admin'){
+          const email = document.getElementById('player-email').value.trim();
+          const pass = document.getElementById('player-pass').value;
+          const pass2 = document.getElementById('player-pass2').value;
+          if(!email || !pass) return alert('Email e senha obrigatórios para admin');
+          if(pass !== pass2) return alert('Senhas não conferem');
+          await createPlayerAPI({ name, phone, role:'admin', email, password: pass });
+          alert('Administrador criado');
+          closeModal();
+        } else {
+          await createPlayerAPI({ name, phone, role:'player' });
+          alert('Jogador criado');
+          closeModal();
+        }
+      } catch(err){ console.error(err); alert('Erro: '+ (err.message || err)); }
+    });
+    document.getElementById('cancel-player').addEventListener('click', closeModal);
+  }
+
+  if(type === 'managePlayers'){
+    // search field
+    const search = document.getElementById('manage-search');
+    if(search) search.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('.player-row').forEach(row => {
+        const name = row.dataset.name || '';
+        row.style.display = name.includes(q) ? '' : 'none';
+      });
+    });
+    document.getElementById('close-manage').addEventListener('click', closeModal);
+    // edit & delete handled by delegated click listener in wireAdmin
+  }
+
+  if(type === 'editPlayer'){
+    const key = payload;
+    document.getElementById('edit-role').addEventListener('change', e => document.getElementById('edit-admin-credentials').style.display = e.target.value === 'admin' ? 'block' : 'none');
+    document.getElementById('cancel-edit').addEventListener('click', closeModal);
+    document.getElementById('del-player').addEventListener('click', async ()=>{
+      if(!confirm('Excluir jogador?')) return;
+      try {
+        await remove(ref(db, '/players/' + key));
+        alert('Excluído');
+        closeModal();
+      } catch(err){ console.error(err); alert('Erro: '+err.message); }
+    });
+    document.getElementById('form-edit-player').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = document.getElementById('edit-name').value.trim();
+      const phone = document.getElementById('edit-phone').value.trim();
+      const role = document.getElementById('edit-role').value;
+      if(!name) return alert('Nome obrigatório');
+      try{
+        const player = state.players[key];
+        if(role === 'admin' && (!player || player.role !== 'admin')){
+          const email = document.getElementById('edit-email').value.trim();
+          const pass = document.getElementById('edit-pass').value;
+          if(!email || !pass) return alert('Email e senha necessários para transformar em admin');
+          const cred = await createUserWithEmailAndPassword(auth, email, pass);
+          const uid = cred.user.uid;
+          const newObj = { id: uid, name, phone: phone||null, role: 'admin', createdAt: new Date().toISOString() };
+          await set(ref(db, '/players/' + uid), newObj);
+          await remove(ref(db, '/players/' + key));
+          alert('Transformado em admin');
+          closeModal();
+          return;
+        } else {
+          await update(ref(db, '/players/' + key), { name, phone, role });
+          alert('Atualizado');
+          closeModal();
+        }
+      } catch(err){ console.error(err); alert('Erro: '+err.message); }
+    });
+  }
+
+  if(type === 'createGame'){
+    document.getElementById('cancel-create').addEventListener('click', closeModal);
+    document.getElementById('form-create-game').addEventListener('submit', async e => {
+      e.preventDefault();
+      const start = document.getElementById('create-start').value;
+      const end = document.getElementById('create-end').value;
+      const trimester = Number(document.getElementById('create-trim').value || 1);
+      if(!start || !end) return alert('Preencha data de início e término');
+      const startIso = new Date(start + 'T00:00:00').toISOString();
+      const endIso = new Date(end + 'T23:59:59').toISOString();
+      if(new Date(startIso) > new Date(endIso)) return alert('Data de término deve ser posterior à data de início');
+      try {
+        await createGameAPI({ startIso, endIso, trimester });
+        alert('Game criado e ativado');
+        closeModal();
+      } catch(err){ console.error(err); alert('Erro criar game: '+ (err.message || err)); }
+    });
+  }
+
+  if(type === 'endGame'){
+    document.getElementById('cancel-end').addEventListener('click', closeModal);
+    document.getElementById('confirm-end').addEventListener('click', async ()=>{
+      try { await endGameAPI(state.activeGameId); alert('Trimestre encerrado'); closeModal(); } catch(err){ console.error(err); alert('Erro: '+err.message); }
+    });
+  }
+
+  if(type === 'launchPoints'){
+    // attach saturday click listeners
+    document.querySelectorAll('.sat-btn').forEach(btn => btn.addEventListener('click', (e)=>{
+      const iso = e.currentTarget.dataset.iso;
+      renderPointsTableForSaturday(iso);
+    }));
+
+    const search = document.getElementById('points-search');
+    if(search) search.addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('.pts-row').forEach(row => row.style.display = row.dataset.name.toLowerCase().includes(q) ? '' : 'none');
+    });
+
+    document.getElementById('close-launch').addEventListener('click', closeModal);
+  }
+
+  if(type === 'annualRanking'){
+    document.getElementById('close-annual').addEventListener('click', closeModal);
+  }
+}
+
+/* ------------------ Points UI ------------------ */
+
 function renderPointsTableForSaturday(iso){
   const players = state.players || {};
   const list = Object.values(players).sort((a,b)=> a.name.localeCompare(b.name));
@@ -315,9 +520,11 @@ function renderPointsTableForSaturday(iso){
   if(area) area.innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
 }
 
-/* compute annual ranking */
+/* ------------------ Annual ranking compute ------------------ */
+
 function computeAnnualRanking(year){
-  const map = {}; const gamesObj = state.games || {};
+  const map = {};
+  const gamesObj = state.games || {};
   for(const gid in gamesObj){
     const g = gamesObj[gid];
     const gy = new Date(g.startedAt).getFullYear();
@@ -328,8 +535,23 @@ function computeAnnualRanking(year){
   return Object.entries(map).map(([id, points])=> ({ id, points })).sort((a,b)=> b.points - a.points);
 }
 
-// ensure admin panel renders after init
-setTimeout(()=> {
-  // if initialization didn't happen (e.g. auth already known) ensure render
-  if(initialized) renderAllAdmin();
-}, 500);
+/* ------------------ Util: generate saturdays in range ------------------ */
+/* Accepts startIso and plannedEndAt (optional). If plannedEndAt is provided, uses that range. */
+function generateSaturdays(startIso, max = 50, plannedEndAt){
+  // if plannedEndAt provided -> compute saturdays between start and plannedEndAt inclusive
+  const start = startIso ? new Date(startIso) : new Date();
+  const end = plannedEndAt ? new Date(plannedEndAt) : null;
+  const s = new Date(start);
+  const day = s.getDay();
+  let delta = 6 - day;
+  if(delta < 0) delta += 7;
+  s.setDate(s.getDate() + delta);
+  const arr = [];
+  for(let i=0;i<max;i++){
+    const d = new Date(s);
+    d.setDate(s.getDate() + i*7);
+    if(end && d > end) break;
+    arr.push(d.toISOString());
+  }
+  return arr;
+}
