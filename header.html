@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Game UAU - Header</title>
+
+  <!-- Tailwind CDN (JIT friendly) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Pequenas customizações para o estilo "pixel" / 8-bit do projeto */
+    .logo-rect {
+      width: 140px;
+      height: 56px;
+      background: white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      line-height: 1;
+      text-align:center;
+      white-space:pre-line;
+    }
+
+    /* Fallback font import for retro 8-bit effect */
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    /* Overlay for mobile menu */
+    .menu-overlay {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(2px);
+    }
+
+    /* small screen specifics for the nav items look */
+    .nav-item {
+      font-weight: 700;
+      letter-spacing: .6px;
+    }
+
+    /* desktop header shadow */
+    .header-shadow {
+      box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+    }
+
+    /* accessibility: visually hidden */
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  </style>
+</head>
+<body class="bg-[#f9fbfc]">
+
+  <!--
+    Header component:
+    - Desktop: logo left, links center, next-saturday + auth at right
+    - Mobile: hamburger toggles a full-screen sliding menu. Menu content ORDER:
+        1) next saturday rectangle
+        2) links (Início / Ranking / Área admin)
+        3) auth button at the bottom
+    - Keeps IDs expected by your app:
+        * authBtn -> login / logout button (your auth JS uses this)
+        * nextSaturdayTag -> where next saturday text is placed by your JS
+        * logoRect -> the white rectangle used for site logo area
+  -->
+
+  <header class="w-full bg-[#eef6f7] header-shadow">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6">
+      <div class="flex items-center justify-between h-16">
+
+        <!-- Left: Logo rectangle -->
+        <div class="flex items-center gap-4">
+          <div id="logoRect" class="logo-rect">
+            <!-- design: two-line "GAME\nUAU" in retro font -->
+            <div style="font-size:11px;line-height:1">
+              GAME<br/>UAU
+            </div>
+          </div>
+
+          <!-- Desktop nav (hidden on small screens) -->
+          <nav class="hidden md:flex items-center gap-6 ml-3">
+            <a href="index.html" class="nav-item text-sm text-[#0b3a3f] hover:text-[#064444]">Início</a>
+            <a href="ranking.html" class="nav-item text-sm text-[#0b3a3f] hover:text-[#064444]">Ranking</a>
+            <a href="admin.html" class="nav-item text-sm text-[#0b3a3f] hover:text-[#064444]">Área administrativa</a>
+          </nav>
+        </div>
+
+        <!-- Right: next saturday + auth (desktop) and mobile hamburger (small) -->
+        <div class="flex items-center gap-4">
+
+          <!-- Next Saturday tag (desktop visible, mobile hidden inside menu) -->
+          <div class="hidden md:block">
+            <div id="nextSaturdayTag" class="px-3 py-2 bg-white rounded-md text-sm border border-black/10 shadow-sm">Próx. sábado: --</div>
+          </div>
+
+          <!-- Auth button (desktop) -->
+          <div class="hidden md:block">
+            <button id="authBtn" class="px-3 py-2 bg-[#ffda5b] rounded pixel-btn font-bold">LOGIN</button>
+          </div>
+
+          <!-- Mobile hamburger -->
+          <div class="md:hidden">
+            <button id="hamburgerBtn" aria-label="Abrir menu" aria-controls="mobileMenu" aria-expanded="false" class="p-2 rounded border border-black/10 bg-white">
+              <!-- simple hamburger icon -->
+              <svg id="hamburgerIcon" width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="22" height="2" rx="1" fill="#000"/>
+                <rect y="7" width="22" height="2" rx="1" fill="#000"/>
+                <rect y="14" width="22" height="2" rx="1" fill="#000"/>
+              </svg>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile menu (hidden by default) -->
+    <div id="mobileMenu" class="fixed inset-0 z-50 hidden" aria-hidden="true" role="dialog" aria-label="Menu principal">
+      <!-- overlay -->
+      <div id="mobileOverlay" class="menu-overlay absolute inset-0"></div>
+
+      <!-- menu panel (slide from right or bottom) -->
+      <div class="absolute inset-0 flex items-start justify-end">
+        <div id="mobilePanel" class="w-full max-w-sm h-full bg-[#f7ffff] shadow-lg transform translate-x-full transition-transform duration-300 ease-out">
+          <div class="p-4 h-full flex flex-col">
+
+            <!-- Top: next saturday rectangle -->
+            <div class="mb-4">
+              <div class="px-3 py-3 bg-white border rounded text-sm" id="mobileNextWrap">
+                <div id="nextSaturdayTagMobile" class="text-center font-semibold">Próx. sábado: --</div>
+              </div>
+            </div>
+
+            <!-- Links -->
+            <nav class="flex-1 mt-6">
+              <ul class="space-y-3 px-2">
+                <li><a href="index.html" class="block px-3 py-3 bg-white border rounded nav-item text-base">Início</a></li>
+                <li><a href="ranking.html" class="block px-3 py-3 bg-white border rounded nav-item text-base">Ranking</a></li>
+                <li><a href="admin.html" class="block px-3 py-3 bg-white border rounded nav-item text-base">Área administrativa</a></li>
+              </ul>
+            </nav>
+
+            <!-- Bottom: auth button fixed near bottom inside panel -->
+            <div class="mt-6">
+              <button id="authBtnMobile" class="w-full px-4 py-3 bg-[#ffda5b] rounded font-bold">LOGIN</button>
+            </div>
+
+            <!-- Close button small -->
+            <div class="mt-3 text-center text-xs text-gray-500">
+              <button id="menuCloseBtn" class="underline">Fechar menu</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </header>
+
+  <!-- Example main (so you can preview header when open directly) -->
+  <main class="max-w-6xl mx-auto p-6">
+    <h1 class="text-xl font-bold mb-4">Conteúdo da página (exemplo)</h1>
+    <p class="text-sm text-gray-700">Substitua este arquivo pelo seu header real nas páginas.</p>
+  </main>
+
+  <!-- header behavior script -->
+  <script src="js/header.js" defer></script>
+
+</body>
+</html>
