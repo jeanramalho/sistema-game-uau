@@ -5,27 +5,44 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Game UAU - Home</title>
 
-  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
-  <!-- global styles -->
   <link rel="stylesheet" href="css/styles.css">
 
-  <!-- firebase & app scripts -->
   <script type="module" src="js/firebase.js"></script>
   <script type="module" src="js/common.js" defer></script>
   <script type="module" src="js/home.js" defer></script>
   <script type="module" src="js/print.js" defer></script>
-  <!-- html2canvas for image save -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+
+  <style>
+    /* small helpers: hamburger rect and mobile panel look */
+    .hamburger-rect {
+      background: #ffffff;
+      border: 4px solid #000;
+      border-radius: 6px;
+      box-shadow: 0 6px 0 #000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+    }
+    .mobile-menu-rect {
+      background: #ffffff;
+      border: 4px solid #000;
+      border-radius: 6px;
+      box-shadow: 0 6px 0 #000;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    /* when menu is open, hide desktop auth button reliably */
+    body.menu-open #authBtn { visibility: hidden !important; }
+  </style>
 </head>
 <body>
 
-  <!-- NAV -->
   <nav class="p-3 bg-[--card-blue] border-b-4 border-black">
     <div class="max-w-6xl mx-auto flex items-center gap-4">
-      <!-- logo rectangle with stacked words -->
       <div class="logo-rect pixel-box flex items-center justify-center">
         <div class="logo-text">
           <div class="logo-line">GAME</div>
@@ -33,23 +50,66 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-4 nav-links">
+      <div class="flex items-center gap-4 nav-links hidden md:flex">
         <a href="#/" class="nav-link">INÍCIO</a>
         <a href="#/ranking" class="nav-link">RANKING</a>
         <a href="admin.html" class="nav-link">ÁREA ADMIN</a>
       </div>
 
       <div class="ml-auto flex items-center gap-3">
-        <div id="nextSaturdayTag" class="tag">Próx. sábado: --</div>
-        <!-- authBtn agora presente em todas as páginas -->
+        <div id="nextSaturdayTag" class="tag hidden sm:block">Próx. sábado: --</div>
+
+        <!-- desktop authBtn -->
         <button id="authBtn" class="pixel-btn">LOGIN</button>
+
+        <!-- hamburger: agora com a classe hamburger-rect para o efeito retro -->
+        <button id="hamburgerBtn" class="hamburger-rect md:hidden ml-2" aria-label="Abrir menu">
+          <svg width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="22" height="2" rx="1" fill="#000"/>
+            <rect y="7" width="22" height="2" rx="1" fill="#000"/>
+            <rect y="14" width="22" height="2" rx="1" fill="#000"/>
+          </svg>
+        </button>
       </div>
     </div>
+
+    <!-- Mobile panel -->
+    <div id="mobileMenu" class="fixed inset-0 z-50 hidden" aria-hidden="true" role="dialog">
+      <div id="mobileOverlay" class="absolute inset-0 bg-black/50"></div>
+
+      <div class="absolute inset-0 flex items-start justify-end">
+        <div id="mobilePanel" class="w-full max-w-sm h-full bg-[--card-blue] shadow-lg transform translate-x-full transition-transform duration-200">
+          <div class="mobile-menu-rect p-4 h-full flex flex-col justify-between">
+            <div>
+              <div class="mb-4">
+                <div class="pixel-box p-3 bg-white">
+                  <div id="nextSaturdayTagMobile" class="text-center font-semibold">Próx. sábado: --</div>
+                </div>
+              </div>
+
+              <nav class="space-y-3">
+                <a href="index.html#/" class="block pixel-box p-3">INÍCIO</a>
+                <a href="index.html#/ranking" class="block pixel-box p-3">RANKING</a>
+                <a href="admin.html" class="block pixel-box p-3">ÁREA ADMIN</a>
+              </nav>
+            </div>
+
+            <div class="mt-4">
+              <button id="authBtnMobile" class="w-full pixel-btn mb-2">LOGIN</button>
+              <div class="text-center mt-2">
+                <button id="menuCloseBtn" class="text-sm underline">Fechar menu</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
   </nav>
 
   <main id="app" class="max-w-6xl mx-auto mt-6 mb-12 px-4">
-
-    <!-- HOME -->
+    <!-- (o resto da página permanece idêntico ao que você tinha) -->
     <section id="view-home" class="view">
       <div class="pixel-box p-8 text-center bg-[--card-blue]">
         <h1 style="font-size:28px">GAME UAU</h1>
@@ -74,11 +134,9 @@
         </div>
       </div>
 
-      <!-- mini top5 (estilizado igual ao ranking) -->
       <div id="homeTop5" class="home-top5 mt-6"></div>
     </section>
 
-    <!-- RANKING VIEW (client-side switched by home.js) -->
     <section id="view-ranking" class="view hidden">
       <div class="pixel-box p-6">
         <h2>RANKING</h2>
@@ -89,10 +147,10 @@
         </div>
       </div>
     </section>
-
   </main>
 
   <div id="modal-root"></div>
 
+  <script src="js/header.js" defer></script>
 </body>
 </html>
