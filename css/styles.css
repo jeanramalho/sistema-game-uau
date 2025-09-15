@@ -151,6 +151,7 @@ body{
   .admin-pass-row{ display:flex; flex-wrap:wrap; gap:8px; }
   .admin-pass-row input{ flex:1 1 100%; }
   .admin-pass-row button{ flex:1 1 100%; }
+  .admin-pass-row{ margin-bottom:12px; }
 
   /* Launch points rows: prevent overflow of name + controls */
   .pts-row{ flex-wrap:wrap; }
@@ -166,6 +167,9 @@ body{
   .ranking-row{ gap:10px; }
   .ranking-row > div:first-child{ max-width:70%; word-break:break-word; }
   .ranking-row > div:last-child{ margin-left:auto; }
+
+  /* Admin: keep ranking rows on one line by slightly reducing font-size */
+  #ranking-box .ranking-row{ font-size:12px; }
 }
 
 /* Avoid iOS input zoom by ensuring base font-size >= 16px inside form controls */
