@@ -108,164 +108,92 @@ body{
   background:#dff3f5;
 }
 
-/* pixel-card & pixel-box variants used across the app */
-.pixel-card { border:4px solid #000; box-shadow:6px 6px 0 #000; background:#fff; border-radius:6px; }
-.home-top5 .top5-list { background:#fff; border:4px solid #000; box-shadow:6px 6px 0 #000; padding:8px; }
+/* home top5 */
+.home-top5 .pixel-box { margin-top:12px; }
+.home-top5 .pixel-box p{ margin:0; }
+.home-top5 .top5-list div{ display:flex; justify-content:space-between; padding:8px; border-bottom:1px dashed #000; }
 
-/* ----------------------------
-   LAYOUT FIXES FOR LAUNCH POINTS
-   (responsive styles for sat buttons and points table)
-   ---------------------------- */
+/* stats card */
+.stats-card{
+  background:#f5f9fa;
+  border:6px solid #000;
+  box-shadow:8px 8px 0 #000;
+  padding:14px;
+}
+.stat-item{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed rgba(0,0,0,0.15); }
 
-/* Saturdays row container - buttons will wrap */
-.sat-row {
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-top:0.5rem;
+/* responsive adjustments */
+@media (max-width:1024px){
+  .pixel-btn{ padding:10px 12px; font-size:12px; }
+  .pixel-input{ padding:8px; }
+}
+@media (max-width:640px){
+  .pixel-btn{ width:100%; padding:12px; font-size:13px; }
+  .modal-center{ padding:14px; max-height:88vh; }
+  .logo-rect{ width:96px; height:48px; }
+  .logo-line{ font-size:9px; }
 }
 
-/* Saturday button general styling override (overrides inline margin) */
-.sat-row .sat-btn {
-  margin:4px !important;
-  padding:8px 12px !important;
-  font-size:13px !important;
-  box-sizing:border-box;
-  min-width:90px;
-  text-align:center;
+/* Mobile-first improvements without breaking retro look */
+@media (max-width:480px){
+  .modal-center h1,
+  .modal-center h2,
+  .modal-center h3,
+  .modal-center h4{ line-height:1.2; }
+
+  /* Inputs and inline controls inside modals */
+  .modal-center .pixel-input{ min-width:0; width:100%; box-sizing:border-box; }
+  .modal-center .pixel-btn{ width:100%; box-sizing:border-box; }
+  .modal-center .flex{ flex-wrap:wrap; gap:10px; }
+  .modal-center .flex > *{ flex:1 1 100%; }
+
+  /* Launch points rows: prevent overflow of name + controls */
+  .pts-row{ flex-wrap:wrap; }
+  .pts-row > div:first-child{ width:100%; padding-right:0 !important; margin-bottom:8px; }
+  .pts-row input[type="number"]{ width:100% !important; }
+
+  /* Player manage list row */
+  .player-row{ flex-wrap:wrap; align-items:flex-start; }
+  .player-row > div:first-child{ width:100%; margin-bottom:8px; }
+  .player-row .pixel-btn{ width:auto; }
+
+  /* Ranking rows text wrapping */
+  .ranking-row{ gap:10px; }
+  .ranking-row > div:first-child{ max-width:70%; word-break:break-word; }
+  .ranking-row > div:last-child{ margin-left:auto; }
 }
 
-/* Points table row adjustments: keep desktop layout but enable mobile stacking */
-.pts-row {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding-top:8px;
-  padding-bottom:8px;
-  border-bottom:1px solid #000;
-  gap:12px;
-}
+/* Avoid iOS input zoom by ensuring base font-size >= 16px inside form controls */
+input, select, textarea{ font-size:16px; }
 
-/* first column (player name) */
-.pts-row > div:first-child {
-  flex: 1;
-  padding-right:12px;
-  min-width:0; /* allow text truncation/wrapping nicely */
-}
-
-/* actions container (input + save) - desktop width */
-.pts-row > div:last-child {
-  display:flex;
-  gap:8px;
-  align-items:center;
-  width:180px;
-  justify-content:flex-end;
-  flex-shrink:0;
-  box-sizing:border-box;
-}
-
-/* make the numeric input look good (overrides inline width) */
-.pts-row input.pixel-input {
-  width:100px !important;
-  padding:6px !important;
-  text-align:right !important;
-  margin-bottom:0 !important;
-}
-
-/* compact save button look */
-.pts-row .pixel-btn {
-  padding:8px 12px;
-  font-size:13px;
-}
-
-/* small visual tweak so long names don't push the actions out */
-.pts-row div:first-child { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-
-/* ----------------------------
-   RESPONSIVE: mobile phones (narrow screens)
-   - 2 columns of saturday buttons
-   - points rows stacked: name above, actions below (compact)
-   ---------------------------- */
-
-@media (max-width: 480px) {
-  /* SAT buttons: 2 columns */
-  .sat-row .sat-btn {
-    flex: 1 1 calc(50% - 8px) !important;
-    font-size:12px !important;
-    padding:8px 8px !important;
-    min-width:0;
-  }
-
-  /* Points row: stack */
-  .pts-row {
-    flex-direction:column;
-    align-items:stretch;
-  }
-  .pts-row > div:first-child {
-    padding-right:0;
-    margin-bottom:8px;
-    white-space:normal;
-  }
-  .pts-row > div:last-child {
-    width:100%;
-    justify-content:space-between;
-  }
-  .pts-row input.pixel-input {
-    width:48% !important;
-    padding:8px !important;
-    font-size:12px;
-  }
-  .pts-row .pixel-btn {
-    padding:8px 10px;
-    font-size:12px;
-  }
-}
-
-/* medium small screens: 3 columns for sat buttons, tighter input */
-@media (min-width: 481px) and (max-width: 768px) {
-  .sat-row .sat-btn {
-    flex: 1 1 calc(33.333% - 8px) !important;
-    font-size:13px !important;
-    min-width:0;
-  }
-  .pts-row > div:last-child {
-    width:160px;
-    justify-content:flex-end;
-  }
-  .pts-row input.pixel-input {
-    width:80px !important;
-    padding:6px !important;
-  }
-}
-
-/* tablets & up: normal desktop layout, but ensure sat buttons wrap nicely */
-@media (min-width: 769px) {
-  .sat-row .sat-btn {
-    flex: 0 0 auto;
-    margin:4px !important;
-  }
-}
-
-/* ----------------------------
-   Add retro-shadow to the mobile menu rect (match logo style)
-   If mobile menu white rect doesn't have the same pixel shadow,
-   this ensures visual parity.
-   ---------------------------- */
-
-.mobile-menu-rect, .hamburger-rect {
+/* Hamburger button retro style */
+.hamburger-rect {
   background: #ffffff;
   border: 4px solid #000;
   border-radius: 6px;
-  box-shadow: 6px 6px 0 #000; /* retro 8-bit shadow like logo */
+  box-shadow: 6px 6px 0 #000;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 6px;
+}
+
+/* Mobile menu panel retro style */
+.mobile-menu-rect {
+  background: #ffffff;
+  border: 4px solid #000;
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 #000;
+  height: 100%;
   box-sizing: border-box;
 }
 
-/* When mobile menu is open, hide desktop auth button reliably */
-body.menu-open #authBtn { visibility: hidden !important; }
+/* Hide desktop auth button when mobile menu is open */
+body.menu-open #authBtn { 
+  visibility: hidden !important; 
+}
 
-/* small helpers used elsewhere */
-.hidden { display:none !important; }
+/* Hide next Saturday tag when mobile menu is open */
+body.menu-open #nextSaturdayTag { 
+  visibility: hidden !important; 
+}
