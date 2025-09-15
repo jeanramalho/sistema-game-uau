@@ -147,6 +147,11 @@ body{
   .modal-center .flex{ flex-wrap:wrap; gap:10px; }
   .modal-center .flex > *{ flex:1 1 100%; }
 
+  /* Admin credentials password row: stack button under input on small screens */
+  .admin-pass-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .admin-pass-row input{ flex:1 1 100%; }
+  .admin-pass-row button{ flex:1 1 100%; }
+
   /* Launch points rows: prevent overflow of name + controls */
   .pts-row{ flex-wrap:wrap; }
   .pts-row > div:first-child{ width:100%; padding-right:0 !important; margin-bottom:8px; }

@@ -399,7 +399,7 @@ function playerRegisterHtml(){
       <label>Perfil</label><select id="player-role" class="pixel-input"><option value="player">Jogador</option><option value="admin">Administrador</option></select>
       <div id="admin-credentials" style="display:none">
         <label>Email</label><input id="player-email" class="pixel-input" placeholder="admin@exemplo.com" />
-        <label>Senha</label><div style="display:flex;gap:8px;"><input id="player-pass" type="password" class="pixel-input" style="flex:1"/><button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button></div>
+        <label>Senha</label><div class="admin-pass-row"><input id="player-pass" type="password" class="pixel-input" /><button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button></div>
         <label>Confirmar senha</label><input id="player-pass2" type="password" class="pixel-input" />
       </div>
       <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">CADASTRAR</button><button type="button" id="cancel-player" class="pixel-btn">CANCELAR</button></div>
