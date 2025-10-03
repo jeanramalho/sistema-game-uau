@@ -706,11 +706,15 @@ function attachModalHandlers(type, payload){
     if(type === 'settings'){
       document.getElementById('close-settings').addEventListener('click', closeModal);
       
-      // Handlers para exportação
+      // Handlers para exportação de frequência
       document.getElementById('export-frequency-excel').addEventListener('click', async () => {
         try {
           await ensureSheetJS();
           const reportData = generateFrequencyReport(state.games || {}, state.players || {});
+          if (reportData.length === 0) {
+            alert('Nenhum dado de frequência encontrado');
+            return;
+          }
           const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0,10)}`;
           exportToExcel(reportData, fileName, 'Frequência');
           alert('✅ Relatório de frequência exportado em Excel');
@@ -723,6 +727,10 @@ function attachModalHandlers(type, payload){
       document.getElementById('export-frequency-csv').addEventListener('click', async () => {
         try {
           const reportData = generateFrequencyReport(state.games || {}, state.players || {});
+          if (reportData.length === 0) {
+            alert('Nenhum dado de frequência encontrado');
+            return;
+          }
           const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0,10)}`;
           exportToCSV(reportData, fileName);
           alert('✅ Relatório de frequência exportado em CSV');
@@ -732,11 +740,32 @@ function attachModalHandlers(type, payload){
         }
       });
       
+      // Função auxiliar para obter filtros do relatório bimestre
+      const getFilters = () => {
+        const yearSelect = document.getElementById('filter-year');
+        const bimestreSelect = document.getElementById('filter-bimestre');
+        
+        const year = yearSelect.value ? Number(yearSelect.value) : null;
+        const bimestre = bimestreSelect.value ? Number(bimestreSelect.value) : null;
+        
+        return { year, bimestre };
+      };
+      
       document.getElementById('export-bimestre-excel').addEventListener('click', async () => {
         try {
           await ensureSheetJS();
-          const reportData = generateBimestreReport(state.games || {}, state.players || {});
-          const fileName = `relatorio-bimestre-${new Date().toISOString().slice(0,10)}`;
+          const filters = getFilters();
+          const reportData = generateBimestreReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          
+          if (reportData.length === 0) {
+            alert('Nenhum dado encontrado para os filtros selecionados');
+            return;
+          }
+          
+          const filterText = filters.year || filters.bimestre ? 
+            `-filtrado${filters.year ? `-ano${filters.year}` : ''}${filters.bimestre ? `-bim${filters.bimestre}` : ''}` : '';
+          const fileName = `relatorio-bimestre${filterText}-${new Date().toISOString().slice(0,10)}`;
+          
           exportToExcel(reportData, fileName, 'Bimestre');
           alert('✅ Relatório por bimestre exportado em Excel');
         } catch(err) {
@@ -747,8 +776,18 @@ function attachModalHandlers(type, payload){
       
       document.getElementById('export-bimestre-csv').addEventListener('click', async () => {
         try {
-          const reportData = generateBimestreReport(state.games || {}, state.players || {});
-          const fileName = `relatorio-bimestre-${new Date().toISOString().slice(0,10)}`;
+          const filters = getFilters();
+          const reportData = generateBimestreReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          
+          if (reportData.length === 0) {
+            alert('Nenhum dado encontrado para os filtros selecionados');
+            return;
+          }
+          
+          const filterText = filters.year || filters.bimestre ? 
+            `-filtrado${filters.year ? `-ano${filters.year}` : ''}${filters.bimestre ? `-bim${filters.bimestre}` : ''}` : '';
+          const fileName = `relatorio-bimestre${filterText}-${new Date().toISOString().slice(0,10)}`;
+          
           exportToCSV(reportData, fileName);
           alert('✅ Relatório por bimestre exportado em CSV');
         } catch(err) {
