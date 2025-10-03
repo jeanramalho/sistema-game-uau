@@ -6,7 +6,8 @@ import { saveElementAsImage } from './print.js';
 import { 
   ensureSheetJS, 
   generateFrequencyReport, 
-  generateBimestreReport, 
+  generateBimestreReport,
+  getAvailableYearsAndTrimester,
   exportToExcel, 
   exportToCSV, 
   clearAllData 
@@ -477,6 +478,8 @@ function annualRankingHtml(){
 }
 
 function settingsHtml(){
+  const available = getAvailableYearsAndTrimester(state.games || {});
+  
   return `
     <h2>CONFIGURAÇÕES DO SISTEMA</h2>
     <p class="mt-2">Gerenciar relatórios e dados do sistema.</p>
@@ -487,23 +490,46 @@ function settingsHtml(){
         <h3>RELATÓRIOS</h3>
         <p class="text-sm mt-1">Exportar dados em formato Excel ou CSV</p>
         
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="mt-4 space-y-4">
+          <!-- Relatório de Frequência -->
           <div class="flex flex-col gap-2">
             <h4 class="text-sm">Relatório de Frequência</h4>
-            <button id="export-frequency-excel" class="pixel-btn w-full">EXCEL</button>
-            <button id="export-frequency-csv" class="pixel-btn w-full">CSV</button>
+            <p class="text-xs">Mostra quantidade de sábados que cada jogador esteve presente</p>
+            <div class="flex gap-2">
+              <button id="export-frequency-excel" class="pixel-btn flex-1">EXCEL</button>
+              <button id="export-frequency-csv" class="pixel-btn flex-1">CSV</button>
+            </div>
           </div>
           
+          <!-- Relatório por Bimestre -->
           <div class="flex flex-col gap-2">
             <h4 class="text-sm">Relatório por Bimestre</h4>
-            <button id="export-bimestre-excel" class="pixel-btn w-full">EXCEL</button>
-            <button id="export-bimestre-csv" class="pixel-btn w-full">CSV</button>
+            <p class="text-xs">Pontuação total por trimestre (filtros opcionais)</p>
+            
+            <!-- Filtros para relatório bimestre -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              <div>
+                <label class="text-xs">Ano:</label>
+                <select id="filter-year" class="pixel-input text-sm">
+                  <option value="">Todos os anos</option>
+                  ${available.years.map(year => `<option value="${year}">${year}</option>`).join('')}
+                </select>
+              </div>
+              
+              <div>
+                <label class="text-xs">Bimestre:</label>
+                <select id="filter-bimestre" class="pixel-input text-sm">
+                  <option value="">Todos os bimestres</option>
+                  ${available.trimester.map(t => `<option value="${t}">${t}º Bimestre</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            
+            <div class="flex gap-2">
+              <button id="export-bimestre-excel" class="pixel-btn flex-1">EXCEL</button>
+              <button id="export-bimestre-csv" class="pixel-btn flex-1">CSV</button>
+            </div>
           </div>
-        </div>
-        
-        <div class="mt-3">
-          <p class="text-xs">Relatório de Frequência: mostra presença/falta por sábado<br>
-          Relatório por Bimestre: pontuação total por trimestre</p>
         </div>
       </div>
       

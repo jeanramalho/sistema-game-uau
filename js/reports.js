@@ -290,6 +290,7 @@ export {
   ensureSheetJS,
   generateFrequencyReport,
   generateBimestreReport,
+  getAvailableYearsAndTrimester,
   exportToExcel,
   exportToCSV,
   clearAllData
