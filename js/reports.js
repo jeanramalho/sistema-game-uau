@@ -27,73 +27,86 @@ async function ensureSheetJS() {
 }
 
 /**
- * Gera relatório de frequência dos jogadores por sábado
+ * Gera relatório de frequência dos jogadores por sábado (novo formato simplificado)
  * @param {Object} games - Objeto com todos os games
  * @param {Object} players - Objeto com todos os jogadores
  * @returns {Array} Array de objetos com dados do relatório
  */
 function generateFrequencyReport(games, players) {
-  const reportData = [];
+  const playerTotals = {};
   const playerNames = {};
   
   // Mapeia IDs dos jogadores para nomes
   for (const [playerId, player] of Object.entries(players)) {
     playerNames[playerId] = player.name || 'Jogador Desconhecido';
+    playerTotals[playerId] = { name: playerNames[playerId], presentSaturdays: 0 };
   }
   
-  // Processa cada game e seus sábados
+  // Processa cada game e seus sábados para contar presenças
   for (const [gameId, game] of Object.entries(games)) {
     if (!game.saturdays) continue;
-    
-    const gameYear = new Date(game.startedAt).getFullYear();
-    const gameTrimester = game.trimester || 1;
     
     // Para cada sábado no game
     for (const [isoKey, saturdayPoints] of Object.entries(game.saturdays)) {
       if (!saturdayPoints) continue;
       
-      // Processa cada jogador neste sábado
+      // Para cada jogador, verifica se teve pontos > 0 (presença)
       for (const [playerId, points] of Object.entries(saturdayPoints)) {
-        reportData.push({
-          ano: gameYear,
-          trimestre: gameTrimester,
-          data: formatBR(isoKey),
-          jogador: playerNames[playerId] || 'Jogador Desconhecido',
-          pontos: Number(points) || 0,
-          presente: Number(points) > 0 ? 'SIM' : 'NÃO'
-        });
+        if (!playerTotals[playerId]) {
+          // Se o jogador não existe mais na lista atual, cria entrada temporária
+          playerTotals[playerId] = { 
+            name: playerNames[playerId] || 'Jogador Desconhecido', 
+            presentSaturdays: 0 
+          };
+        }
+        
+        // Se teve pontos > 0, conta como presente
+        if (Number(points) > 0) {
+          playerTotals[playerId].presentSaturdays++;
+        }
       }
     }
   }
   
-  return reportData.sort((a, b) => {
-    // Ordena por ano, trimestre, data, poi jogador
-    if (a.ano !== b.ano) return b.ano - a.ano;
-    if (a.trimestre !== b.trimestre) return b.trimestre - a.trimestre;
-    if (a.data !== b.data) return new Date(a.data.split('-').reverse().join('-')) > new Date(b.data.split('-').reverse().join('-')) ? -1 : 1;
-    return a.jogador.localeCompare(b.jogador);
-  });
+  // Converte para array e ordena por quantidade de sábados presentes (decrescente)
+  const reportData = Object.entries(playerTotals)
+    .filter(([playerId, data]) => data.name !== 'Jogador Desconhecido') // Remove jogadores desconhecidos
+    .map(([playerId, data]) => ({
+      jogador: data.name,
+      sabados_presentes: data.presentSaturdays
+    }))
+    .sort((a, b) => b.sabados_presentes - a.sabados_presentes);
+  
+  return reportData;
 }
 
 /**
- * Gera relatório de pontuação por bimestre
+ * Gera relatório de pontuação por bimestre filtrado
  * @param {Object} games - Objeto com todos os games
  * @param {Object} players - Objeto com todos os jogadores
+ * @param {number} selectedYear - Ano específico para filtrar (opcional)
+ * @param {number} selectedBimestre - Bimestre específico para filtrar (opcional)
  * @returns {Array} Array de objetos com dados do relatório
  */
-function generateBimestreReport(games, players) {
+function generateBimestreReport(games, players, selectedYear = null, selectedBimestre = null) {
   const reportData = [];
   const playerNames = {};
   
-  // Mapeia IDs dos jogadores para nomes
+  // Mapeia IDs dos jogadores para nomes (apenas jogadores válidos)
   for (const [playerId, player] of Object.entries(players)) {
-    playerNames[playerId] = player.name || 'Jogador Desconhecido';
+    if (player && player.name) {
+      playerNames[playerId] = player.name;
+    }
   }
   
-  // Processa cada game
+  // Processa cada game aplicando filtros
   for (const [gameId, game] of Object.entries(games)) {
     const gameYear = new Date(game.startedAt).getFullYear();
     const gameTrimester = game.trimester || 1;
+    
+    // Aplica filtros se especificados
+    if (selectedYear !== null && gameYear !== selectedYear) continue;
+    if (selectedBimestre !== null && gameTrimester !== selectedBimestre) continue;
     
     // Calcula totais por jogador neste game
     const gameTotals = {};
@@ -103,35 +116,60 @@ function generateBimestreReport(games, players) {
         if (!saturdayPoints) continue;
         
         for (const [playerId, points] of Object.entries(saturdayPoints)) {
-          gameTotals[playerId] = (gameTotals[playerId] || 0) + Number(points || 0);
+          if (playerNames[playerId]) { // Só inclui jogadores válidos
+            gameTotals[playerId] = (gameTotals[playerId] || 0) + Number(points || 0);
+          }
         }
       }
     } else if (game.playersPoints) {
       for (const [playerId, points] of Object.entries(game.playersPoints)) {
-        gameTotals[playerId] = Number(points || 0);
+        if (playerNames[playerId]) { // Só inclui jogadores válidos
+          gameTotals[playerId] = Number(points || 0);
+        }
       }
     }
     
     // Gera linha para cada jogador neste bimestre
     for (const [playerId, totalPoints] of Object.entries(gameTotals)) {
-      reportData.push({
-        ano: gameYear,
-        bimestre: gameTrimester,
-        jogador: playerNames[playerId] || 'Jogador Desconhecido',
-        pontos_totais: totalPoints,
-        sábados_participados: game.saturdays ? Object.values(game.saturdays).filter(sat => sat && sat[playerId] && Number(sat[playerId]) > 0).length : 0,
-        data_inicio: formatBR(game.startedAt),
-        data_fim: game.endedAt ? formatBR(game.endedAt) : 'Em andamento'
-      });
+      if (totalPoints > 0 || game.saturdays) { // Só inclui jogadores com participação
+        reportData.push({
+          jogador: playerNames[playerId],
+          pontos_totais: totalPoints,
+          sabados_participados: game.saturdays ? Object.values(game.saturdays).filter(sat => sat && sat[playerId] && Number(sat[playerId]) > 0).length : 0,
+          data_inicio: formatBR(game.startedAt),
+          data_fim: game.endedAt ? formatBR(game.endedAt) : 'Em andamento',
+          bimestre: gameTrimester,
+          ano: gameYear
+        });
+      }
     }
   }
   
-  return reportData.sort((a, b) => {
-    // Ordena por ano, bimestre, pontos (decrescente)
-    if (a.ano !== b.ano) return b.ano - a.ano;
-    if (a.bimestre !== b.bimestre) return b.bimestre - a.bimestre;
-    return b.pontos_totais - a.pontos_totais;
-  });
+  // Ordena por pontos totais (decrescente)
+  return reportData.sort((a, b) => b.pontos_totais - a.pontos_totais);
+}
+
+/**
+ * Função auxiliar para obter anos e bimestres disponíveis
+ * @param {Object} games - Objeto com todos os games
+ * @returns {Object} Objeto com anos e bimestres únicos
+ */
+function getAvailableYearsAndTrimester(games) {
+  const years = new Set();
+  const trimester = new Set();
+  
+  for (const game of Object.values(games)) {
+    const gameYear = new Date(game.startedAt).getFullYear();
+    const gameTrimester = game.trimester || 1;
+    
+    years.add(gameYear);
+    trimester.add(gameTrimester);
+  }
+  
+  return {
+    years: Array.from(years).sort((a, b) => b - a), // Ordena decrescente (mais recente primeiro)
+    trimester: Array.from(trimester).sort((a, b) => a - b) // Ordena crescente
+  };
 }
 
 /**
