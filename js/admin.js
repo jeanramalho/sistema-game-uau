@@ -3,6 +3,14 @@ import { onAuthStateChanged, createUserWithEmailAndPassword, signOut } from 'htt
 import { ref, onValue, set, push, update, remove, get } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js';
 import { formatBR } from './common.js';
 import { saveElementAsImage } from './print.js';
+import { 
+  ensureSheetJS, 
+  generateFrequencyReport, 
+  generateBimestreReport, 
+  exportToExcel, 
+  exportToCSV, 
+  clearAllData 
+} from './reports.js';
 
 // Espera o primeiro onAuthStateChanged para evitar "Verificando autenticação..." preso
 function waitForInitialAuthState() {
@@ -133,6 +141,7 @@ function wireAdmin(){
   const cardLaunchPoints = document.getElementById('card-launch-points');
   const cardManagePlayers = document.getElementById('card-manage-players');
   const cardAnnualRanking = document.getElementById('card-annual-ranking');
+  const cardSettings = document.getElementById('card-settings');
   const quickRegisterBtn = document.getElementById('quickRegisterBtn');
 
   if(cardRegister) cardRegister.addEventListener('click', () => openModal('playerRegister'));
@@ -141,6 +150,7 @@ function wireAdmin(){
   if(cardCreateEnd) cardCreateEnd.addEventListener('click', () => { if(state.activeGameId) openModal('endGame'); else openModal('createGame'); });
   if(cardLaunchPoints) cardLaunchPoints.addEventListener('click', () => openModal('launchPoints'));
   if(cardAnnualRanking) cardAnnualRanking.addEventListener('click', () => openModal('annualRanking'));
+  if(cardSettings) cardSettings.addEventListener('click', () => openModal('settings'));
 
   unsubPlayers = onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('players read err', err); state.players = {}; renderAllAdmin(); });
   unsubGames = onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('games read err', err); state.games = {}; renderAllAdmin(); });
@@ -376,6 +386,7 @@ function openModal(type, payload){
   else if(type === 'endGame') center.innerHTML = endGameHtml();
   else if(type === 'launchPoints') center.innerHTML = launchPointsHtml();
   else if(type === 'annualRanking') center.innerHTML = annualRankingHtml();
+  else if(type === 'settings') center.innerHTML = settingsHtml();
   else center.innerHTML = '<div>Tipo de modal desconhecido</div>';
 
   attachModalHandlers(type, payload);
@@ -463,6 +474,63 @@ function annualRankingHtml(){
   const players = state.players || {};
   const rows = arr.map((r,i) => `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i+1}. ${escapeHtml(players[r.id]?players[r.id].name:'Desconhecido')} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('') || '<div>Nenhum registro</div>';
   return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
+}
+
+function settingsHtml(){
+  return `
+    <h2>CONFIGURAÇÕES DO SISTEMA</h2>
+    <p class="mt-2">Gerenciar relatórios e dados do sistema.</p>
+    
+    <div class="mt-6 space-y-6">
+      <!-- Relatórios -->
+      <div class="pixel-box p-4">
+        <h3>RELATÓRIOS</h3>
+        <p class="text-sm mt-1">Exportar dados em formato Excel ou CSV</p>
+        
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-2">
+            <h4 class="text-sm">Relatório de Frequência</h4>
+            <button id="export-frequency-excel" class="pixel-btn w-full">EXCEL</button>
+            <button id="export-frequency-csv" class="pixel-btn w-full">CSV</button>
+          </div>
+          
+          <div class="flex flex-col gap-2">
+            <h4 class="text-sm">Relatório por Bimestre</h4>
+            <button id="export-bimestre-excel" class="pixel-btn w-full">EXCEL</button>
+            <button id="export-bimestre-csv" class="pixel-btn w-full">CSV</button>
+          </div>
+        </div>
+        
+        <div class="mt-3">
+          <p class="text-xs">Relatório de Frequência: mostra presença/falta por sábado<br>
+          Relatório por Bimestre: pontuação total por trimestre</p>
+        </div>
+      </div>
+      
+      <!-- Administração -->
+      <div class="pixel-box p-4">
+        <h3>ADMINISTRAÇÃO</h3>
+        <p class="text-sm mt-1">⚠️ Ações irreversíveis</p>
+        
+        <div class="mt-4">
+          <button id="clear-all-data" class="pixel-btn w-full bg-red-100 border-red-500 text-red-800 hover:bg-red-200">
+            🗑️ LIMPAR TODOS OS DADOS
+          </button>
+        </div>
+        
+        <div class="mt-3">
+          <p class="text-xs text-red-600">
+            Remove TODOS os dados: jogadores, games, pontuações e configurações.<br>
+            <strong>Esta ação NÃO PODE SER DESFEITA!</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-6 flex gap-3">
+      <button id="close-settings" class="pixel-btn">VOLTAR</button>
+    </div>
+  `;
 }
 
 /* Attach modal handlers */
@@ -606,6 +674,76 @@ function attachModalHandlers(type, payload){
 
     if(type === 'annualRanking'){
       document.getElementById('close-annual').addEventListener('click', closeModal);
+      return;
+    }
+
+    if(type === 'settings'){
+      document.getElementById('close-settings').addEventListener('click', closeModal);
+      
+      // Handlers para exportação
+      document.getElementById('export-frequency-excel').addEventListener('click', async () => {
+        try {
+          await ensureSheetJS();
+          const reportData = generateFrequencyReport(state.games || {}, state.players || {});
+          const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0,10)}`;
+          exportToExcel(reportData, fileName, 'Frequência');
+          alert('✅ Relatório de frequência exportado em Excel');
+        } catch(err) {
+          console.error('Erro ao exportar:', err);
+          alert('❌ Erro ao exportar relatório: ' + (err.message || err));
+        }
+      });
+      
+      document.getElementById('export-frequency-csv').addEventListener('click', async () => {
+        try {
+          const reportData = generateFrequencyReport(state.games || {}, state.players || {});
+          const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0,10)}`;
+          exportToCSV(reportData, fileName);
+          alert('✅ Relatório de frequência exportado em CSV');
+        } catch(err) {
+          console.error('Erro ao exportar:', err);
+          alert('❌ Erro ao exportar relatório: ' + (err.message || err));
+        }
+      });
+      
+      document.getElementById('export-bimestre-excel').addEventListener('click', async () => {
+        try {
+          await ensureSheetJS();
+          const reportData = generateBimestreReport(state.games || {}, state.players || {});
+          const fileName = `relatorio-bimestre-${new Date().toISOString().slice(0,10)}`;
+          exportToExcel(reportData, fileName, 'Bimestre');
+          alert('✅ Relatório por bimestre exportado em Excel');
+        } catch(err) {
+          console.error('Erro ao exportar:', err);
+          alert('❌ Erro ao exportar relatório: ' + (err.message || err));
+        }
+      });
+      
+      document.getElementById('export-bimestre-csv').addEventListener('click', async () => {
+        try {
+          const reportData = generateBimestreReport(state.games || {}, state.players || {});
+          const fileName = `relatorio-bimestre-${new Date().toISOString().slice(0,10)}`;
+          exportToCSV(reportData, fileName);
+          alert('✅ Relatório por bimestre exportado em CSV');
+        } catch(err) {
+          console.error('Erro ao exportar:', err);
+          alert('❌ Erro ao exportar relatório: ' + (err.message || err));
+        }
+      });
+      
+      // Handler para limpeza de dados
+      document.getElementById('clear-all-data').addEventListener('click', async () => {
+        const success = await clearAllData();
+        if(success) {
+          // Fecha o modal após limpeza bem-sucedida
+          setTimeout(() => {
+            closeModal();
+            // Força reload para atualizar a interface
+            location.reload();
+          }, 1000);
+        }
+      });
+      
       return;
     }
   } catch(err){
