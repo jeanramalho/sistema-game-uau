@@ -1,3 +1,4 @@
+// js/admin.js
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
 import { ref, onValue, set, push, update, remove, get } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js';
@@ -237,6 +238,37 @@ function setupEventDelegation() {
       try {
         await deletePlayerAPI(key);
         alert('Jogador excluído com sucesso!');
+
+        // --- Atualização local imediata para refletir exclusão sem recarregar a página ---
+        try {
+          // Remove do estado local
+          if(state.players && state.players[key]) delete state.players[key];
+
+          // Atualiza as contagens / estatísticas
+          renderAllAdmin();
+
+          // Remove a linha do jogador do DOM, se presente no modal managePlayers
+          const btnInDOM = document.querySelector(`.btn-del[data-key="${key}"]`);
+          const playerRow = btnInDOM ? btnInDOM.closest('.player-row') : null;
+          if(playerRow) playerRow.remove();
+
+          // Se o modal GERENCIAR JOGADORES estiver aberto, re-renderiza o conteúdo do modal
+          if(currentModal && currentModal.type === 'managePlayers' && currentModal.center){
+            currentModal.center.innerHTML = managePlayersHtml();
+            // re-anexa handlers do modal managePlayers
+            attachModalHandlers('managePlayers');
+          }
+
+          // Se o modal EDITAR estiver aberto para o jogador excluído, fecha o modal
+          if(currentModal && currentModal.type === 'editPlayer' && currentModal.payload === key){
+            closeModal();
+          }
+        } catch(innerErr){
+          console.warn('Atualização UI local após exclusão falhou', innerErr);
+          // fallback: força reload (caso algo inesperado aconteça)
+          setTimeout(()=> location.reload(), 700);
+        }
+
       } catch(err){ 
         alert('Erro ao excluir jogador: '+(err.message||err)); 
       }
@@ -818,7 +850,7 @@ function attachModalHandlers(type, payload){
         cancelBtn.addEventListener('click', closeModal);
       }
       
-      // Botão deletar jogador
+      // Botão deletar jogador (no modal de edição)
       const delBtn = document.getElementById('del-player');
       if(delBtn) {
         delBtn.addEventListener('click', async () => {
@@ -830,7 +862,25 @@ function attachModalHandlers(type, payload){
           try {
             await deletePlayerAPI(key);
             alert('Jogador excluído com sucesso!');
-            closeModal();
+
+            // Atualiza UI local imediatamente (sem precisar recarregar)
+            try {
+              if(state.players && state.players[key]) delete state.players[key];
+              renderAllAdmin();
+
+              // Se o modal GERENCIAR JOGADORES estiver aberto, re-renderiza o conteúdo do modal
+              if(currentModal && currentModal.type === 'managePlayers' && currentModal.center){
+                currentModal.center.innerHTML = managePlayersHtml();
+                attachModalHandlers('managePlayers');
+              }
+
+              // Fechar o modal de edição (já excluído)
+              closeModal();
+            } catch(innerErr){
+              console.warn('Erro ao atualizar UI local após exclusão no modal edit:', innerErr);
+              setTimeout(()=> location.reload(), 700);
+            }
+
           } catch(err){ 
             alert('Erro ao excluir jogador: '+(err.message||err)); 
           }
@@ -912,6 +962,19 @@ function attachModalHandlers(type, payload){
               
               await updatePlayerAPI(key, updateData);
               alert('Jogador atualizado com sucesso!');
+
+              // Atualiza estado local para refletir mudança imediata
+              if(state.players && state.players[key]) {
+                state.players[key] = { ...state.players[key], ...updateData };
+              }
+              renderAllAdmin();
+
+              // Se modal managePlayers estiver aberto, re-renderiza sua lista (mantendo pesquisa)
+              if(currentModal && currentModal.type === 'managePlayers' && currentModal.center){
+                currentModal.center.innerHTML = managePlayersHtml();
+                attachModalHandlers('managePlayers');
+              }
+
               closeModal();
             }
           } catch(err){ 
