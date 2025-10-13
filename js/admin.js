@@ -164,44 +164,89 @@ function wireAdmin(){
     };
   }
 
-  // Delegated fallback (seguro) — ainda mantemos caso handlers diretos falhem
-  document.addEventListener('click', async (e) => {
+  // Configura event delegation após inicialização
+  setupEventDelegation();
+}
+
+/* ----------------------
+   Event Delegation Setup
+   ---------------------- */
+
+function setupEventDelegation() {
+  // Remove event listeners anteriores se existirem (tanto capture quanto bubble) para evitar duplicatas
+  if(window.adminClickHandler) {
+    try {
+      document.removeEventListener('click', window.adminClickHandler);
+      document.removeEventListener('click', window.adminClickHandler, true);
+    } catch(e){}
+  }
+  
+  // Event delegation para todos os botões do admin
+  window.adminClickHandler = async (e) => {
     if(!e.target) return;
 
-    if(e.target.matches('.save-point-btn')){
-      // fallback save path (agora usa chave timestamp também)
-      const pid = e.target.dataset.pid;
-      const iso = e.target.dataset.iso;
+    // UTIL: procura pelos elementos relevantes subindo a árvore com closest
+    const saveBtn = e.target.closest && e.target.closest('.save-point-btn');
+    if(saveBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      const pid = saveBtn.dataset.pid;
+      const iso = saveBtn.dataset.iso;
       const gid = state.activeGameId;
-      if(!pid){ console.warn('save-point-btn clicked but pid undefined'); return; }
+      if(!pid){ return; }
       if(!gid || !iso) return alert('Nenhum trimestre/sábado selecionado');
       const valEl = document.getElementById('pts-' + pid);
       const val = Number(valEl?.value || 0);
       try {
         const writeKey = isoKeyWrite(iso);
         await set(ref(db, `/games/${gid}/saturdays/${writeKey}/${pid}`), Number(val));
-        // cleanup old keys for same iso if any
         await cleanupOldIsoKeys(gid, iso, pid, writeKey);
         alert('Pontos salvos');
       } catch(err){
-        console.error('Erro ao salvar (delegated)', err);
         alert('Erro ao salvar ponto: '+ (err.message || err));
       }
+      return;
     }
 
-    if(e.target.matches('.btn-edit')){
-      const key = e.target.dataset.key;
+    // Botões de editar jogador (agora com closest para garantir captura)
+    const editBtn = e.target.closest && e.target.closest('.btn-edit');
+    if(editBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      const key = editBtn.dataset.key;
+      if(!key) return;
       openModal('editPlayer', key);
+      return;
     }
-    if(e.target.matches('.btn-del')){
-      const key = e.target.dataset.key;
-      if(!confirm('Excluir jogador?')) return;
+    
+    // Botões de deletar jogador (closest)
+    const delBtn = e.target.closest && e.target.closest('.btn-del');
+    if(delBtn){
+      e.preventDefault();
+      e.stopPropagation();
+      const key = delBtn.dataset.key;
+      if(!key) return;
+      
+      const player = state.players[key];
+      const playerName = player ? player.name : 'jogador';
+      
+      if(!confirm(`Tem certeza que deseja excluir o jogador "${playerName}"?\n\nEsta ação não pode ser desfeita e removerá todos os dados do jogador.`)) {
+        return;
+      }
+      
       try {
-        await remove(ref(db, '/players/' + key));
-        alert('Jogador excluído');
-      } catch(err){ console.error(err); alert('Erro ao excluir: '+(err.message||err)); }
+        await deletePlayerAPI(key);
+        alert('Jogador excluído com sucesso!');
+      } catch(err){ 
+        alert('Erro ao excluir jogador: '+(err.message||err)); 
+      }
+      return;
     }
-  });
+  };
+  
+  // Adiciona o event listener em modo de captura para que ele receba cliques
+  // mesmo que o modal faça stopPropagation() no estágio de target/bubble.
+  document.addEventListener('click', window.adminClickHandler, true);
 }
 
 /* ----------------------
@@ -227,19 +272,40 @@ async function createPlayerAPI(data){
 async function updatePlayerAPI(key, patch){ await update(ref(db, '/players/' + key), patch); }
 
 async function deletePlayerAPI(key){
-  await remove(ref(db, '/players/' + key));
-  const gSnap = await get(ref(db, '/games'));
-  const gamesObj = gSnap.val() || {};
-  for(const gid in gamesObj){
-    if(gamesObj[gid].saturdays){
-      const sats = gamesObj[gid].saturdays;
-      for(const isoKey in sats){
-        if(sats[isoKey] && sats[isoKey][key]) await remove(ref(db, `/games/${gid}/saturdays/${isoKey}/${key}`));
+  if(!key) {
+    throw new Error('Chave do jogador não fornecida');
+  }
+  
+  try {
+    // Remove o jogador da lista de jogadores
+    await remove(ref(db, '/players/' + key));
+    
+    // Busca todos os games para limpar dados relacionados
+    const gSnap = await get(ref(db, '/games'));
+    const gamesObj = gSnap.val() || {};
+    
+    // Limpa dados do jogador em todos os games
+    for(const gid in gamesObj){
+      const game = gamesObj[gid];
+      if(!game) continue;
+      
+      // Remove pontos dos sábados
+      if(game.saturdays){
+        const sats = game.saturdays;
+        for(const isoKey in sats){
+          if(sats[isoKey] && sats[isoKey][key]) {
+            await remove(ref(db, `/games/${gid}/saturdays/${isoKey}/${key}`));
+          }
+        }
+      }
+      
+      // Remove pontos totais do jogador no game
+      if(game.playersPoints && game.playersPoints[key]){
+        await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
       }
     }
-    if(gamesObj[gid].playersPoints && gamesObj[gid].playersPoints[key]){
-      await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
-    }
+  } catch(error) {
+    throw error;
   }
 }
 
@@ -421,29 +487,127 @@ function playerRegisterHtml(){
 
 function editPlayerHtml(key){
   const p = state.players[key] || {};
+  if(!p || !p.name) {
+    return `
+      <h2>ERRO</h2>
+      <div class="pixel-box p-4 text-center">
+        <p>Jogador não encontrado.</p>
+        <div class="mt-4">
+          <button id="cancel-edit" class="pixel-btn">FECHAR</button>
+        </div>
+      </div>
+    `;
+  }
+  
   return `
     <h2>EDITAR JOGADOR</h2>
+    <div class="pixel-box p-4 mb-4">
+      <p class="text-sm">Editando: <strong>${escapeHtml(p.name)}</strong></p>
+    </div>
     <form id="form-edit-player" class="mt-4">
-      <label>Nome</label><input id="edit-name" class="pixel-input" value="${(p.name||'').replace(/"/g,'&quot;')}" />
-      <label>Telefone</label><input id="edit-phone" class="pixel-input" value="${(p.phone||'').replace(/"/g,'&quot;')}" />
-      <label>Perfil</label><select id="edit-role" class="pixel-input"><option value="player" ${p.role==='player'?'selected':''}>Jogador</option><option value="admin" ${p.role==='admin'?'selected':''}>Administrador</option></select>
-      <div id="edit-admin-credentials" style="display:none">
-        <label>Email (apenas se criando credenciais)</label><input id="edit-email" class="pixel-input" value="${(p.email||'').replace(/"/g,'&quot;')}" />
-        <label>Senha (nova)</label><input id="edit-pass" type="password" class="pixel-input" />
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold mb-2">Nome Completo</label>
+          <input id="edit-name" class="pixel-input" value="${escapeHtml(p.name||'')}" placeholder="Nome completo do jogador" required />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-semibold mb-2">Telefone</label>
+          <input id="edit-phone" class="pixel-input" value="${escapeHtml(p.phone||'')}" placeholder="(11) 9xxxx-xxxx" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-semibold mb-2">Perfil</label>
+          <select id="edit-role" class="pixel-input">
+            <option value="player" ${p.role==='player'?'selected':''}>Jogador</option>
+            <option value="admin" ${p.role==='admin'?'selected':''}>Administrador</option>
+          </select>
+        </div>
+        
+        <div id="edit-admin-credentials" style="display:none">
+          <div class="pixel-box p-3 bg-yellow-50 border-yellow-300">
+            <p class="text-xs text-yellow-800 mb-2">⚠️ Apenas preencha se estiver transformando em administrador</p>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-semibold mb-2">Email</label>
+                <input id="edit-email" class="pixel-input" value="${escapeHtml(p.email||'')}" placeholder="admin@exemplo.com" />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold mb-2">Nova Senha</label>
+                <input id="edit-pass" type="password" class="pixel-input" placeholder="Digite uma nova senha" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="flex gap-3 mt-2"><button class="pixel-btn" type="submit">SALVAR</button><button type="button" id="cancel-edit" class="pixel-btn">CANCELAR</button></div>
-      <div class="mt-2"><button id="del-player" class="pixel-btn" type="button">DELETAR</button></div>
+      
+      <div class="flex flex-col sm:flex-row gap-3 mt-6">
+        <button class="pixel-btn flex-1" type="submit">SALVAR ALTERAÇÕES</button>
+        <button type="button" id="cancel-edit" class="pixel-btn flex-1">CANCELAR</button>
+      </div>
+      
+      <div class="mt-4 pt-4 border-t border-gray-300">
+        <button id="del-player" class="pixel-btn w-full bg-red-100 border-red-500 text-red-800 hover:bg-red-200" type="button">
+          🗑️ EXCLUIR JOGADOR
+        </button>
+        <p class="text-xs text-red-600 mt-2 text-center">
+          Esta ação removerá permanentemente todos os dados do jogador
+        </p>
+      </div>
     </form>
   `;
 }
 
 function managePlayersHtml(){
   const players = state.players || {};
+  const playersCount = Object.keys(players).length;
+  
   const rows = Object.entries(players).map(([k,p]) => {
-    return `<div class="flex justify-between items-center py-2 border-b player-row" data-name="${(p.name||'').toLowerCase()}"><div><div>${escapeHtml(p.name)}</div><div style="font-size:12px">${p.role || ''} ${p.phone ? ' • ' + p.phone : ''}</div></div><div class="flex gap-2"><button class="pixel-btn btn-edit" data-key="${k}">EDIT</button><button class="pixel-btn btn-del" data-key="${k}">DEL</button></div></div>`;
-  }).join('') || '<div>Nenhum jogador</div>';
+    const roleText = p.role === 'admin' ? 'Administrador' : 'Jogador';
+    const phoneText = p.phone ? ` • ${p.phone}` : '';
+    
+    return `
+      <div class="player-row pixel-box p-4 mb-3" data-name="${(p.name||'').toLowerCase()}">
+        <div class="flex flex-col gap-3">
+          <div class="flex-1">
+            <div class="font-semibold text-lg">${escapeHtml(p.name)}</div>
+            <div class="text-sm text-gray-600 mt-1">
+              <span class="tag text-xs">${roleText}</span>
+              ${phoneText ? `<span class="text-xs ml-2">${escapeHtml(p.phone)}</span>` : ''}
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <button class="pixel-btn btn-edit" data-key="${k}">
+              ✏️ EDITAR
+            </button>
+            <button class="pixel-btn btn-del bg-red-100 border-red-500 text-red-800 hover:bg-red-200" data-key="${k}">
+              🗑️ EXCLUIR
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('') || '<div class="pixel-box p-6 text-center text-gray-500">Nenhum jogador cadastrado</div>';
 
-  return `<h2>GERENCIAR JOGADORES</h2><div class="mt-4"><div style="margin-bottom:8px"><input id="manage-search" class="pixel-input" placeholder="Pesquisar jogador..." /></div>${rows}</div><div class="mt-4"><button id="close-manage" class="pixel-btn">FECHAR</button></div>`;
+  return `
+    <h2>GERENCIAR JOGADORES</h2>
+    <div class="pixel-box p-4 mb-4">
+      <p class="text-sm">Total de jogadores: <strong>${playersCount}</strong></p>
+    </div>
+    
+    <div class="mt-4">
+      <div class="mb-4">
+        <input id="manage-search" class="pixel-input" placeholder="🔍 Pesquisar jogador por nome..." />
+      </div>
+      <div id="players-list">
+        ${rows}
+      </div>
+    </div>
+    
+    <div class="mt-6 flex justify-center">
+      <button id="close-manage" class="pixel-btn">FECHAR</button>
+    </div>
+  `;
 }
 
 function createGameHtml(){
@@ -599,55 +763,162 @@ function attachModalHandlers(type, payload){
     }
 
     if(type === 'managePlayers'){
+      // Configuração da busca
       const search = document.getElementById('manage-search');
-      if(search) search.addEventListener('input', e => {
-        const q = e.target.value.toLowerCase();
-        document.querySelectorAll('.player-row').forEach(row => {
-          const name = row.dataset.name || '';
-          row.style.display = name.includes(q) ? '' : 'none';
+      if(search) {
+        search.addEventListener('input', e => {
+          const query = e.target.value.toLowerCase().trim();
+          const playerRows = document.querySelectorAll('.player-row');
+          
+          if(query === '') {
+            playerRows.forEach(row => {
+              row.style.display = '';
+            });
+          } else {
+            playerRows.forEach(row => {
+              const playerName = row.dataset.name || '';
+              const shouldShow = playerName.includes(query);
+              row.style.display = shouldShow ? '' : 'none';
+            });
+          }
         });
-      });
-      document.getElementById('close-manage').addEventListener('click', closeModal);
+      }
+      
+      // Botão fechar
+      const closeBtn = document.getElementById('close-manage');
+      if(closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+      }
+      
       return;
     }
 
     if(type === 'editPlayer'){
       const key = payload;
+      const player = state.players[key];
+      
+      if(!player) {
+        return;
+      }
+      
+      // Configuração do seletor de perfil
       const roleSel = document.getElementById('edit-role');
-      roleSel.addEventListener('change', e => document.getElementById('edit-admin-credentials').style.display = e.target.value === 'admin' ? 'block' : 'none');
-      document.getElementById('cancel-edit').addEventListener('click', closeModal);
-      document.getElementById('del-player').addEventListener('click', async () => {
-        if(!confirm('Excluir jogador?')) return;
-        try { await deletePlayerAPI(key); alert('Excluído'); closeModal(); } catch(err){ console.error(err); alert('Erro: '+(err.message||err)); }
-      });
-
-      document.getElementById('form-edit-player').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('edit-name').value.trim();
-        const phone = document.getElementById('edit-phone').value.trim();
-        const role = document.getElementById('edit-role').value;
-        if(!name) return alert('Nome obrigatório');
-        try {
-          const player = state.players[key];
-          if(role === 'admin' && (!player || player.role !== 'admin')){
-            const email = document.getElementById('edit-email').value.trim();
-            const pass = document.getElementById('edit-pass').value;
-            if(!email || !pass) return alert('Email e senha necessários para transformar em admin');
-            const cred = await createUserWithEmailAndPassword(auth, email, pass);
-            const uid = cred.user.uid;
-            const newObj = { id: uid, name, phone: phone||null, role: 'admin', createdAt: new Date().toISOString() };
-            await set(ref(db, '/players/' + uid), newObj);
-            await remove(ref(db, '/players/' + key));
-            alert('Transformado em admin');
-            closeModal();
-            return;
-          } else {
-            await updatePlayerAPI(key, { name, phone, role });
-            alert('Atualizado');
-            closeModal();
+      if(roleSel) {
+        roleSel.addEventListener('change', e => {
+          const adminCreds = document.getElementById('edit-admin-credentials');
+          if(adminCreds) {
+            adminCreds.style.display = e.target.value === 'admin' ? 'block' : 'none';
           }
-        } catch(err){ console.error(err); alert('Erro ao atualizar: '+(err.message||err)); }
-      });
+        });
+      }
+      
+      // Botão cancelar
+      const cancelBtn = document.getElementById('cancel-edit');
+      if(cancelBtn) {
+        cancelBtn.addEventListener('click', closeModal);
+      }
+      
+      // Botão deletar jogador
+      const delBtn = document.getElementById('del-player');
+      if(delBtn) {
+        delBtn.addEventListener('click', async () => {
+          const playerName = player.name || 'jogador';
+          if(!confirm(`Tem certeza que deseja excluir o jogador "${playerName}"?\n\nEsta ação não pode ser desfeita e removerá todos os dados do jogador.`)) {
+            return;
+          }
+          
+          try {
+            await deletePlayerAPI(key);
+            alert('Jogador excluído com sucesso!');
+            closeModal();
+          } catch(err){ 
+            alert('Erro ao excluir jogador: '+(err.message||err)); 
+          }
+        });
+      }
+
+      // Formulário de edição
+      const form = document.getElementById('form-edit-player');
+      if(form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const name = document.getElementById('edit-name').value.trim();
+          const phone = document.getElementById('edit-phone').value.trim();
+          const role = document.getElementById('edit-role').value;
+          
+          // Validações
+          if(!name) {
+            alert('Nome é obrigatório');
+            return;
+          }
+          
+          if(name.length < 2) {
+            alert('Nome deve ter pelo menos 2 caracteres');
+            return;
+          }
+          
+          try {
+            // Se está transformando em admin
+            if(role === 'admin' && player.role !== 'admin'){
+              const email = document.getElementById('edit-email').value.trim();
+              const pass = document.getElementById('edit-pass').value;
+              
+              if(!email || !pass) {
+                alert('Email e senha são necessários para transformar em administrador');
+                return;
+              }
+              
+              if(pass.length < 6) {
+                alert('Senha deve ter pelo menos 6 caracteres');
+                return;
+              }
+              
+              // Cria novo usuário admin
+              const cred = await createUserWithEmailAndPassword(auth, email, pass);
+              const uid = cred.user.uid;
+              const newObj = { 
+                id: uid, 
+                name, 
+                phone: phone || null, 
+                role: 'admin', 
+                email: email,
+                createdAt: new Date().toISOString() 
+              };
+              
+              // Salva novo admin e remove o jogador antigo
+              await set(ref(db, '/players/' + uid), newObj);
+              await deletePlayerAPI(key); // Remove dados antigos
+              
+              alert('Jogador transformado em administrador com sucesso!');
+              closeModal();
+              return;
+            } 
+            // Atualização normal
+            else {
+              const updateData = { 
+                name, 
+                phone: phone || null, 
+                role 
+              };
+              
+              // Se é admin e tem email, atualiza email também
+              if(role === 'admin' && player.role === 'admin') {
+                const email = document.getElementById('edit-email').value.trim();
+                if(email) {
+                  updateData.email = email;
+                }
+              }
+              
+              await updatePlayerAPI(key, updateData);
+              alert('Jogador atualizado com sucesso!');
+              closeModal();
+            }
+          } catch(err){ 
+            alert('Erro ao atualizar jogador: '+(err.message||err)); 
+          }
+        });
+      }
       return;
     }
 
