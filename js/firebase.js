@@ -2,6 +2,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
 import { getDatabase } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js';
+import { getStorage } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js';
 
 // --- Cole aqui seu firebaseConfig (o que você já me passou) ---
 const firebaseConfig = {
@@ -18,4 +19,5 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getDatabase(app);
+export const storage = getStorage(app);
 export default app;

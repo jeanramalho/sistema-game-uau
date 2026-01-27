@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -16,6 +17,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 
 </head>
+
 <body>
 
   <nav class="p-3 bg-[--card-blue] border-b-4 border-black">
@@ -30,6 +32,7 @@
       <div class="flex items-center gap-4 nav-links hidden md:flex">
         <a href="index.html" class="nav-link">INÍCIO</a>
         <a href="index.html#/ranking" class="nav-link">RANKING</a>
+        <a href="index.html#/regulation" class="nav-link">REGULAMENTO</a>
       </div>
 
       <div class="ml-auto flex items-center gap-3">
@@ -39,9 +42,9 @@
 
         <button id="hamburgerBtn" class="hamburger-rect md:hidden ml-2" aria-label="Abrir menu">
           <svg width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="22" height="2" rx="1" fill="#000"/>
-            <rect y="7" width="22" height="2" rx="1" fill="#000"/>
-            <rect y="14" width="22" height="2" rx="1" fill="#000"/>
+            <rect width="22" height="2" rx="1" fill="#000" />
+            <rect y="7" width="22" height="2" rx="1" fill="#000" />
+            <rect y="14" width="22" height="2" rx="1" fill="#000" />
           </svg>
         </button>
       </div>
@@ -51,7 +54,8 @@
       <div id="mobileOverlay" class="absolute inset-0 bg-black/50"></div>
 
       <div class="absolute inset-0 flex items-start justify-end">
-        <div id="mobilePanel" class="w-full max-w-sm h-full bg-[--card-blue] shadow-lg transform translate-x-full transition-transform duration-200">
+        <div id="mobilePanel"
+          class="w-full max-w-sm h-full bg-[--card-blue] shadow-lg transform translate-x-full transition-transform duration-200">
           <div class="mobile-menu-rect p-4 h-full flex flex-col justify-between">
             <div>
               <div class="mb-4">
@@ -63,6 +67,7 @@
               <nav class="space-y-3">
                 <a href="index.html#/" class="block pixel-box p-3">INÍCIO</a>
                 <a href="index.html#/ranking" class="block pixel-box p-3">RANKING</a>
+                <a href="index.html#/regulation" class="block pixel-box p-3">REGULAMENTO</a>
                 <a href="admin.html" class="block pixel-box p-3">ÁREA ADMIN</a>
               </nav>
             </div>
@@ -90,4 +95,5 @@
 
   <script src="js/header.js" defer></script>
 </body>
+
 </html>

@@ -2,6 +2,8 @@
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
 import { ref, onValue, set, push, update, remove, get } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js';
+import { ref as sRef, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js';
+import { storage } from './firebase.js';
 import { formatBR } from './common.js';
 import { saveElementAsImage } from './print.js';
 import {
@@ -765,6 +767,23 @@ function settingsHtml() {
         </div>
       </div>
       
+      </div>
+      
+      <!-- Regulamento -->
+      <div class="pixel-box p-4">
+        <h3>REGULAMENTO DO GAME</h3>
+        <p class="text-sm mt-1">Gerencie o PDF do regulamento público</p>
+        
+        <div id="regulation-admin-info" class="mt-4 p-3 bg-gray-50 border-2 border-black rounded flex flex-col gap-2">
+          <div id="regulation-status" class="text-sm italic">Verificando...</div>
+          <div class="flex gap-2">
+            <button id="btn-upload-reg" class="pixel-btn flex-1">SUBIR PDF</button>
+            <button id="btn-del-reg" class="pixel-btn flex-1 bg-red-100 border-red-500 text-red-800 hover:bg-red-200 hidden">EXCLUIR</button>
+          </div>
+          <input type="file" id="input-file-reg" accept="application/pdf" class="hidden" />
+        </div>
+      </div>
+
       <!-- Administração -->
       <div class="pixel-box p-4">
         <h3>ADMINISTRAÇÃO</h3>
@@ -1079,6 +1098,86 @@ function attachModalHandlers(type, payload) {
 
     if (type === 'settings') {
       document.getElementById('close-settings').addEventListener('click', closeModal);
+
+      // --- Início Logica Regulamento ---
+      const regStatus = document.getElementById('regulation-status');
+      const btnUpload = document.getElementById('btn-upload-reg');
+      const btnDel = document.getElementById('btn-del-reg');
+      const inputFile = document.getElementById('input-file-reg');
+
+      // 1. Mostrar status inicial
+      onValue(ref(db, '/meta/regulationFilename'), (snap) => {
+        const fname = snap.val();
+        if (fname) {
+          regStatus.textContent = `Arquivo: ${fname}`;
+          btnDel.classList.remove('hidden');
+        } else {
+          regStatus.textContent = 'Nenhum regulamento cadastrado.';
+          btnDel.classList.add('hidden');
+        }
+      }, { onlyOnce: true });
+
+      btnUpload.addEventListener('click', () => inputFile.click());
+
+      inputFile.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.type !== 'application/pdf') return alert('Por favor, selecione um arquivo PDF.');
+
+        btnUpload.disabled = true;
+        btnUpload.textContent = 'SUBINDO...';
+        regStatus.textContent = 'Fazendo upload...';
+
+        try {
+          const storageRef = sRef(storage, 'regulamento/game-uau-regulamento.pdf');
+          await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(storageRef);
+
+          await update(ref(db, '/meta'), {
+            regulationUrl: url,
+            regulationFilename: file.name
+          });
+
+          alert('Regulamento atualizado com sucesso!');
+          regStatus.textContent = `Arquivo: ${file.name}`;
+          btnDel.classList.remove('hidden');
+        } catch (err) {
+          console.error(err);
+          alert('Erro ao subir PDF: ' + (err.message || err));
+          regStatus.textContent = 'Erro no upload.';
+        } finally {
+          btnUpload.disabled = false;
+          btnUpload.textContent = 'SUBIR PDF';
+          inputFile.value = '';
+        }
+      });
+
+      btnDel.addEventListener('click', async () => {
+        if (!confirm('Deseja realmente excluir o regulamento atual?')) return;
+
+        btnDel.disabled = true;
+        regStatus.textContent = 'Excluindo...';
+
+        try {
+          const storageRef = sRef(storage, 'regulamento/game-uau-regulamento.pdf');
+          await deleteObject(storageRef).catch(e => console.warn('File might not exist in storage', e));
+
+          await update(ref(db, '/meta'), {
+            regulationUrl: null,
+            regulationFilename: null
+          });
+
+          alert('Regulamento excluído.');
+          regStatus.textContent = 'Nenhum regulamento cadastrado.';
+          btnDel.classList.add('hidden');
+        } catch (err) {
+          console.error(err);
+          alert('Erro ao excluir: ' + (err.message || err));
+        } finally {
+          btnDel.disabled = false;
+        }
+      });
+      // --- Fim Logica Regulamento ---
 
       // Handlers para exportação de frequência
       document.getElementById('export-frequency-excel').addEventListener('click', async () => {
