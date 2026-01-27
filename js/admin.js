@@ -4,14 +4,16 @@ import { onAuthStateChanged, createUserWithEmailAndPassword, signOut } from 'htt
 import { ref, onValue, set, push, update, remove, get } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js';
 import { formatBR } from './common.js';
 import { saveElementAsImage } from './print.js';
-import { 
-  ensureSheetJS, 
-  generateFrequencyReport, 
+import {
+  ensureSheetJS,
+  generateFrequencyReport,
   generateBimestreReport,
+  generateQuarterlyAttendanceReport,
+  generateStudies7PercentageReport,
   getAvailableYearsAndTrimester,
-  exportToExcel, 
-  exportToCSV, 
-  clearAllData 
+  exportToExcel,
+  exportToCSV,
+  clearAllData
 } from './reports.js';
 
 // Espera o primeiro onAuthStateChanged para evitar "Verificando autenticação..." preso
@@ -24,16 +26,16 @@ function waitForInitialAuthState() {
   });
 }
 
-function updateAuthBtn(user){
+function updateAuthBtn(user) {
   const authBtn = document.getElementById('authBtn');
-  if(!authBtn) return;
-  if(user){
+  if (!authBtn) return;
+  if (user) {
     authBtn.textContent = 'SAIR';
     authBtn.onclick = async () => {
       try {
         await signOut(auth);
         location.href = 'index.html';
-      } catch(err){
+      } catch (err) {
         console.error('logout err', err);
         alert('Erro ao sair: ' + (err.message || err));
       }
@@ -48,9 +50,9 @@ function updateAuthBtn(user){
 }
 
 // Boot
-(async function boot(){
+(async function boot() {
   const adminRoot = document.getElementById('admin-root');
-  if(!adminRoot){
+  if (!adminRoot) {
     console.error('adminRoot not found in DOM');
     return;
   }
@@ -58,12 +60,12 @@ function updateAuthBtn(user){
   let user = null;
   try {
     user = await waitForInitialAuthState();
-  } catch(err){
+  } catch (err) {
     console.error('Erro ao verificar estado auth inicial', err);
     user = null;
   }
   updateAuthBtn(user);
-  if(!user){
+  if (!user) {
     const next = encodeURIComponent('admin.html');
     window.location.href = `login.html?next=${next}`;
     return;
@@ -78,7 +80,7 @@ function updateAuthBtn(user){
 let state = { players: {}, games: {}, activeGameId: null };
 let unsubPlayers = null, unsubGames = null, unsubMeta = null;
 
-function initAdminPanel(){
+function initAdminPanel() {
   const adminRoot = document.getElementById('admin-root');
   adminRoot.innerHTML = `
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -128,7 +130,7 @@ function initAdminPanel(){
       </aside>
     </div>
   `;
-  if(!document.getElementById('modal-root')){
+  if (!document.getElementById('modal-root')) {
     const mr = document.createElement('div');
     mr.id = 'modal-root';
     document.body.appendChild(mr);
@@ -137,7 +139,7 @@ function initAdminPanel(){
 }
 
 /* Wiring */
-function wireAdmin(){
+function wireAdmin() {
   const cardRegister = document.getElementById('card-register-player');
   const cardCreateEnd = document.getElementById('card-create-end-game');
   const cardLaunchPoints = document.getElementById('card-launch-points');
@@ -146,22 +148,22 @@ function wireAdmin(){
   const cardSettings = document.getElementById('card-settings');
   const quickRegisterBtn = document.getElementById('quickRegisterBtn');
 
-  if(cardRegister) cardRegister.addEventListener('click', () => openModal('playerRegister'));
-  if(quickRegisterBtn) quickRegisterBtn.addEventListener('click', () => openModal('playerRegister'));
-  if(cardManagePlayers) cardManagePlayers.addEventListener('click', () => openModal('managePlayers'));
-  if(cardCreateEnd) cardCreateEnd.addEventListener('click', () => { if(state.activeGameId) openModal('endGame'); else openModal('createGame'); });
-  if(cardLaunchPoints) cardLaunchPoints.addEventListener('click', () => openModal('launchPoints'));
-  if(cardAnnualRanking) cardAnnualRanking.addEventListener('click', () => openModal('annualRanking'));
-  if(cardSettings) cardSettings.addEventListener('click', () => openModal('settings'));
+  if (cardRegister) cardRegister.addEventListener('click', () => openModal('playerRegister'));
+  if (quickRegisterBtn) quickRegisterBtn.addEventListener('click', () => openModal('playerRegister'));
+  if (cardManagePlayers) cardManagePlayers.addEventListener('click', () => openModal('managePlayers'));
+  if (cardCreateEnd) cardCreateEnd.addEventListener('click', () => { if (state.activeGameId) openModal('endGame'); else openModal('createGame'); });
+  if (cardLaunchPoints) cardLaunchPoints.addEventListener('click', () => openModal('launchPoints'));
+  if (cardAnnualRanking) cardAnnualRanking.addEventListener('click', () => openModal('annualRanking'));
+  if (cardSettings) cardSettings.addEventListener('click', () => openModal('settings'));
 
   unsubPlayers = onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('players read err', err); state.players = {}; renderAllAdmin(); });
   unsubGames = onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('games read err', err); state.games = {}; renderAllAdmin(); });
   unsubMeta = onValue(ref(db, '/meta/activeGameId'), snap => { state.activeGameId = snap.val(); renderAllAdmin(); }, err => { console.warn('meta read err', err); state.activeGameId = null; renderAllAdmin(); });
 
   const authBtn = document.getElementById('authBtn');
-  if(authBtn){
+  if (authBtn) {
     authBtn.onclick = async () => {
-      try { await signOut(auth); location.href = 'index.html'; } catch(err){ console.error(err); alert('Erro ao sair: ' + (err.message || err)); }
+      try { await signOut(auth); location.href = 'index.html'; } catch (err) { console.error(err); alert('Erro ao sair: ' + (err.message || err)); }
     };
   }
 
@@ -175,27 +177,27 @@ function wireAdmin(){
 
 function setupEventDelegation() {
   // Remove event listeners anteriores se existirem (tanto capture quanto bubble) para evitar duplicatas
-  if(window.adminClickHandler) {
+  if (window.adminClickHandler) {
     try {
       document.removeEventListener('click', window.adminClickHandler);
       document.removeEventListener('click', window.adminClickHandler, true);
-    } catch(e){}
+    } catch (e) { }
   }
-  
+
   // Event delegation para todos os botões do admin
   window.adminClickHandler = async (e) => {
-    if(!e.target) return;
+    if (!e.target) return;
 
     // UTIL: procura pelos elementos relevantes subindo a árvore com closest
     const saveBtn = e.target.closest && e.target.closest('.save-point-btn');
-    if(saveBtn){
+    if (saveBtn) {
       e.preventDefault();
       e.stopPropagation();
       const pid = saveBtn.dataset.pid;
       const iso = saveBtn.dataset.iso;
       const gid = state.activeGameId;
-      if(!pid){ return; }
-      if(!gid || !iso) return alert('Nenhum trimestre/sábado selecionado');
+      if (!pid) { return; }
+      if (!gid || !iso) return alert('Nenhum trimestre/sábado selecionado');
       const valEl = document.getElementById('pts-' + pid);
       const val = Number(valEl?.value || 0);
       try {
@@ -203,38 +205,38 @@ function setupEventDelegation() {
         await set(ref(db, `/games/${gid}/saturdays/${writeKey}/${pid}`), Number(val));
         await cleanupOldIsoKeys(gid, iso, pid, writeKey);
         alert('Pontos salvos');
-      } catch(err){
-        alert('Erro ao salvar ponto: '+ (err.message || err));
+      } catch (err) {
+        alert('Erro ao salvar ponto: ' + (err.message || err));
       }
       return;
     }
 
     // Botões de editar jogador (agora com closest para garantir captura)
     const editBtn = e.target.closest && e.target.closest('.btn-edit');
-    if(editBtn){
+    if (editBtn) {
       e.preventDefault();
       e.stopPropagation();
       const key = editBtn.dataset.key;
-      if(!key) return;
+      if (!key) return;
       openModal('editPlayer', key);
       return;
     }
-    
+
     // Botões de deletar jogador (closest)
     const delBtn = e.target.closest && e.target.closest('.btn-del');
-    if(delBtn){
+    if (delBtn) {
       e.preventDefault();
       e.stopPropagation();
       const key = delBtn.dataset.key;
-      if(!key) return;
-      
+      if (!key) return;
+
       const player = state.players[key];
       const playerName = player ? player.name : 'jogador';
-      
-      if(!confirm(`Tem certeza que deseja excluir o jogador "${playerName}"?\n\nEsta ação não pode ser desfeita e removerá todos os dados do jogador.`)) {
+
+      if (!confirm(`Tem certeza que deseja excluir o jogador "${playerName}"?\n\nEsta ação não pode ser desfeita e removerá todos os dados do jogador.`)) {
         return;
       }
-      
+
       try {
         await deletePlayerAPI(key);
         alert('Jogador excluído com sucesso!');
@@ -242,7 +244,7 @@ function setupEventDelegation() {
         // --- Atualização local imediata para refletir exclusão sem recarregar a página ---
         try {
           // Remove do estado local
-          if(state.players && state.players[key]) delete state.players[key];
+          if (state.players && state.players[key]) delete state.players[key];
 
           // Atualiza as contagens / estatísticas
           renderAllAdmin();
@@ -250,32 +252,32 @@ function setupEventDelegation() {
           // Remove a linha do jogador do DOM, se presente no modal managePlayers
           const btnInDOM = document.querySelector(`.btn-del[data-key="${key}"]`);
           const playerRow = btnInDOM ? btnInDOM.closest('.player-row') : null;
-          if(playerRow) playerRow.remove();
+          if (playerRow) playerRow.remove();
 
           // Se o modal GERENCIAR JOGADORES estiver aberto, re-renderiza o conteúdo do modal
-          if(currentModal && currentModal.type === 'managePlayers' && currentModal.center){
+          if (currentModal && currentModal.type === 'managePlayers' && currentModal.center) {
             currentModal.center.innerHTML = managePlayersHtml();
             // re-anexa handlers do modal managePlayers
             attachModalHandlers('managePlayers');
           }
 
           // Se o modal EDITAR estiver aberto para o jogador excluído, fecha o modal
-          if(currentModal && currentModal.type === 'editPlayer' && currentModal.payload === key){
+          if (currentModal && currentModal.type === 'editPlayer' && currentModal.payload === key) {
             closeModal();
           }
-        } catch(innerErr){
+        } catch (innerErr) {
           console.warn('Atualização UI local após exclusão falhou', innerErr);
           // fallback: força reload (caso algo inesperado aconteça)
-          setTimeout(()=> location.reload(), 700);
+          setTimeout(() => location.reload(), 700);
         }
 
-      } catch(err){ 
-        alert('Erro ao excluir jogador: '+(err.message||err)); 
+      } catch (err) {
+        alert('Erro ao excluir jogador: ' + (err.message || err));
       }
       return;
     }
   };
-  
+
   // Adiciona o event listener em modo de captura para que ele receba cliques
   // mesmo que o modal faça stopPropagation() no estágio de target/bubble.
   document.addEventListener('click', window.adminClickHandler, true);
@@ -285,8 +287,8 @@ function setupEventDelegation() {
    CRUD helpers
    ---------------------- */
 
-async function createPlayerAPI(data){
-  if(data.role === 'admin'){
+async function createPlayerAPI(data) {
+  if (data.role === 'admin') {
     const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
     const uid = cred.user.uid;
     const obj = { id: uid, name: data.name, phone: data.phone || null, role: 'admin', createdAt: new Date().toISOString() };
@@ -301,49 +303,49 @@ async function createPlayerAPI(data){
   }
 }
 
-async function updatePlayerAPI(key, patch){ await update(ref(db, '/players/' + key), patch); }
+async function updatePlayerAPI(key, patch) { await update(ref(db, '/players/' + key), patch); }
 
-async function deletePlayerAPI(key){
-  if(!key) {
+async function deletePlayerAPI(key) {
+  if (!key) {
     throw new Error('Chave do jogador não fornecida');
   }
-  
+
   try {
     // Remove o jogador da lista de jogadores
     await remove(ref(db, '/players/' + key));
-    
+
     // Busca todos os games para limpar dados relacionados
     const gSnap = await get(ref(db, '/games'));
     const gamesObj = gSnap.val() || {};
-    
+
     // Limpa dados do jogador em todos os games
-    for(const gid in gamesObj){
+    for (const gid in gamesObj) {
       const game = gamesObj[gid];
-      if(!game) continue;
-      
+      if (!game) continue;
+
       // Remove pontos dos sábados
-      if(game.saturdays){
+      if (game.saturdays) {
         const sats = game.saturdays;
-        for(const isoKey in sats){
-          if(sats[isoKey] && sats[isoKey][key]) {
+        for (const isoKey in sats) {
+          if (sats[isoKey] && sats[isoKey][key]) {
             await remove(ref(db, `/games/${gid}/saturdays/${isoKey}/${key}`));
           }
         }
       }
-      
+
       // Remove pontos totais do jogador no game
-      if(game.playersPoints && game.playersPoints[key]){
+      if (game.playersPoints && game.playersPoints[key]) {
         await remove(ref(db, `/games/${gid}/playersPoints/${key}`));
       }
     }
-  } catch(error) {
+  } catch (error) {
     throw error;
   }
 }
 
-async function createGameAPI({ startIso, endIso, trimester }){
+async function createGameAPI({ startIso, endIso, trimester }) {
   const activeSnap = await get(ref(db, '/meta/activeGameId'));
-  if(activeSnap.exists() && activeSnap.val()) throw new Error('Já existe um trimestre ativo.');
+  if (activeSnap.exists() && activeSnap.val()) throw new Error('Já existe um trimestre ativo.');
   const newRef = push(ref(db, '/games'));
   const gid = newRef.key;
   const game = { id: gid, year: new Date(startIso).getFullYear(), trimester: trimester || 1, startedAt: startIso, plannedEndAt: endIso, endedAt: null, playersPoints: {}, saturdays: {} };
@@ -352,9 +354,9 @@ async function createGameAPI({ startIso, endIso, trimester }){
   return game;
 }
 
-async function endGameAPI(gid){
-  if(!gid) gid = state.activeGameId;
-  if(!gid) throw new Error('Nenhum game ativo');
+async function endGameAPI(gid) {
+  if (!gid) gid = state.activeGameId;
+  if (!gid) throw new Error('Nenhum game ativo');
   await set(ref(db, '/games/' + gid + '/endedAt'), new Date().toISOString());
   await set(ref(db, '/meta/activeGameId'), null);
 }
@@ -363,52 +365,54 @@ async function endGameAPI(gid){
    Utilitários / Render
    ------------------------ */
 
-function getActiveGame(){
-  if(!state.activeGameId) return null;
+function getActiveGame() {
+  if (!state.activeGameId) return null;
   const g = state.games && state.games[state.activeGameId] ? state.games[state.activeGameId] : null;
-  if(!g) return null;
-  if(g.endedAt) return null;
+  if (!g) return null;
+  if (g.endedAt) return null;
   return g;
 }
 
 // Soma pontos de um game somando todas as saturdays (compatível com playersPoints legado)
-function computeGameTotals(g){
+function computeGameTotals(g) {
   const totals = {};
-  if(!g) return totals;
-  if(g.saturdays){
-    for(const isoKey in g.saturdays){
+  if (!g) return totals;
+  if (g.saturdays) {
+    for (const isoKey in g.saturdays) {
       const per = g.saturdays[isoKey] || {};
-      for(const pid in per){
-        totals[pid] = (totals[pid] || 0) + Number(per[pid] || 0);
+      for (const pid in per) {
+        const val = per[pid];
+        const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
+        totals[pid] = (totals[pid] || 0) + pts;
       }
     }
   }
-  if(Object.keys(totals).length === 0 && g.playersPoints){
-    for(const pid in g.playersPoints) totals[pid] = Number(g.playersPoints[pid] || 0);
+  if (Object.keys(totals).length === 0 && g.playersPoints) {
+    for (const pid in g.playersPoints) totals[pid] = Number(g.playersPoints[pid] || 0);
   }
   return totals;
 }
 
-function renderAllAdmin(){
+function renderAllAdmin() {
   const players = state.players || {};
   const active = getActiveGame();
 
   const playersCountEl = document.getElementById('playersCount');
-  if(playersCountEl) playersCountEl.textContent = (Object.keys(players).length || 0) + ' JOGADORES';
+  if (playersCountEl) playersCountEl.textContent = (Object.keys(players).length || 0) + ' JOGADORES';
 
   const activeTag = document.getElementById('activeTag');
   const createEndTitle = document.getElementById('createEndTitle');
-  if(active){
-    if(activeTag) activeTag.textContent = 'TRIMESTRE ATIVO';
-    if(createEndTitle) createEndTitle.textContent = 'ENCERRAR GAME';
+  if (active) {
+    if (activeTag) activeTag.textContent = 'TRIMESTRE ATIVO';
+    if (createEndTitle) createEndTitle.textContent = 'ENCERRAR GAME';
   } else {
-    if(activeTag) activeTag.textContent = 'TRIMESTRE INATIVO';
-    if(createEndTitle) createEndTitle.textContent = 'NOVO GAME UAU';
+    if (activeTag) activeTag.textContent = 'TRIMESTRE INATIVO';
+    if (createEndTitle) createEndTitle.textContent = 'NOVO GAME UAU';
   }
 
   const nextTag = document.getElementById('nextSaturdayTag');
-  if(nextTag){
-    if(active){
+  if (nextTag) {
+    if (active) {
       const sats = generateSaturdaysBetween(active.startedAt, active.plannedEndAt);
       const next = sats.find(s => new Date(s) >= new Date()) || sats[0];
       nextTag.textContent = 'Próx. sábado: ' + (next ? formatBR(next) : '--');
@@ -419,57 +423,57 @@ function renderAllAdmin(){
   renderStats();
 }
 
-function renderRankingPreview(){
+function renderRankingPreview() {
   const el = document.getElementById('rankingPreview');
-  if(!el) return;
+  if (!el) return;
   el.innerHTML = '';
   const active = getActiveGame();
-  if(!active){
+  if (!active) {
     el.innerHTML = '<div class="pixel-box p-4">Nenhum game UAU em andamento no momento.</div>';
-    const totalPlayers = document.getElementById('totalPlayers'); if(totalPlayers) totalPlayers.textContent = '0';
+    const totalPlayers = document.getElementById('totalPlayers'); if (totalPlayers) totalPlayers.textContent = '0';
     return;
   }
 
   const totals = computeGameTotals(active);
-  const arr = Object.entries(state.players).map(([key,p]) => ({ id:key, name:p.name, points: totals[key] || 0 }));
-  arr.sort((a,b)=> b.points - a.points);
-  arr.forEach((r,i)=>{
+  const arr = Object.entries(state.players).map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }));
+  arr.sort((a, b) => b.points - a.points);
+  arr.forEach((r, i) => {
     const div = document.createElement('div'); div.className = 'ranking-row pixel-box';
-    div.innerHTML = `<div>${i+1}º • ${escapeHtml(r.name)}</div><div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>`;
+    div.innerHTML = `<div>${i + 1}º • ${escapeHtml(r.name)}</div><div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>`;
     el.appendChild(div);
   });
-  const totalPlayers = document.getElementById('totalPlayers'); if(totalPlayers) totalPlayers.textContent = Object.keys(state.players).length || 0;
+  const totalPlayers = document.getElementById('totalPlayers'); if (totalPlayers) totalPlayers.textContent = Object.keys(state.players).length || 0;
 }
 
-function renderStats(){
+function renderStats() {
   const statMaxEl = document.getElementById('statMax');
   const statAvgEl = document.getElementById('statAvg');
   const statSábadosEl = document.getElementById('statSábados');
   const statNextEl = document.getElementById('statNextGame');
   const active = getActiveGame();
-  if(!active){
-    if(statMaxEl) statMaxEl.textContent='0'; if(statAvgEl) statAvgEl.textContent='0'; if(statSábadosEl) statSábadosEl.textContent='0'; if(statNextEl) statNextEl.textContent='--';
+  if (!active) {
+    if (statMaxEl) statMaxEl.textContent = '0'; if (statAvgEl) statAvgEl.textContent = '0'; if (statSábadosEl) statSábadosEl.textContent = '0'; if (statNextEl) statNextEl.textContent = '--';
     return;
   }
   const totals = computeGameTotals(active);
   const pts = Object.values(totals || {});
   const max = pts.length ? Math.max(...pts) : 0;
-  const avg = pts.length ? Math.round(pts.reduce((a,b)=>a+b,0)/pts.length) : 0;
-  if(statMaxEl) statMaxEl.textContent = max.toLocaleString('pt-BR');
-  if(statAvgEl) statAvgEl.textContent = avg.toLocaleString('pt-BR');
+  const avg = pts.length ? Math.round(pts.reduce((a, b) => a + b, 0) / pts.length) : 0;
+  if (statMaxEl) statMaxEl.textContent = max.toLocaleString('pt-BR');
+  if (statAvgEl) statAvgEl.textContent = avg.toLocaleString('pt-BR');
   const sats = generateSaturdaysBetween(active.startedAt, active.plannedEndAt);
-  if(statSábadosEl) statSábadosEl.textContent = (Object.keys(active.saturdays || {}).length || 0) + '/' + sats.length;
-  if(statNextEl) statNextEl.textContent = 'SÁBADO ' + (sats.length ? formatBR(sats.find(s=> new Date(s) >= new Date()) || sats[0]) : '--');
+  if (statSábadosEl) statSábadosEl.textContent = (Object.keys(active.saturdays || {}).length || 0) + '/' + sats.length;
+  if (statNextEl) statNextEl.textContent = 'SÁBADO ' + (sats.length ? formatBR(sats.find(s => new Date(s) >= new Date()) || sats[0]) : '--');
 }
 
 /* ------------------------
    Modal system (completo)
    ------------------------ */
 
-const modalRoot = document.getElementById('modal-root') || (function(){ const d = document.createElement('div'); d.id='modal-root'; document.body.appendChild(d); return d; })();
+const modalRoot = document.getElementById('modal-root') || (function () { const d = document.createElement('div'); d.id = 'modal-root'; document.body.appendChild(d); return d; })();
 let currentModal = null;
 
-function openModal(type, payload){
+function openModal(type, payload) {
   closeModal();
   document.body.style.overflow = 'hidden';
   const overlay = document.createElement('div'); overlay.className = 'modal-overlay'; overlay.id = 'modal-overlay'; overlay.addEventListener('click', closeModal);
@@ -478,35 +482,39 @@ function openModal(type, payload){
   modalRoot.appendChild(overlay);
   currentModal = { type, payload, overlay, center };
 
-  if(type === 'playerRegister') center.innerHTML = playerRegisterHtml();
-  else if(type === 'managePlayers') center.innerHTML = managePlayersHtml();
-  else if(type === 'editPlayer') center.innerHTML = editPlayerHtml(payload);
-  else if(type === 'createGame') center.innerHTML = createGameHtml();
-  else if(type === 'endGame') center.innerHTML = endGameHtml();
-  else if(type === 'launchPoints') center.innerHTML = launchPointsHtml();
-  else if(type === 'annualRanking') center.innerHTML = annualRankingHtml();
-  else if(type === 'settings') center.innerHTML = settingsHtml();
+  if (type === 'playerRegister') center.innerHTML = playerRegisterHtml();
+  else if (type === 'managePlayers') center.innerHTML = managePlayersHtml();
+  else if (type === 'editPlayer') center.innerHTML = editPlayerHtml(payload);
+  else if (type === 'createGame') center.innerHTML = createGameHtml();
+  else if (type === 'endGame') center.innerHTML = endGameHtml();
+  else if (type === 'launchPoints') center.innerHTML = launchPointsHtml();
+  else if (type === 'annualRanking') center.innerHTML = annualRankingHtml();
+  else if (type === 'settings') center.innerHTML = settingsHtml();
   else center.innerHTML = '<div>Tipo de modal desconhecido</div>';
 
   attachModalHandlers(type, payload);
 }
 
-function closeModal(){
+function closeModal() {
   const o = document.getElementById('modal-overlay');
-  if(o) o.remove();
+  if (o) o.remove();
   currentModal = null;
   document.body.style.overflow = '';
 }
 
 /* Modal HTML builders (mesma estrutura) */
 
-function playerRegisterHtml(){
+function playerRegisterHtml() {
   return `
     <h2>CADASTRAR JOGADOR / ADMIN</h2>
     <form id="form-player" class="mt-4">
       <label>Nome</label><input id="player-name" class="pixel-input" placeholder="Nome completo" required />
       <label>Telefone</label><input id="player-phone" class="pixel-input" placeholder="(11) 9xxxx-xxxx" />
       <label>Perfil</label><select id="player-role" class="pixel-input"><option value="player">Jogador</option><option value="admin">Administrador</option></select>
+      <div class="flex items-center gap-2 mb-2">
+        <input type="checkbox" id="player-is-member" class="pixel-checkbox" />
+        <label for="player-is-member" class="text-sm font-semibold mb-0 cursor-pointer">Membro da classe</label>
+      </div>
       <div id="admin-credentials" style="display:none">
         <label>Email</label><input id="player-email" class="pixel-input" placeholder="admin@exemplo.com" />
         <label>Senha</label><div class="admin-pass-row"><input id="player-pass" type="password" class="pixel-input" /><button id="toggle-pass" type="button" class="pixel-btn">Mostrar</button></div>
@@ -517,9 +525,9 @@ function playerRegisterHtml(){
   `;
 }
 
-function editPlayerHtml(key){
+function editPlayerHtml(key) {
   const p = state.players[key] || {};
-  if(!p || !p.name) {
+  if (!p || !p.name) {
     return `
       <h2>ERRO</h2>
       <div class="pixel-box p-4 text-center">
@@ -530,7 +538,7 @@ function editPlayerHtml(key){
       </div>
     `;
   }
-  
+
   return `
     <h2>EDITAR JOGADOR</h2>
     <div class="pixel-box p-4 mb-4">
@@ -540,20 +548,25 @@ function editPlayerHtml(key){
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-semibold mb-2">Nome Completo</label>
-          <input id="edit-name" class="pixel-input" value="${escapeHtml(p.name||'')}" placeholder="Nome completo do jogador" required />
+          <input id="edit-name" class="pixel-input" value="${escapeHtml(p.name || '')}" placeholder="Nome completo do jogador" required />
         </div>
         
         <div>
           <label class="block text-sm font-semibold mb-2">Telefone</label>
-          <input id="edit-phone" class="pixel-input" value="${escapeHtml(p.phone||'')}" placeholder="(11) 9xxxx-xxxx" />
+          <input id="edit-phone" class="pixel-input" value="${escapeHtml(p.phone || '')}" placeholder="(11) 9xxxx-xxxx" />
         </div>
         
         <div>
           <label class="block text-sm font-semibold mb-2">Perfil</label>
           <select id="edit-role" class="pixel-input">
-            <option value="player" ${p.role==='player'?'selected':''}>Jogador</option>
-            <option value="admin" ${p.role==='admin'?'selected':''}>Administrador</option>
+            <option value="player" ${p.role === 'player' ? 'selected' : ''}>Jogador</option>
+            <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Administrador</option>
           </select>
+        </div>
+        
+        <div class="flex items-center gap-2 mb-2">
+          <input type="checkbox" id="edit-is-member" class="pixel-checkbox" ${p.isMember ? 'checked' : ''} />
+          <label for="edit-is-member" class="text-sm font-semibold mb-0 cursor-pointer">Membro da classe</label>
         </div>
         
         <div id="edit-admin-credentials" style="display:none">
@@ -562,7 +575,7 @@ function editPlayerHtml(key){
             <div class="space-y-3">
               <div>
                 <label class="block text-sm font-semibold mb-2">Email</label>
-                <input id="edit-email" class="pixel-input" value="${escapeHtml(p.email||'')}" placeholder="admin@exemplo.com" />
+                <input id="edit-email" class="pixel-input" value="${escapeHtml(p.email || '')}" placeholder="admin@exemplo.com" />
               </div>
               <div>
                 <label class="block text-sm font-semibold mb-2">Nova Senha</label>
@@ -590,21 +603,24 @@ function editPlayerHtml(key){
   `;
 }
 
-function managePlayersHtml(){
+function managePlayersHtml() {
   const players = state.players || {};
   const playersCount = Object.keys(players).length;
-  
-  const rows = Object.entries(players).map(([k,p]) => {
+
+  const rows = Object.entries(players).map(([k, p]) => {
     const roleText = p.role === 'admin' ? 'Administrador' : 'Jogador';
     const phoneText = p.phone ? ` • ${p.phone}` : '';
-    
+
     return `
-      <div class="player-row pixel-box p-4 mb-3" data-name="${(p.name||'').toLowerCase()}">
+      <div class="player-row pixel-box p-4 mb-3" data-name="${(p.name || '').toLowerCase()}">
         <div class="flex flex-col gap-3">
           <div class="flex-1">
             <div class="font-semibold text-lg">${escapeHtml(p.name)}</div>
             <div class="text-sm text-gray-600 mt-1">
               <span class="tag text-xs">${roleText}</span>
+              <span class="tag text-xs ${p.isMember ? 'bg-green-100 border-green-500 text-green-800' : 'bg-orange-100 border-orange-500 text-orange-800'}">
+                ${p.isMember ? 'Membro' : 'Visita'}
+              </span>
               ${phoneText ? `<span class="text-xs ml-2">${escapeHtml(p.phone)}</span>` : ''}
             </div>
           </div>
@@ -642,7 +658,7 @@ function managePlayersHtml(){
   `;
 }
 
-function createGameHtml(){
+function createGameHtml() {
   return `
     <h2>NOVO GAME UAU</h2>
     <form id="form-create-game" class="mt-4">
@@ -654,28 +670,28 @@ function createGameHtml(){
   `;
 }
 
-function endGameHtml(){
+function endGameHtml() {
   return `<h2>ENCERRAR TRIMESTRE</h2><p>Deseja encerrar o trimestre em andamento?</p><div class="flex gap-3 mt-4"><button id="confirm-end" class="pixel-btn">SIM, ENCERRAR</button><button id="cancel-end" class="pixel-btn">CANCELAR</button></div>`;
 }
 
-function launchPointsHtml(){
+function launchPointsHtml() {
   const active = getActiveGame();
-  if(!active) return `<h2>LANÇAR PONTOS</h2><div class="mt-4 pixel-box p-4">Nenhum game UAU em andamento no momento.</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
+  if (!active) return `<h2>LANÇAR PONTOS</h2><div class="mt-4 pixel-box p-4">Nenhum game UAU em andamento no momento.</div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
   const sats = generateSaturdaysBetween(active.startedAt, active.plannedEndAt);
   const satsHtml = sats.map(s => `<button class="pixel-btn sat-btn" data-iso="${s}" style="margin:4px">${formatBR(s)}</button>`).join('');
   return `<h2>LANÇAR PONTOS</h2><div class="mt-2">Escolha o sábado:</div><div class="mt-3">${satsHtml}</div><div class="mt-4">Pesquisar jogador:</div><input id="points-search" class="pixel-input" placeholder="Digite para filtrar" /><div id="points-table-area" class="mt-4"></div><div class="mt-4"><button id="close-launch" class="pixel-btn">FECHAR</button></div>`;
 }
 
-function annualRankingHtml(){
+function annualRankingHtml() {
   const arr = computeAnnualRanking(new Date().getFullYear());
   const players = state.players || {};
-  const rows = arr.map((r,i) => `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i+1}. ${escapeHtml(players[r.id]?players[r.id].name:'Desconhecido')} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('') || '<div>Nenhum registro</div>';
+  const rows = arr.map((r, i) => `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i + 1}. ${escapeHtml(players[r.id] ? players[r.id].name : 'Desconhecido')} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('') || '<div>Nenhum registro</div>';
   return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
 }
 
-function settingsHtml(){
+function settingsHtml() {
   const available = getAvailableYearsAndTrimester(state.games || {});
-  
+
   return `
     <h2>CONFIGURAÇÕES DO SISTEMA</h2>
     <p class="mt-2">Gerenciar relatórios e dados do sistema.</p>
@@ -726,6 +742,26 @@ function settingsHtml(){
               <button id="export-bimestre-csv" class="pixel-btn flex-1">CSV</button>
             </div>
           </div>
+
+          <!-- Relatório de Presença Trimestral -->
+          <div class="flex flex-col gap-2">
+            <h4 class="text-sm">Presença Trimestral (P / P7)</h4>
+            <p class="text-xs">Matriz de presença para o trimestre selecionado</p>
+            <div class="flex gap-2">
+              <button id="export-attendance-excel" class="pixel-btn flex-1">EXCEL</button>
+              <button id="export-attendance-csv" class="pixel-btn flex-1">CSV</button>
+            </div>
+          </div>
+
+          <!-- Relatório de Estatísticas Estudou 7 -->
+          <div class="flex flex-col gap-2">
+            <h4 class="text-sm">Estatísticas Estudou 7</h4>
+            <p class="text-xs">Porcentagem de jogadores que estudaram 7 (filtros aplicáveis)</p>
+            <div class="flex gap-2">
+              <button id="export-stats7-excel" class="pixel-btn flex-1">EXCEL</button>
+              <button id="export-stats7-csv" class="pixel-btn flex-1">CSV</button>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -756,9 +792,9 @@ function settingsHtml(){
 }
 
 /* Attach modal handlers */
-function attachModalHandlers(type, payload){
+function attachModalHandlers(type, payload) {
   try {
-    if(type === 'playerRegister'){
+    if (type === 'playerRegister') {
       const roleSel = document.getElementById('player-role');
       roleSel.addEventListener('change', e => document.getElementById('admin-credentials').style.display = e.target.value === 'admin' ? 'block' : 'none');
       document.getElementById('toggle-pass')?.addEventListener('click', () => {
@@ -771,38 +807,39 @@ function attachModalHandlers(type, payload){
         const name = document.getElementById('player-name').value.trim();
         const phone = document.getElementById('player-phone').value.trim();
         const role = document.getElementById('player-role').value;
-        if(!name) return alert('Nome obrigatório');
+        const isMember = document.getElementById('player-is-member').checked;
+        if (!name) return alert('Nome obrigatório');
         try {
-          if(role === 'admin'){
+          if (role === 'admin') {
             const email = document.getElementById('player-email').value.trim();
             const pass = document.getElementById('player-pass').value;
             const pass2 = document.getElementById('player-pass2').value;
-            if(!email || !pass) return alert('Email e senha obrigatórios para admin');
-            if(pass !== pass2) return alert('Senhas não conferem');
-            await createPlayerAPI({ name, phone, role:'admin', email, password: pass });
+            if (!email || !pass) return alert('Email e senha obrigatórios para admin');
+            if (pass !== pass2) return alert('Senhas não conferem');
+            await createPlayerAPI({ name, phone, role: 'admin', email, password: pass, isMember });
             alert('Administrador criado');
             closeModal();
           } else {
-            await createPlayerAPI({ name, phone, role:'player' });
+            await createPlayerAPI({ name, phone, role: 'player', isMember });
             alert('Jogador criado');
             closeModal();
           }
-        } catch(err){ console.error(err); alert('Erro criar jogador: '+(err.message||err)); }
+        } catch (err) { console.error(err); alert('Erro criar jogador: ' + (err.message || err)); }
       });
 
       document.getElementById('cancel-player').addEventListener('click', closeModal);
       return;
     }
 
-    if(type === 'managePlayers'){
+    if (type === 'managePlayers') {
       // Configuração da busca
       const search = document.getElementById('manage-search');
-      if(search) {
+      if (search) {
         search.addEventListener('input', e => {
           const query = e.target.value.toLowerCase().trim();
           const playerRows = document.querySelectorAll('.player-row');
-          
-          if(query === '') {
+
+          if (query === '') {
             playerRows.forEach(row => {
               row.style.display = '';
             });
@@ -815,212 +852,215 @@ function attachModalHandlers(type, payload){
           }
         });
       }
-      
+
       // Botão fechar
       const closeBtn = document.getElementById('close-manage');
-      if(closeBtn) {
+      if (closeBtn) {
         closeBtn.addEventListener('click', closeModal);
       }
-      
+
       return;
     }
 
-    if(type === 'editPlayer'){
+    if (type === 'editPlayer') {
       const key = payload;
       const player = state.players[key];
-      
-      if(!player) {
+
+      if (!player) {
         return;
       }
-      
+
       // Configuração do seletor de perfil
       const roleSel = document.getElementById('edit-role');
-      if(roleSel) {
+      if (roleSel) {
         roleSel.addEventListener('change', e => {
           const adminCreds = document.getElementById('edit-admin-credentials');
-          if(adminCreds) {
+          if (adminCreds) {
             adminCreds.style.display = e.target.value === 'admin' ? 'block' : 'none';
           }
         });
       }
-      
+
       // Botão cancelar
       const cancelBtn = document.getElementById('cancel-edit');
-      if(cancelBtn) {
+      if (cancelBtn) {
         cancelBtn.addEventListener('click', closeModal);
       }
-      
+
       // Botão deletar jogador (no modal de edição)
       const delBtn = document.getElementById('del-player');
-      if(delBtn) {
+      if (delBtn) {
         delBtn.addEventListener('click', async () => {
           const playerName = player.name || 'jogador';
-          if(!confirm(`Tem certeza que deseja excluir o jogador "${playerName}"?\n\nEsta ação não pode ser desfeita e removerá todos os dados do jogador.`)) {
+          if (!confirm(`Tem certeza que deseja excluir o jogador "${playerName}"?\n\nEsta ação não pode ser desfeita e removerá todos os dados do jogador.`)) {
             return;
           }
-          
+
           try {
             await deletePlayerAPI(key);
             alert('Jogador excluído com sucesso!');
 
             // Atualiza UI local imediatamente (sem precisar recarregar)
             try {
-              if(state.players && state.players[key]) delete state.players[key];
+              if (state.players && state.players[key]) delete state.players[key];
               renderAllAdmin();
 
               // Se o modal GERENCIAR JOGADORES estiver aberto, re-renderiza o conteúdo do modal
-              if(currentModal && currentModal.type === 'managePlayers' && currentModal.center){
+              if (currentModal && currentModal.type === 'managePlayers' && currentModal.center) {
                 currentModal.center.innerHTML = managePlayersHtml();
                 attachModalHandlers('managePlayers');
               }
 
               // Fechar o modal de edição (já excluído)
               closeModal();
-            } catch(innerErr){
+            } catch (innerErr) {
               console.warn('Erro ao atualizar UI local após exclusão no modal edit:', innerErr);
-              setTimeout(()=> location.reload(), 700);
+              setTimeout(() => location.reload(), 700);
             }
 
-          } catch(err){ 
-            alert('Erro ao excluir jogador: '+(err.message||err)); 
+          } catch (err) {
+            alert('Erro ao excluir jogador: ' + (err.message || err));
           }
         });
       }
 
       // Formulário de edição
       const form = document.getElementById('form-edit-player');
-      if(form) {
+      if (form) {
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
-          
+
           const name = document.getElementById('edit-name').value.trim();
           const phone = document.getElementById('edit-phone').value.trim();
           const role = document.getElementById('edit-role').value;
-          
+          const isMember = document.getElementById('edit-is-member').checked;
+
           // Validações
-          if(!name) {
+          if (!name) {
             alert('Nome é obrigatório');
             return;
           }
-          
-          if(name.length < 2) {
+
+          if (name.length < 2) {
             alert('Nome deve ter pelo menos 2 caracteres');
             return;
           }
-          
+
           try {
             // Se está transformando em admin
-            if(role === 'admin' && player.role !== 'admin'){
+            if (role === 'admin' && player.role !== 'admin') {
               const email = document.getElementById('edit-email').value.trim();
               const pass = document.getElementById('edit-pass').value;
-              
-              if(!email || !pass) {
+
+              if (!email || !pass) {
                 alert('Email e senha são necessários para transformar em administrador');
                 return;
               }
-              
-              if(pass.length < 6) {
+
+              if (pass.length < 6) {
                 alert('Senha deve ter pelo menos 6 caracteres');
                 return;
               }
-              
+
               // Cria novo usuário admin
               const cred = await createUserWithEmailAndPassword(auth, email, pass);
               const uid = cred.user.uid;
-              const newObj = { 
-                id: uid, 
-                name, 
-                phone: phone || null, 
-                role: 'admin', 
+              const newObj = {
+                id: uid,
+                name,
+                phone: phone || null,
+                role: 'admin',
                 email: email,
-                createdAt: new Date().toISOString() 
+                isMember: isMember,
+                createdAt: new Date().toISOString()
               };
-              
+
               // Salva novo admin e remove o jogador antigo
               await set(ref(db, '/players/' + uid), newObj);
               await deletePlayerAPI(key); // Remove dados antigos
-              
+
               alert('Jogador transformado em administrador com sucesso!');
               closeModal();
               return;
-            } 
+            }
             // Atualização normal
             else {
-              const updateData = { 
-                name, 
-                phone: phone || null, 
-                role 
+              const updateData = {
+                name,
+                phone: phone || null,
+                role,
+                isMember
               };
-              
+
               // Se é admin e tem email, atualiza email também
-              if(role === 'admin' && player.role === 'admin') {
+              if (role === 'admin' && player.role === 'admin') {
                 const email = document.getElementById('edit-email').value.trim();
-                if(email) {
+                if (email) {
                   updateData.email = email;
                 }
               }
-              
+
               await updatePlayerAPI(key, updateData);
               alert('Jogador atualizado com sucesso!');
 
               // Atualiza estado local para refletir mudança imediata
-              if(state.players && state.players[key]) {
+              if (state.players && state.players[key]) {
                 state.players[key] = { ...state.players[key], ...updateData };
               }
               renderAllAdmin();
 
               // Se modal managePlayers estiver aberto, re-renderiza sua lista (mantendo pesquisa)
-              if(currentModal && currentModal.type === 'managePlayers' && currentModal.center){
+              if (currentModal && currentModal.type === 'managePlayers' && currentModal.center) {
                 currentModal.center.innerHTML = managePlayersHtml();
                 attachModalHandlers('managePlayers');
               }
 
               closeModal();
             }
-          } catch(err){ 
-            alert('Erro ao atualizar jogador: '+(err.message||err)); 
+          } catch (err) {
+            alert('Erro ao atualizar jogador: ' + (err.message || err));
           }
         });
       }
       return;
     }
 
-    if(type === 'createGame'){
+    if (type === 'createGame') {
       document.getElementById('cancel-create').addEventListener('click', closeModal);
       document.getElementById('form-create-game').addEventListener('submit', async (e) => {
         e.preventDefault();
         const start = document.getElementById('create-start').value;
         const end = document.getElementById('create-end').value;
         const trimester = Number(document.getElementById('create-trim').value || 1);
-        if(!start || !end) return alert('Preencha data de início e término');
+        if (!start || !end) return alert('Preencha data de início e término');
         const startIso = new Date(start + 'T00:00:00').toISOString();
         const endIso = new Date(end + 'T23:59:59').toISOString();
-        if(new Date(startIso) > new Date(endIso)) return alert('Data de término deve ser posterior à data de início');
+        if (new Date(startIso) > new Date(endIso)) return alert('Data de término deve ser posterior à data de início');
         try {
           await createGameAPI({ startIso, endIso, trimester });
           alert('Game criado e ativado');
           closeModal();
-        } catch(err){ console.error(err); alert('Erro criar game: '+(err.message||err)); }
+        } catch (err) { console.error(err); alert('Erro criar game: ' + (err.message || err)); }
       });
       return;
     }
 
-    if(type === 'endGame'){
+    if (type === 'endGame') {
       document.getElementById('cancel-end').addEventListener('click', closeModal);
       document.getElementById('confirm-end').addEventListener('click', async () => {
-        try { await endGameAPI(state.activeGameId); alert('Trimestre encerrado'); closeModal(); } catch(err){ console.error(err); alert('Erro: '+(err.message||err)); }
+        try { await endGameAPI(state.activeGameId); alert('Trimestre encerrado'); closeModal(); } catch (err) { console.error(err); alert('Erro: ' + (err.message || err)); }
       });
       return;
     }
 
-    if(type === 'launchPoints'){
+    if (type === 'launchPoints') {
       document.querySelectorAll('.sat-btn').forEach(btn => btn.addEventListener('click', (e) => {
         const iso = e.currentTarget.dataset.iso;
         renderPointsTableForSaturday(iso);
       }));
 
       const search = document.getElementById('points-search');
-      if(search) search.addEventListener('input', e => {
+      if (search) search.addEventListener('input', e => {
         const q = e.target.value.toLowerCase();
         document.querySelectorAll('.pts-row').forEach(row => {
           const name = row.dataset.name || '';
@@ -1032,14 +1072,14 @@ function attachModalHandlers(type, payload){
       return;
     }
 
-    if(type === 'annualRanking'){
+    if (type === 'annualRanking') {
       document.getElementById('close-annual').addEventListener('click', closeModal);
       return;
     }
 
-    if(type === 'settings'){
+    if (type === 'settings') {
       document.getElementById('close-settings').addEventListener('click', closeModal);
-      
+
       // Handlers para exportação de frequência
       document.getElementById('export-frequency-excel').addEventListener('click', async () => {
         try {
@@ -1049,15 +1089,15 @@ function attachModalHandlers(type, payload){
             alert('Nenhum dado de frequência encontrado');
             return;
           }
-          const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0,10)}`;
+          const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0, 10)}`;
           exportToExcel(reportData, fileName, 'Frequência');
           alert('✅ Relatório de frequência exportado em Excel');
-        } catch(err) {
+        } catch (err) {
           console.error('Erro ao exportar:', err);
           alert('❌ Erro ao exportar relatório: ' + (err.message || err));
         }
       });
-      
+
       document.getElementById('export-frequency-csv').addEventListener('click', async () => {
         try {
           const reportData = generateFrequencyReport(state.games || {}, state.players || {});
@@ -1065,75 +1105,130 @@ function attachModalHandlers(type, payload){
             alert('Nenhum dado de frequência encontrado');
             return;
           }
-          const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0,10)}`;
+          const fileName = `relatorio-frequencia-${new Date().toISOString().slice(0, 10)}`;
           exportToCSV(reportData, fileName);
           alert('✅ Relatório de frequência exportado em CSV');
-        } catch(err) {
+        } catch (err) {
           console.error('Erro ao exportar:', err);
           alert('❌ Erro ao exportar relatório: ' + (err.message || err));
         }
       });
-      
+
       // Função auxiliar para obter filtros do relatório bimestre
       const getFilters = () => {
         const yearSelect = document.getElementById('filter-year');
         const bimestreSelect = document.getElementById('filter-bimestre');
-        
+
         const year = yearSelect.value ? Number(yearSelect.value) : null;
         const bimestre = bimestreSelect.value ? Number(bimestreSelect.value) : null;
-        
+
         return { year, bimestre };
       };
-      
+
       document.getElementById('export-bimestre-excel').addEventListener('click', async () => {
         try {
           await ensureSheetJS();
           const filters = getFilters();
           const reportData = generateBimestreReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
-          
+
           if (reportData.length === 0) {
             alert('Nenhum dado encontrado para os filtros selecionados');
             return;
           }
-          
-          const filterText = filters.year || filters.bimestre ? 
+
+          const filterText = filters.year || filters.bimestre ?
             `-filtrado${filters.year ? `-ano${filters.year}` : ''}${filters.bimestre ? `-bim${filters.bimestre}` : ''}` : '';
-          const fileName = `relatorio-bimestre${filterText}-${new Date().toISOString().slice(0,10)}`;
-          
+          const fileName = `relatorio-bimestre${filterText}-${new Date().toISOString().slice(0, 10)}`;
+
           exportToExcel(reportData, fileName, 'Bimestre');
           alert('✅ Relatório por bimestre exportado em Excel');
-        } catch(err) {
+        } catch (err) {
           console.error('Erro ao exportar:', err);
           alert('❌ Erro ao exportar relatório: ' + (err.message || err));
         }
       });
-      
+
       document.getElementById('export-bimestre-csv').addEventListener('click', async () => {
         try {
           const filters = getFilters();
           const reportData = generateBimestreReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
-          
+
           if (reportData.length === 0) {
             alert('Nenhum dado encontrado para os filtros selecionados');
             return;
           }
-          
-          const filterText = filters.year || filters.bimestre ? 
+
+          const filterText = filters.year || filters.bimestre ?
             `-filtrado${filters.year ? `-ano${filters.year}` : ''}${filters.bimestre ? `-bim${filters.bimestre}` : ''}` : '';
-          const fileName = `relatorio-bimestre${filterText}-${new Date().toISOString().slice(0,10)}`;
-          
+          const fileName = `relatorio-bimestre${filterText}-${new Date().toISOString().slice(0, 10)}`;
+
           exportToCSV(reportData, fileName);
           alert('✅ Relatório por bimestre exportado em CSV');
-        } catch(err) {
+        } catch (err) {
           console.error('Erro ao exportar:', err);
           alert('❌ Erro ao exportar relatório: ' + (err.message || err));
         }
       });
-      
+
+      // Handlers para relatório de presença trimestral
+      document.getElementById('export-attendance-excel').addEventListener('click', async () => {
+        try {
+          const filters = getFilters();
+          if (!filters.year || !filters.bimestre) return alert('Selecione Ano e Bimestre para este relatório');
+          await ensureSheetJS();
+          const reportData = generateQuarterlyAttendanceReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          if (reportData.length === 0) return alert('Nenhum dado encontrado para o trimestre selecionado');
+          const fileName = `presenca-trimestral-${filters.year}-T${filters.bimestre}`;
+          exportToExcel(reportData, fileName, 'Presença');
+          alert('✅ Relatório de presença exportado');
+        } catch (err) {
+          console.error(err); alert('Erro: ' + err.message);
+        }
+      });
+
+      document.getElementById('export-attendance-csv').addEventListener('click', async () => {
+        try {
+          const filters = getFilters();
+          if (!filters.year || !filters.bimestre) return alert('Selecione Ano e Bimestre para este relatório');
+          const reportData = generateQuarterlyAttendanceReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          if (reportData.length === 0) return alert('Nenhum dado encontrado');
+          exportToCSV(reportData, `presenca-trimestral-${filters.year}-T${filters.bimestre}`);
+          alert('✅ Relatório exportado');
+        } catch (err) {
+          console.error(err); alert('Erro: ' + err.message);
+        }
+      });
+
+      // Handlers para relatório de estatísticas Estudou 7
+      document.getElementById('export-stats7-excel').addEventListener('click', async () => {
+        try {
+          const filters = getFilters();
+          await ensureSheetJS();
+          const reportData = generateStudies7PercentageReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          if (reportData.length === 0) return alert('Nenhum dado encontrado');
+          exportToExcel(reportData, 'estatisticas-estudou7', 'Estatísticas');
+          alert('✅ Relatório de estatísticas exportado');
+        } catch (err) {
+          console.error(err); alert('Erro: ' + err.message);
+        }
+      });
+
+      document.getElementById('export-stats7-csv').addEventListener('click', async () => {
+        try {
+          const filters = getFilters();
+          const reportData = generateStudies7PercentageReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          if (reportData.length === 0) return alert('Nenhum dado encontrado');
+          exportToCSV(reportData, 'estatisticas-estudou7');
+          alert('✅ Relatório exportado');
+        } catch (err) {
+          console.error(err); alert('Erro: ' + err.message);
+        }
+      });
+
       // Handler para limpeza de dados
       document.getElementById('clear-all-data').addEventListener('click', async () => {
         const success = await clearAllData();
-        if(success) {
+        if (success) {
           // Fecha o modal após limpeza bem-sucedida
           setTimeout(() => {
             closeModal();
@@ -1142,10 +1237,10 @@ function attachModalHandlers(type, payload){
           }, 1000);
         }
       });
-      
+
       return;
     }
-  } catch(err){
+  } catch (err) {
     console.error('attachModalHandlers err', err);
   }
 }
@@ -1155,44 +1250,44 @@ function attachModalHandlers(type, payload){
    ------------------------ */
 
 // Chave segura para gravação: timestamp (milissegundos) — sem pontos nem caracteres proibidos
-function isoKeyWrite(iso){
+function isoKeyWrite(iso) {
   try {
     return String(new Date(iso).getTime());
-  } catch(e) {
+  } catch (e) {
     // fallback: use encoded but sanitized string (replace dots)
     return encodeURIComponent(String(iso)).replace(/\./g, '_');
   }
 }
 
 // Possíveis candidates para leitura (compatibilidade com dados antigos)
-function isoKeyCandidates(iso){
+function isoKeyCandidates(iso) {
   const cand = [];
   try {
     cand.push(String(new Date(iso).getTime())); // timestamp first (new canonical)
-  } catch(e){}
+  } catch (e) { }
   cand.push(encodeURIComponent(iso));    // older variant
   cand.push(iso);                        // raw iso (may contain dots)
-  cand.push(encodeURIComponent(iso).replace(/\./g,'_'));
-  cand.push(String(new Date(iso).toISOString()).replace(/\./g,'_'));
+  cand.push(encodeURIComponent(iso).replace(/\./g, '_'));
+  cand.push(String(new Date(iso).toISOString()).replace(/\./g, '_'));
   // remove duplicates
   return Array.from(new Set(cand));
 }
 
 // Remove entradas antigas (mesmo jogador e mesma data) quando gravamos na chave canonical
-async function cleanupOldIsoKeys(gid, iso, pid, canonicalKey){
+async function cleanupOldIsoKeys(gid, iso, pid, canonicalKey) {
   try {
     const cands = isoKeyCandidates(iso);
-    for(const k of cands){
-      if(k === canonicalKey) continue;
+    for (const k of cands) {
+      if (k === canonicalKey) continue;
       // remove the old node for this player if exists
       const pathRef = ref(db, `/games/${gid}/saturdays/${k}/${pid}`);
       // use remove only if exists: get then remove
       const snap = await get(pathRef);
-      if(snap.exists()){
+      if (snap.exists()) {
         await remove(pathRef);
       }
     }
-  } catch(err){
+  } catch (err) {
     console.warn('cleanupOldIsoKeys err', err);
   }
 }
@@ -1201,53 +1296,82 @@ async function cleanupOldIsoKeys(gid, iso, pid, canonicalKey){
    Points table render (pre-fill + attach handlers)
    ------------------------ */
 
-function renderPointsTableForSaturday(iso){
+function renderPointsTableForSaturday(iso) {
   const players = state.players || {};
-  const entries = Object.entries(players).sort((a,b) => (a[1].name||'').localeCompare(b[1].name||''));
+  const entries = Object.entries(players).sort((a, b) => (a[1].name || '').localeCompare(b[1].name || ''));
   const gid = state.activeGameId;
   const game = state.games && state.games[gid] ? state.games[gid] : null;
   const satsNode = (game && game.saturdays) ? game.saturdays : {};
 
-  const rows = entries.map(([key,p]) => {
+  const rows = entries.map(([key, p]) => {
     // try to find existing value using candidates
     let existing = '';
-    if(game && game.saturdays){
+    let studied7 = false;
+    if (game && game.saturdays) {
       const cands = isoKeyCandidates(iso);
-      for(const c of cands){
-        if(game.saturdays[c] && game.saturdays[c][key] !== undefined){
-          existing = Number(game.saturdays[c][key]);
+      for (const c of cands) {
+        if (game.saturdays[c] && game.saturdays[c][key] !== undefined) {
+          const val = game.saturdays[c][key];
+          if (typeof val === 'object' && val !== null) {
+            existing = val.points ?? '';
+            studied7 = !!val.studied7;
+          } else {
+            existing = Number(val);
+            studied7 = false;
+          }
           break;
         }
       }
     }
-    return `<div class="pts-row flex justify-between items-center py-2 border-b" data-name="${escapeHtml(p.name)}"><div style="flex:1;padding-right:12px">${escapeHtml(p.name)}</div><div style="display:flex;gap:8px;align-items:center;width:180px;justify-content:flex-end"><input id="pts-${key}" class="pixel-input" style="width:100px;padding:6px;text-align:right" type="number" placeholder="0" value="${existing}" /><button class="pixel-btn save-point-btn" data-pid="${key}" data-iso="${iso}">SALVAR</button></div></div>`;
+    return `
+      <div class="pts-row flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b gap-3" data-name="${escapeHtml(p.name)}">
+        <div style="flex:1;padding-right:12px">
+          <div class="font-semibold">${escapeHtml(p.name)}</div>
+          <div class="flex items-center gap-4 mt-1">
+            <div class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="std7-${key}" class="pixel-checkbox" ${studied7 ? 'checked' : ''} />
+              <label for="std7-${key}" class="text-xs font-semibold cursor-pointer">Estudou 7 vezes</label>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;width:100%; sm:width:180px;justify-content:flex-end">
+          <input id="pts-${key}" class="pixel-input" style="width:100px;padding:6px;text-align:right" type="number" placeholder="0" value="${existing}" />
+          <button class="pixel-btn save-point-btn" data-pid="${key}" data-iso="${iso}">SALVAR</button>
+        </div>
+      </div>`;
   }).join('');
 
   const area = document.getElementById('points-table-area');
-  if(area) area.innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
+  if (area) area.innerHTML = `<h3>Pontos para: ${formatBR(iso)}</h3><div>${rows}</div>`;
 
   // Attach direct listeners to each save button (garante pid correto)
   setTimeout(() => {
     const saveButtons = area ? area.querySelectorAll('.save-point-btn') : [];
     saveButtons.forEach(btn => {
-      if(btn.dataset._attached === '1') return;
+      if (btn.dataset._attached === '1') return;
       btn.dataset._attached = '1';
       btn.addEventListener('click', async (e) => {
         e.preventDefault();
         const pid = btn.dataset.pid;
         const isoLocal = btn.dataset.iso;
-        if(!pid) { console.error('PID undefined on direct handler'); return alert('ID do jogador inválido'); }
+        if (!pid) { console.error('PID undefined on direct handler'); return alert('ID do jogador inválido'); }
         const valEl = document.getElementById('pts-' + pid);
+        const std7El = document.getElementById('std7-' + pid);
         const val = Number(valEl?.value || 0);
+        const studied7 = !!std7El?.checked;
         const gidLocal = state.activeGameId;
-        if(!gidLocal || !isoLocal) return alert('Nenhum trimestre/sábado selecionado');
+        if (!gidLocal || !isoLocal) return alert('Nenhum trimestre/sábado selecionado');
         try {
           const writeKey = isoKeyWrite(isoLocal);
-          await set(ref(db, `/games/${gidLocal}/saturdays/${writeKey}/${pid}`), Number(val));
+          // Salva como objeto
+          await set(ref(db, `/games/${gidLocal}/saturdays/${writeKey}/${pid}`), {
+            points: Number(val),
+            studied7: studied7
+          });
           // cleanup old keys for same iso
           await cleanupOldIsoKeys(gidLocal, isoLocal, pid, writeKey);
           alert('Pontos salvos');
-        } catch(err){
+        } catch (err) {
           console.error('Erro ao salvar ponto', err);
           alert('Erro ao salvar ponto: ' + (err.message || err));
         }
@@ -1260,53 +1384,57 @@ function renderPointsTableForSaturday(iso){
    Annual ranking compute
    ------------------------ */
 
-function computeAnnualRanking(year){
+function computeAnnualRanking(year) {
   const scoreMap = {};
   const gamesObj = state.games || {};
-  for(const gid in gamesObj){
+  for (const gid in gamesObj) {
     const g = gamesObj[gid];
     const gy = new Date(g.startedAt).getFullYear();
-    if(gy !== year) continue;
-    if(g.saturdays){
-      for(const isoKey in g.saturdays){
+    if (gy !== year) continue;
+    if (g.saturdays) {
+      for (const isoKey in g.saturdays) {
         const per = g.saturdays[isoKey] || {};
-        for(const pid in per) scoreMap[pid] = (scoreMap[pid] || 0) + Number(per[pid] || 0);
+        for (const pid in per) {
+          const val = per[pid];
+          const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
+          scoreMap[pid] = (scoreMap[pid] || 0) + pts;
+        }
       }
-    } else if(g.playersPoints){
-      for(const pid in g.playersPoints) scoreMap[pid] = (scoreMap[pid] || 0) + Number(g.playersPoints[pid] || 0);
+    } else if (g.playersPoints) {
+      for (const pid in g.playersPoints) scoreMap[pid] = (scoreMap[pid] || 0) + Number(g.playersPoints[pid] || 0);
     }
   }
-  return Object.entries(scoreMap).map(([id, points]) => ({ id, points })).sort((a,b) => b.points - a.points);
+  return Object.entries(scoreMap).map(([id, points]) => ({ id, points })).sort((a, b) => b.points - a.points);
 }
 
 /* ------------------------
    Outros utilitários
    ------------------------ */
 
-function generateSaturdaysBetween(startIso, endIso){
+function generateSaturdaysBetween(startIso, endIso) {
   const start = startIso ? new Date(startIso) : new Date();
   const end = endIso ? new Date(endIso) : null;
   const s = new Date(start);
   const day = s.getDay();
   let delta = 6 - day;
-  if(delta < 0) delta += 7;
+  if (delta < 0) delta += 7;
   s.setDate(s.getDate() + delta);
   const arr = [];
-  while(true){
-    if(end && s > end) break;
+  while (true) {
+    if (end && s > end) break;
     arr.push(s.toISOString());
     s.setDate(s.getDate() + 7);
-    if(arr.length > 200) break; // safe-guard
+    if (arr.length > 200) break; // safe-guard
   }
   return arr;
 }
 
-function escapeHtml(str){
-  if(!str && str !== 0) return '';
-  return String(str).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  return String(str).replace(/[&<>"']/g, function (m) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]; });
 }
 
 /* ------------------------------
    Final safety: schedule initial render
    ------------------------------ */
-setTimeout(()=>{ renderAllAdmin(); }, 300);
+setTimeout(() => { renderAllAdmin(); }, 300);
