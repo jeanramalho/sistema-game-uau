@@ -1130,20 +1130,35 @@ function attachModalHandlers(type, payload) {
 
         try {
           const storageRef = sRef(storage, 'regulamento/game-uau-regulamento.pdf');
-          await uploadBytes(storageRef, file);
+
+          // Metadata for the file to help with some issues
+          const metadata = {
+            contentType: 'application/pdf',
+          };
+
+          const uploadTask = await uploadBytes(storageRef, file, metadata);
+          console.log('Upload successful', uploadTask);
+
           const url = await getDownloadURL(storageRef);
 
           await update(ref(db, '/meta'), {
             regulationUrl: url,
-            regulationFilename: file.name
+            regulationFilename: file.name,
+            updatedAt: new Date().toISOString()
           });
 
           alert('Regulamento atualizado com sucesso!');
           regStatus.textContent = `Arquivo: ${file.name}`;
           btnDel.classList.remove('hidden');
         } catch (err) {
-          console.error(err);
-          alert('Erro ao subir PDF: ' + (err.message || err));
+          console.error('Full upload error context:', err);
+          let errorMsg = err.message || err;
+          if (err.code === 'storage/unauthorized') {
+            errorMsg = 'Sem permissão para subir arquivos. Verifique as Regras do Firebase Storage.';
+          } else if (err.message && err.message.includes('CORS')) {
+            errorMsg = 'Erro de CORS. Por favor, aplique a configuração do cors.json no seu Firebase Console/CLI.';
+          }
+          alert('Erro ao subir PDF: ' + errorMsg);
           regStatus.textContent = 'Erro no upload.';
         } finally {
           btnUpload.disabled = false;
