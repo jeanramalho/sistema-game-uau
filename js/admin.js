@@ -772,15 +772,15 @@ function settingsHtml() {
       <!-- Regulamento -->
       <div class="pixel-box p-4">
         <h3>REGULAMENTO DO GAME</h3>
-        <p class="text-sm mt-1">Gerencie o PDF do regulamento público</p>
+        <p class="text-sm mt-1">Gerencie o regulamento público (PDF ou Markdown)</p>
         
         <div id="regulation-admin-info" class="mt-4 p-3 bg-gray-50 border-2 border-black rounded flex flex-col gap-2">
           <div id="regulation-status" class="text-sm italic">Verificando...</div>
           <div class="flex gap-2">
-            <button id="btn-upload-reg" class="pixel-btn flex-1">SUBIR PDF</button>
+            <button id="btn-upload-reg" class="pixel-btn flex-1">UPLOAD DO REGULAMENTO</button>
             <button id="btn-del-reg" class="pixel-btn flex-1 bg-red-100 border-red-500 text-red-800 hover:bg-red-200 hidden">EXCLUIR</button>
           </div>
-          <input type="file" id="input-file-reg" accept="application/pdf" class="hidden" />
+          <input type="file" id="input-file-reg" accept="application/pdf,.md" class="hidden" />
         </div>
       </div>
 
@@ -1122,18 +1122,23 @@ function attachModalHandlers(type, payload) {
       inputFile.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.type !== 'application/pdf') return alert('Por favor, selecione um arquivo PDF.');
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        const allowed = ['pdf', 'md'];
+        if (!allowed.includes(ext)) {
+          return alert('Formato de arquivo não permitido. Use PDF ou Markdown (.md).');
+        }
 
         btnUpload.disabled = true;
         btnUpload.textContent = 'SUBINDO...';
         regStatus.textContent = 'Fazendo upload...';
 
         try {
-          const storageRef = sRef(storage, 'regulamento/game-uau-regulamento.pdf');
+          const storageRef = sRef(storage, 'regulamento/game-uau-regulamento.' + ext);
 
           // Metadata for the file to help with some issues
           const metadata = {
-            contentType: 'application/pdf',
+            contentType: ext === 'pdf' ? 'application/pdf' : 'text/markdown',
           };
 
           const uploadTask = await uploadBytes(storageRef, file, metadata);
@@ -1162,7 +1167,7 @@ function attachModalHandlers(type, payload) {
           regStatus.textContent = 'Erro no upload.';
         } finally {
           btnUpload.disabled = false;
-          btnUpload.textContent = 'SUBIR PDF';
+          btnUpload.textContent = 'UPLOAD DO REGULAMENTO';
           inputFile.value = '';
         }
       });
@@ -1174,8 +1179,14 @@ function attachModalHandlers(type, payload) {
         regStatus.textContent = 'Excluindo...';
 
         try {
-          const storageRef = sRef(storage, 'regulamento/game-uau-regulamento.pdf');
-          await deleteObject(storageRef).catch(e => console.warn('File might not exist in storage', e));
+          // Tenta deletar ambos para garantir limpeza total (caso tenha trocado de formato)
+          const refPdf = sRef(storage, 'regulamento/game-uau-regulamento.pdf');
+          const refMd = sRef(storage, 'regulamento/game-uau-regulamento.md');
+
+          await Promise.allSettled([
+            deleteObject(refPdf),
+            deleteObject(refMd)
+          ]);
 
           await update(ref(db, '/meta'), {
             regulationUrl: null,

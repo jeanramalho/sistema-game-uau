@@ -74,19 +74,56 @@ async function renderRegulation() {
   const container = document.getElementById('regulationContainer');
   if (!container) return;
 
-  onValue(ref(db, '/meta/regulationUrl'), (snap) => {
-    const url = snap.val();
+  // Mostra loading
+  container.innerHTML = '<p class="text-gray-600">Carregando regulamento...</p>';
+
+  onValue(ref(db, '/meta'), async (snap) => {
+    const meta = snap.val() || {};
+    const url = meta.regulationUrl;
+    const filename = meta.regulationFilename || '';
+
     if (url) {
-      container.innerHTML = `
-        <iframe src="${url}" class="w-full h-full min-h-[600px] border-none rounded-lg" title="Regulamento PDF"></iframe>
-        <div class="mt-4 text-center">
-          <a href="${url}" target="_blank" class="pixel-btn inline-block">ABRIR EM NOVA ABA</a>
-        </div>
-      `;
+      const isMarkdown = filename.toLowerCase().endsWith('.md');
+
+      if (isMarkdown) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error('Não foi possível carregar o arquivo markdown');
+          const markdownText = await response.text();
+
+          // Renderiza Markdown
+          const htmlContent = marked.parse(markdownText);
+
+          container.innerHTML = `
+            <div class="markdown-body p-4 w-full bg-white/80 rounded-lg border-2 border-black overflow-auto max-h-[70vh]">
+              ${htmlContent}
+            </div>
+            <div class="mt-4 text-center">
+              <a href="${url}" download="${filename}" class="pixel-btn inline-block">BAIXAR ARQUIVO</a>
+            </div>
+          `;
+        } catch (err) {
+          console.error('Erro ao renderizar markdown:', err);
+          container.innerHTML = `
+            <div class="text-center p-8">
+              <p class="text-red-600 font-bold">ERRO AO CARREGAR O REGULAMENTO</p>
+              <p class="text-sm mt-2">${err.message}</p>
+            </div>
+          `;
+        }
+      } else {
+        // Assume PDF ou outro formato suportado por iframe
+        container.innerHTML = `
+          <iframe src="${url}" class="w-full h-full min-h-[600px] border-none rounded-lg" title="Regulamento"></iframe>
+          <div class="mt-4 text-center">
+            <a href="${url}" target="_blank" class="pixel-btn inline-block">ABRIR EM NOVA ABA</a>
+          </div>
+        `;
+      }
     } else {
       container.innerHTML = `
         <div class="text-center p-8">
-          <div class="text-6? transition-transform hover:scale-110 mb-4 inline-block">📄❌</div>
+          <div class="text-6xl transition-transform hover:scale-110 mb-4 inline-block">📄❌</div>
           <p class="text-xl font-bold mb-2">REGULAMENTO NÃO ENCONTRADO</p>
           <p class="text-gray-600">O administrador ainda não cadastrou o regulamento do game.</p>
         </div>
