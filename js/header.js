@@ -30,6 +30,7 @@
   function openMenu() {
     if (!mobileMenu || !mobilePanel) return;
     mobileMenu.classList.remove('hidden');
+    mobileMenu.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => {
       mobilePanel.style.transform = 'translateX(0)';
       mobilePanel.style.transition = 'transform 220ms ease-out';
@@ -40,7 +41,7 @@
     }, 140);
 
     // add body class to hide desktop auth with CSS (reliable)
-    try { document.body.classList.add('menu-open'); } catch (e) {}
+    try { document.body.classList.add('menu-open'); } catch (e) { }
 
     propagateAuthStateToMobile();
     syncNextTagText();
@@ -51,9 +52,12 @@
     mobilePanel.style.transform = 'translateX(100%)';
     mobilePanel.style.transition = 'transform 180ms ease-in';
     setTimeout(() => {
-      if (mobileMenu) mobileMenu.classList.add('hidden');
+      if (mobileMenu) {
+        mobileMenu.classList.add('hidden');
+        mobileMenu.setAttribute('aria-hidden', 'true');
+      }
       // remove body class so desktop auth reappears
-      try { document.body.classList.remove('menu-open'); } catch (e) {}
+      try { document.body.classList.remove('menu-open'); } catch (e) { }
     }, 220);
   }
 
@@ -86,7 +90,7 @@
       if ((mobile.textContent || '').trim() !== desktopText) {
         mobile.textContent = desktopText || 'LOGIN';
       }
-    } catch (e) {}
+    } catch (e) { }
 
     mobile.onclick = function (e) {
       // close menu first
@@ -110,7 +114,7 @@
     const mobileTxt = (mobile.textContent || mobile.innerText || '').trim();
     const final = desktopTxt || mobileTxt || 'Próx. sábado: --';
     if (mobileTxt !== final) {
-      try { mobile.textContent = final; } catch (e) {}
+      try { mobile.textContent = final; } catch (e) { }
     }
   }
 
@@ -143,8 +147,8 @@
   }
 
   function stopObservers() {
-    try { if (nextObserver) { nextObserver.disconnect(); nextObserver = null; } } catch (e) {}
-    try { if (authObserver) { authObserver.disconnect(); authObserver = null; } } catch (e) {}
+    try { if (nextObserver) { nextObserver.disconnect(); nextObserver = null; } } catch (e) { }
+    try { if (authObserver) { authObserver.disconnect(); authObserver = null; } } catch (e) { }
   }
 
   function safeInit() {
