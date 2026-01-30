@@ -169,6 +169,25 @@ function wireAdmin() {
   if (cardAnnualRanking) cardAnnualRanking.addEventListener('click', () => openModal('annualRanking'));
   if (cardSettings) cardSettings.addEventListener('click', () => openModal('settings'));
 
+  const btnChooseSat = document.getElementById('btn-choose-saturday');
+  if (btnChooseSat) btnChooseSat.addEventListener('click', () => openModal('saturdaySelector'));
+
+  const btnDownloadSum = document.getElementById('btn-download-summary');
+  if (btnDownloadSum) {
+    btnDownloadSum.addEventListener('click', async () => {
+      const card = document.getElementById('saturday-summary-card');
+      if (!card) return;
+      // Hide buttons temporarily for image capture
+      const btns = card.querySelector('.flex.flex-col');
+      if (btns) btns.style.display = 'none';
+      try {
+        await saveElementAsImage(card);
+      } finally {
+        if (btns) btns.style.display = '';
+      }
+    });
+  }
+
   unsubPlayers = onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('players read err', err); state.players = {}; renderAllAdmin(); });
   unsubGames = onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('games read err', err); state.games = {}; renderAllAdmin(); });
   unsubMeta = onValue(ref(db, '/meta/activeGameId'), snap => { state.activeGameId = snap.val(); renderAllAdmin(); }, err => { console.warn('meta read err', err); state.activeGameId = null; renderAllAdmin(); });
@@ -1503,6 +1522,21 @@ function attachModalHandlers(type, payload) {
     }
   } catch (err) {
     console.error('attachModalHandlers err', err);
+  }
+
+  // --- Modal: Saturday Selector ---
+  if (type === 'saturdaySelector') {
+    const closeBtn = document.getElementById('close-selector');
+    if (closeBtn) closeBtn.onclick = closeModal;
+
+    const satButtons = currentModal.center.querySelectorAll('.select-sat-btn');
+    satButtons.forEach(btn => {
+      btn.onclick = () => {
+        state.selectedSummaryDate = btn.dataset.iso;
+        renderSaturdaySummary(state.selectedSummaryDate);
+        closeModal();
+      };
+    });
   }
 }
 
