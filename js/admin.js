@@ -79,7 +79,7 @@ function updateAuthBtn(user) {
    Implementação do painel
    =========================== */
 
-let state = { players: {}, games: {}, activeGameId: null };
+let state = { players: {}, games: {}, activeGameId: null, selectedSummaryDate: null };
 let unsubPlayers = null, unsubGames = null, unsubMeta = null;
 
 function initAdminPanel() {
@@ -115,6 +115,17 @@ function initAdminPanel() {
       </div>
 
       <aside class="space-y-6">
+        <div id="saturday-summary-card" class="pixel-box p-4 bg-white border-4 border-black">
+          <h3 id="summary-title" class="text-xs mb-4">Resumo do Sábado - --/--/----</h3>
+          <div id="summary-content" class="space-y-3">
+             <div class="pixel-box p-3 text-center">Nenhum game UAU ativo no momento.</div>
+          </div>
+          <div class="flex flex-col gap-2 mt-4">
+             <button id="btn-choose-saturday" class="pixel-btn text-xs">ESCOLHER SÁBADO</button>
+             <button id="btn-download-summary" class="pixel-btn text-xs hidden">BAIXAR IMAGEM</button>
+          </div>
+        </div>
+
         <div class="stats-card">
           <h3>ESTATÍSTICAS</h3>
           <div class="mt-4">
@@ -423,6 +434,7 @@ function renderAllAdmin() {
 
   renderRankingPreview();
   renderStats();
+  renderSaturdaySummary(state.selectedSummaryDate);
 }
 
 function renderRankingPreview() {
@@ -468,6 +480,93 @@ function renderStats() {
   if (statNextEl) statNextEl.textContent = 'SÁBADO ' + (sats.length ? formatBR(sats.find(s => new Date(s) >= new Date()) || sats[0]) : '--');
 }
 
+function renderSaturdaySummary(isoDate = null) {
+  const summaryContent = document.getElementById('summary-content');
+  const summaryTitle = document.getElementById('summary-title');
+  const btnDownloadSummary = document.getElementById('btn-download-summary');
+  if (!summaryContent || !summaryTitle) return;
+
+  // Search for target date if none specified
+  let targetDate = isoDate;
+  let targetGame = null;
+
+  if (!targetDate) {
+    const allSaturdays = [];
+    for (const g of Object.values(state.games || {})) {
+      if (g.saturdays) {
+        for (const iso of Object.keys(g.saturdays)) {
+          allSaturdays.push({ iso, game: g });
+        }
+      }
+    }
+    allSaturdays.sort((a, b) => Number(b.iso) - Number(a.iso));
+    if (allSaturdays.length > 0) {
+      targetDate = allSaturdays[0].iso;
+      targetGame = allSaturdays[0].game;
+    }
+  } else {
+    targetGame = Object.values(state.games || {}).find(g => g.saturdays && g.saturdays[targetDate]);
+  }
+
+  if (!targetDate || !targetGame) {
+    summaryTitle.textContent = 'Resumo do Sábado - --/--/----';
+    summaryContent.innerHTML = '<div class="pixel-box p-3 text-center">Nenhum game UAU ativo no momento.</div>';
+    if (btnDownloadSummary) btnDownloadSummary.classList.add('hidden');
+    return;
+  }
+
+  if (btnDownloadSummary) btnDownloadSummary.classList.remove('hidden');
+  summaryTitle.textContent = `Resumo do Sábado - ${formatBR(new Date(Number(targetDate)).toISOString())}`;
+
+  const saturdayData = targetGame.saturdays[targetDate];
+  const players = state.players || {};
+
+  let totalPresent = 0, totalS7 = 0;
+  let membersPresent = 0, membersS7 = 0;
+
+  for (const [pid, val] of Object.entries(saturdayData)) {
+    const player = players[pid];
+    if (!player || player.role === 'admin') continue;
+
+    const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
+    const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
+
+    if (pts > 0) {
+      totalPresent++;
+      if (s7) totalS7++;
+
+      if (player.isMember) {
+        membersPresent++;
+        if (s7) membersS7++;
+      }
+    }
+  }
+
+  const totalS7Perc = totalPresent > 0 ? ((totalS7 / totalPresent) * 100).toFixed(1) : '0';
+  const membersS7Perc = membersPresent > 0 ? ((membersS7 / membersPresent) * 100).toFixed(1) : '0';
+
+  summaryContent.innerHTML = `
+    <div class="space-y-4">
+      <div class="flex justify-between items-center bg-gray-50 p-3 pixel-box">
+        <span class="text-xs font-semibold">JOGADORES PRESENTES</span>
+        <span class="font-bold text-lg">${totalPresent}</span>
+      </div>
+      <div class="flex justify-between items-center bg-gray-50 p-3 pixel-box">
+        <span class="text-xs font-semibold">MEMBROS PRESENTES</span>
+        <span class="font-bold text-lg">${membersPresent}</span>
+      </div>
+      <div class="flex justify-between items-center bg-blue-50 p-3 pixel-box border-blue-200">
+        <span class="text-xs font-semibold">TOTAL ESTUDO 7</span>
+        <span class="font-bold text-lg text-blue-700">${totalS7Perc}%</span>
+      </div>
+      <div class="flex justify-between items-center bg-green-50 p-3 pixel-box border-green-200">
+        <span class="text-xs font-semibold">% ESTUDO 7 (MEMBROS)</span>
+        <span class="font-bold text-lg text-green-700">${membersS7Perc}%</span>
+      </div>
+    </div>
+  `;
+}
+
 /* ------------------------
    Modal system (completo)
    ------------------------ */
@@ -492,6 +591,7 @@ function openModal(type, payload) {
   else if (type === 'launchPoints') center.innerHTML = launchPointsHtml();
   else if (type === 'annualRanking') center.innerHTML = annualRankingHtml();
   else if (type === 'settings') center.innerHTML = settingsHtml();
+  else if (type === 'saturdaySelector') center.innerHTML = saturdaySelectorHtml();
   else center.innerHTML = '<div>Tipo de modal desconhecido</div>';
 
   attachModalHandlers(type, payload);
@@ -689,6 +789,42 @@ function annualRankingHtml() {
   const players = state.players || {};
   const rows = arr.map((r, i) => `<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #000">${i + 1}. ${escapeHtml(players[r.id] ? players[r.id].name : 'Desconhecido')} <strong>${r.points.toLocaleString('pt-BR')}</strong></div>`).join('') || '<div>Nenhum registro</div>';
   return `<h2>RANKING ANUAL - ${new Date().getFullYear()}</h2><div class="mt-4">${rows}</div><div class="mt-4"><button id="close-annual" class="pixel-btn">FECHAR</button></div>`;
+}
+
+function saturdaySelectorHtml() {
+  const allSaturdays = [];
+  const games = state.games || {};
+  for (const gid in games) {
+    const g = games[gid];
+    if (g.saturdays) {
+      for (const iso in g.saturdays) {
+        allSaturdays.push({ iso, year: g.year, trimester: g.trimester });
+      }
+    }
+  }
+  allSaturdays.sort((a, b) => Number(b.iso) - Number(a.iso));
+
+  const items = allSaturdays.map(s => `
+    <button class="pixel-box p-3 w-full text-left hover:bg-gray-100 transition-colors select-sat-btn" data-iso="${s.iso}">
+      <div class="flex justify-between items-center">
+        <div>
+          <div class="font-bold">${formatBR(new Date(Number(s.iso)).toISOString())}</div>
+          <div class="text-xs text-gray-500">${s.year} • ${s.trimester}º Trimestre</div>
+        </div>
+        <div class="text-xl">➔</div>
+      </div>
+    </button>
+  `).join('');
+
+  return `
+    <h2>ESCOLHER SÁBADO PARA RESUMO</h2>
+    <div class="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+      ${items || '<div class="pixel-box p-6 text-center text-gray-500">Nenhum sábado com dados encontrado.</div>'}
+    </div>
+    <div class="mt-6 flex justify-center">
+      <button id="close-selector" class="pixel-btn">FECHAR</button>
+    </div>
+  `;
 }
 
 function settingsHtml() {
