@@ -220,29 +220,6 @@ function setupEventDelegation() {
   window.adminClickHandler = async (e) => {
     if (!e.target) return;
 
-    // UTIL: procura pelos elementos relevantes subindo a árvore com closest
-    const saveBtn = e.target.closest && e.target.closest('.save-point-btn');
-    if (saveBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const pid = saveBtn.dataset.pid;
-      const iso = saveBtn.dataset.iso;
-      const gid = state.activeGameId;
-      if (!pid) { return; }
-      if (!gid || !iso) return alert('Nenhum trimestre/sábado selecionado');
-      const valEl = document.getElementById('pts-' + pid);
-      const val = Number(valEl?.value || 0);
-      try {
-        const writeKey = isoKeyWrite(iso);
-        await set(ref(db, `/games/${gid}/saturdays/${writeKey}/${pid}`), Number(val));
-        await cleanupOldIsoKeys(gid, iso, pid, writeKey);
-        alert('Pontos salvos');
-      } catch (err) {
-        alert('Erro ao salvar ponto: ' + (err.message || err));
-      }
-      return;
-    }
-
     // Botões de editar jogador (agora com closest para garantir captura)
     const editBtn = e.target.closest && e.target.closest('.btn-edit');
     if (editBtn) {
@@ -323,13 +300,13 @@ async function createPlayerAPI(data) {
   if (data.role === 'admin') {
     const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
     const uid = cred.user.uid;
-    const obj = { id: uid, name: data.name, phone: data.phone || null, role: 'admin', createdAt: new Date().toISOString() };
+    const obj = { id: uid, name: data.name, phone: data.phone || null, role: 'admin', isMember: !!data.isMember, createdAt: new Date().toISOString() };
     await set(ref(db, '/players/' + uid), obj);
     return obj;
   } else {
     const newRef = push(ref(db, '/players'));
     const key = newRef.key;
-    const obj = { id: key, name: data.name, phone: data.phone || null, role: 'player', createdAt: new Date().toISOString() };
+    const obj = { id: key, name: data.name, phone: data.phone || null, role: 'player', isMember: !!data.isMember, createdAt: new Date().toISOString() };
     await set(ref(db, '/players/' + key), obj);
     return obj;
   }
