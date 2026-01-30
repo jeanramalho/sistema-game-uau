@@ -623,36 +623,27 @@ async function downloadMembersReport(isoDate) {
   div.style.top = '-9999px';
   div.style.left = '-9999px';
   div.innerHTML = `
-    <div id="temp-members-report" class="p-0 bg-[#e0f2f1] border-4 border-black" style="width: 400px; font-family: 'Inter', sans-serif;">
-      <!-- Header -->
-      <div class="bg-black text-white p-4 text-center">
-        <h2 class="text-lg font-bold tracking-widest uppercase italic" style="margin: 0; font-size: 1.25rem;">MEMBROS PRESENTES</h2>
-        <div class="text-[10px] mt-1 opacity-80 font-mono tracking-tighter">${dateFormatted}</div>
+    <div id="temp-members-report" class="p-6 bg-white border-8 border-black shadow-[12px_12px_0_0_#000]" style="width: 500px; font-family: 'Press Start 2P', monospace;">
+      <div class="mb-6 text-center">
+        <h2 class="text-xl font-bold uppercase tracking-wide italic" style="margin: 0;">MEMBROS PRESENTES</h2>
+        <div class="text-[10px] mt-2 opacity-60">${dateFormatted}</div>
       </div>
       
-      <!-- List -->
-      <div class="p-4 bg-[#f8fafc]">
+      <div class="space-y-4">
         ${members.length > 0 ? members.map((m, idx) => `
-          <div class="flex justify-between items-center mb-3 p-3 bg-white border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
-            <div class="flex items-center gap-3">
-              <span class="text-[10px] font-mono text-gray-400">${String(idx + 1).padStart(2, '0')}</span>
-              <span class="text-sm font-bold uppercase tracking-tight text-black">${m.name}</span>
-            </div>
-            <div class="flex items-center">
-              <span class="text-[11px] font-black px-3 py-1 ${m.status === 'P7' ? 'bg-[#4ade80] text-black' : 'bg-[#e2e8f0] text-gray-600'} border-2 border-black uppercase">${m.status}</span>
-            </div>
+          <div class="ranking-row pixel-box flex justify-between items-center p-4 border-4 border-black bg-[#dff3f5] shadow-[6px_6px_0_0_#000]">
+            <div class="text-[14px]">${idx + 1}º • ${m.name}</div>
+            <div class="font-bold text-[14px] bg-white px-3 py-1 border-4 border-black shadow-[4px_4px_0_0_#000]">${m.status}</div>
           </div>
         `).join('') : `
-          <div class="pixel-box p-8 text-center bg-white italic text-gray-400 border-2 border-black">
+          <div class="pixel-box p-8 text-center bg-white border-4 border-black shadow-[6px_6px_0_0_#000]">
             Nenhum membro presente.
           </div>
         `}
       </div>
 
-      <!-- Footer -->
-      <div class="bg-gray-100 p-2 border-t-2 border-dashed border-black flex justify-between items-center px-4">
-        <span class="text-[10px] font-bold text-black opacity-50 uppercase tracking-widest">GAME UAU</span>
-        <span class="text-[9px] font-mono text-black opacity-30">${new Date().toLocaleDateString('pt-BR')}</span>
+      <div class="mt-10 text-[10px] text-gray-400 text-center uppercase tracking-widest opacity-50">
+        GAME UAU • ${new Date().toLocaleDateString('pt-BR')}
       </div>
     </div>
   `;
