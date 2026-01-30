@@ -123,6 +123,7 @@ function initAdminPanel() {
           <div class="flex flex-col gap-2 mt-4">
              <button id="btn-choose-saturday" class="pixel-btn text-xs">ESCOLHER SÁBADO</button>
              <button id="btn-download-summary" class="pixel-btn text-xs hidden">BAIXAR IMAGEM</button>
+             <button id="btn-report-members" class="pixel-btn text-xs hidden">RELATÓRIO MEMBROS</button>
           </div>
         </div>
 
@@ -185,6 +186,13 @@ function wireAdmin() {
       } finally {
         if (btns) btns.style.display = '';
       }
+    });
+  }
+  const btnReportMembers = document.getElementById('btn-report-members');
+  if (btnReportMembers) {
+    btnReportMembers.addEventListener('click', () => {
+      const iso = btnReportMembers.dataset.iso;
+      if (iso) downloadMembersReport(iso);
     });
   }
 
@@ -523,7 +531,7 @@ function renderSaturdaySummary(isoDate = null) {
 
   for (const [pid, val] of Object.entries(saturdayData)) {
     const player = players[pid];
-    if (!player || player.role === 'admin') continue;
+    if (!player) continue;
 
     const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
     const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
@@ -553,15 +561,96 @@ function renderSaturdaySummary(isoDate = null) {
         <span class="font-bold text-lg">${membersPresent}</span>
       </div>
       <div class="flex justify-between items-center bg-blue-50 p-3 pixel-box border-blue-200">
-        <span class="text-xs font-semibold">TOTAL ESTUDO 7</span>
+        <div>
+          <div class="text-xs font-semibold">TOTAL ESTUDO 7</div>
+          <div class="text-[10px] text-blue-600">${totalS7} de ${totalPresent} jogadores</div>
+        </div>
         <span class="font-bold text-lg text-blue-700">${totalS7Perc}%</span>
       </div>
       <div class="flex justify-between items-center bg-green-50 p-3 pixel-box border-green-200">
-        <span class="text-xs font-semibold">% ESTUDO 7 (MEMBROS)</span>
+        <div>
+          <div class="text-xs font-semibold">ESTUDO 7 (MEMBROS)</div>
+          <div class="text-[10px] text-green-600">${membersS7} de ${membersPresent} membros</div>
+        </div>
         <span class="font-bold text-lg text-green-700">${membersS7Perc}%</span>
       </div>
     </div>
   `;
+
+  // Update button listeners and visibility
+  const btnReportMembers = document.getElementById('btn-report-members');
+  if (btnReportMembers) {
+    btnReportMembers.classList.remove('hidden');
+    btnReportMembers.dataset.iso = targetDate;
+  }
+}
+
+async function downloadMembersReport(isoDate) {
+  const players = state.players || {};
+  let targetGame = null;
+  for (const g of Object.values(state.games || {})) {
+    if (g.saturdays && g.saturdays[isoDate]) {
+      targetGame = g;
+      break;
+    }
+  }
+  if (!targetGame) return alert('Dados não encontrados');
+
+  const saturdayData = targetGame.saturdays[isoDate];
+  const members = [];
+
+  for (const [pid, val] of Object.entries(saturdayData)) {
+    const player = players[pid];
+    if (!player || !player.isMember) continue;
+
+    const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
+    const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
+
+    if (pts > 0) {
+      members.push({ name: player.name, status: s7 ? 'P7' : 'P' });
+    }
+  }
+
+  members.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  const dateObj = isNaN(isoDate) ? new Date(isoDate) : new Date(Number(isoDate));
+  const dateFormatted = formatBR(dateObj.toISOString());
+
+  const div = document.createElement('div');
+  div.style.position = 'fixed';
+  div.style.top = '-9999px';
+  div.style.left = '-9999px';
+  div.innerHTML = `
+    <div id="temp-members-report" class="p-6 bg-white border-4 border-black" style="width: 400px; font-family: sans-serif;">
+      <div class="text-center border-b-2 border-black pb-2 mb-4">
+        <h2 class="text-lg font-bold uppercase" style="margin: 0;">Membros Presentes</h2>
+        <div class="text-xs uppercase" style="margin-top: 4px;">${dateFormatted}</div>
+      </div>
+      <div class="space-y-2">
+        ${members.map(m => `
+          <div class="flex justify-between items-center border-b border-gray-100 py-1">
+            <span class="text-sm font-bold uppercase" style="color: #333;">${m.name}</span>
+            <span class="font-bold text-xs bg-gray-100 px-2 py-0.5 border-2 border-black">${m.status}</span>
+          </div>
+        `).join('')}
+        ${members.length === 0 ? '<div class="text-center py-4 text-gray-500">Nenhum membro presente.</div>' : ''}
+      </div>
+      <div class="mt-6 text-[10px] text-gray-400 text-center uppercase" style="margin-top: 24px;">
+        Gerado pelo Game UAU
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+
+  try {
+    const element = document.getElementById('temp-members-report');
+    await saveElementAsImage(element);
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao gerar relatório');
+  } finally {
+    div.remove();
+  }
 }
 
 /* ------------------------

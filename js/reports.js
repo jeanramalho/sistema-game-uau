@@ -318,8 +318,6 @@ function generateQuarterlyAttendanceReport(games, players, selectedYear, selecte
   const sortedPlayers = Object.values(players).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   for (const p of sortedPlayers) {
-    if (p.role === 'admin') continue; // Pula admins
-
     const row = { 'Participante': p.name };
 
     for (const d of dates) {
@@ -375,7 +373,7 @@ function generateStudies7PercentageReport(games, players, selectedYear = null, s
 
       for (const [pid, val] of Object.entries(saturdayData)) {
         const player = players[pid];
-        if (!player || player.role === 'admin') continue;
+        if (!player) continue;
 
         const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
         const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
