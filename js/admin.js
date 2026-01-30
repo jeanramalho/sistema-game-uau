@@ -453,7 +453,9 @@ function renderRankingPreview() {
   }
 
   const totals = computeGameTotals(active);
-  const arr = Object.entries(state.players).map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }));
+  const arr = Object.entries(state.players)
+    .map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }))
+    .filter(r => r.points > 0);
   arr.sort((a, b) => b.points - a.points);
   arr.forEach((r, i) => {
     const div = document.createElement('div'); div.className = 'ranking-row pixel-box';
@@ -621,22 +623,36 @@ async function downloadMembersReport(isoDate) {
   div.style.top = '-9999px';
   div.style.left = '-9999px';
   div.innerHTML = `
-    <div id="temp-members-report" class="p-6 bg-white border-4 border-black" style="width: 400px; font-family: sans-serif;">
-      <div class="text-center border-b-2 border-black pb-2 mb-4">
-        <h2 class="text-lg font-bold uppercase" style="margin: 0;">Membros Presentes</h2>
-        <div class="text-xs uppercase" style="margin-top: 4px;">${dateFormatted}</div>
+    <div id="temp-members-report" class="p-0 bg-[#e0f2f1] border-4 border-black" style="width: 400px; font-family: 'Inter', sans-serif;">
+      <!-- Header -->
+      <div class="bg-black text-white p-4 text-center">
+        <h2 class="text-lg font-bold tracking-widest uppercase italic" style="margin: 0; font-size: 1.25rem;">MEMBROS PRESENTES</h2>
+        <div class="text-[10px] mt-1 opacity-80 font-mono tracking-tighter">${dateFormatted}</div>
       </div>
-      <div class="space-y-2">
-        ${members.map(m => `
-          <div class="flex justify-between items-center border-b border-gray-100 py-1">
-            <span class="text-sm font-bold uppercase" style="color: #333;">${m.name}</span>
-            <span class="font-bold text-xs bg-gray-100 px-2 py-0.5 border-2 border-black">${m.status}</span>
+      
+      <!-- List -->
+      <div class="p-4 bg-[#f8fafc]">
+        ${members.length > 0 ? members.map((m, idx) => `
+          <div class="flex justify-between items-center mb-3 p-3 bg-white border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-mono text-gray-400">${String(idx + 1).padStart(2, '0')}</span>
+              <span class="text-sm font-bold uppercase tracking-tight text-black">${m.name}</span>
+            </div>
+            <div class="flex items-center">
+              <span class="text-[11px] font-black px-3 py-1 ${m.status === 'P7' ? 'bg-[#4ade80] text-black' : 'bg-[#e2e8f0] text-gray-600'} border-2 border-black uppercase">${m.status}</span>
+            </div>
           </div>
-        `).join('')}
-        ${members.length === 0 ? '<div class="text-center py-4 text-gray-500">Nenhum membro presente.</div>' : ''}
+        `).join('') : `
+          <div class="pixel-box p-8 text-center bg-white italic text-gray-400 border-2 border-black">
+            Nenhum membro presente.
+          </div>
+        `}
       </div>
-      <div class="mt-6 text-[10px] text-gray-400 text-center uppercase" style="margin-top: 24px;">
-        Gerado pelo Game UAU
+
+      <!-- Footer -->
+      <div class="bg-gray-100 p-2 border-t-2 border-dashed border-black flex justify-between items-center px-4">
+        <span class="text-[10px] font-bold text-black opacity-50 uppercase tracking-widest">GAME UAU</span>
+        <span class="text-[9px] font-mono text-black opacity-30">${new Date().toLocaleDateString('pt-BR')}</span>
       </div>
     </div>
   `;
@@ -1769,7 +1785,10 @@ function computeAnnualRanking(year) {
       for (const pid in g.playersPoints) scoreMap[pid] = (scoreMap[pid] || 0) + Number(g.playersPoints[pid] || 0);
     }
   }
-  return Object.entries(scoreMap).map(([id, points]) => ({ id, points })).sort((a, b) => b.points - a.points);
+  return Object.entries(scoreMap)
+    .map(([id, points]) => ({ id, points }))
+    .filter(r => r.points > 0)
+    .sort((a, b) => b.points - a.points);
 }
 
 /* ------------------------

@@ -58,7 +58,11 @@ function computeGameTotalsObj(game) {
   if (game.saturdays) {
     for (const isoKey in game.saturdays) {
       const per = game.saturdays[isoKey] || {};
-      for (const pid in per) totals[pid] = (totals[pid] || 0) + Number(per[pid] || 0);
+      for (const pid in per) {
+        const val = per[pid];
+        const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
+        totals[pid] = (totals[pid] || 0) + pts;
+      }
     }
   }
   if (Object.keys(totals).length === 0 && game.playersPoints) {
@@ -141,7 +145,9 @@ function renderPublicRanking() {
   const active = getActiveGame();
   if (!active) { container.innerHTML = '<div class="pixel-box p-4">Nenhum game UAU em andamento no momento.</div>'; return; }
   const totals = computeGameTotalsObj(active);
-  const arr = Object.entries(state.players).map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }));
+  const arr = Object.entries(state.players)
+    .map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }))
+    .filter(r => r.points > 0);
   arr.sort((a, b) => b.points - a.points);
   if (arr.length === 0) { container.innerHTML = '<div class="pixel-box p-4">Nenhum jogador cadastrado.</div>'; return; }
   arr.forEach((r, i) => { const d = document.createElement('div'); d.className = 'flex justify-between items-center p-3 border-2 border-black mb-2 bg-[#dff3f5]'; d.innerHTML = `<div>${i + 1}º ${escapeHtml(r.name)}</div><div><strong>${r.points.toLocaleString('pt-BR')}</strong></div>`; container.appendChild(d); });
@@ -154,7 +160,9 @@ function renderRankingPreview() {
   const active = getActiveGame();
   if (!active) { el.innerHTML = '<div class="pixel-box p-4">Nenhum trimestre em andamento</div>'; return; }
   const totals = computeGameTotalsObj(active);
-  const arr = Object.entries(state.players).map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }));
+  const arr = Object.entries(state.players)
+    .map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }))
+    .filter(r => r.points > 0);
   arr.sort((a, b) => b.points - a.points);
   arr.forEach((r, i) => { const row = document.createElement('div'); row.className = 'ranking-row pixel-box'; row.innerHTML = `<div>${i + 1}º • ${escapeHtml(r.name)}</div><div class="font-bold">${r.points.toLocaleString('pt-BR')}</div>`; el.appendChild(row); });
 }
@@ -166,7 +174,9 @@ function renderHomeTop5() {
   const active = getActiveGame();
   if (!active) { container.innerHTML = '<div class="pixel-box p-4">Nenhum game UAU em andamento no momento.</div>'; return; }
   const totals = computeGameTotalsObj(active);
-  const list = Object.entries(state.players).map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }));
+  const list = Object.entries(state.players)
+    .map(([key, p]) => ({ id: key, name: p.name, points: totals[key] || 0 }))
+    .filter(r => r.points > 0);
   list.sort((a, b) => b.points - a.points);
   const top5 = list.slice(0, 5);
   if (top5.length === 0) { container.innerHTML = '<div class="pixel-box p-4">Nenhum jogador cadastrado.</div>'; return; }
@@ -186,13 +196,20 @@ function computeAnnualRanking(year) {
     if (g.saturdays) {
       for (const isoKey in g.saturdays) {
         const per = g.saturdays[isoKey] || {};
-        for (const pid in per) map[pid] = (map[pid] || 0) + Number(per[pid] || 0);
+        for (const pid in per) {
+          const val = per[pid];
+          const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
+          map[pid] = (map[pid] || 0) + pts;
+        }
       }
     } else if (g.playersPoints) {
       for (const pid in g.playersPoints) map[pid] = (map[pid] || 0) + Number(g.playersPoints[pid] || 0);
     }
   }
-  return Object.entries(map).map(([id, points]) => ({ id, points })).sort((a, b) => b.points - a.points);
+  return Object.entries(map)
+    .map(([id, points]) => ({ id, points }))
+    .filter(r => r.points > 0)
+    .sort((a, b) => b.points - a.points);
 }
 
 function escapeHtml(str) { if (!str && str !== 0) return ''; return String(str).replace(/[&<>"']/g, function (m) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]; }); }
