@@ -535,7 +535,8 @@ function renderSaturdaySummary(isoDate = null) {
   }
 
   if (btnDownloadSummary) btnDownloadSummary.classList.remove('hidden');
-  summaryTitle.textContent = `Resumo do Sábado - ${formatBR(new Date(Number(targetDate)).toISOString())}`;
+  const dateObj = isNaN(targetDate) ? new Date(targetDate) : new Date(Number(targetDate));
+  summaryTitle.textContent = `Resumo do Sábado - ${formatBR(dateObj.toISOString())}`;
 
   const saturdayData = targetGame.saturdays[targetDate];
   const players = state.players || {};
@@ -823,17 +824,20 @@ function saturdaySelectorHtml() {
   }
   allSaturdays.sort((a, b) => Number(b.iso) - Number(a.iso));
 
-  const items = allSaturdays.map(s => `
+  const items = allSaturdays.map(s => {
+    const dateObj = isNaN(s.iso) ? new Date(s.iso) : new Date(Number(s.iso));
+    return `
     <button class="pixel-box p-3 w-full text-left hover:bg-gray-100 transition-colors select-sat-btn" data-iso="${s.iso}">
       <div class="flex justify-between items-center">
         <div>
-          <div class="font-bold">${formatBR(new Date(Number(s.iso)).toISOString())}</div>
+          <div class="font-bold">${formatBR(dateObj.toISOString())}</div>
           <div class="text-xs text-gray-500">${s.year} • ${s.trimester}º Trimestre</div>
         </div>
         <div class="text-xl">➔</div>
       </div>
     </button>
-  `).join('');
+  `;
+  }).join('');
 
   return `
     <h2>ESCOLHER SÁBADO PARA RESUMO</h2>
