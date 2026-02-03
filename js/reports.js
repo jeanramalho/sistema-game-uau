@@ -61,8 +61,13 @@ function generateFrequencyReport(games, players) {
         }
 
         // Se teve pontos > 0, conta como presente
+        // Presence logic: explicit 'present' flag OR fallback to points > 0
         const pts = (typeof points === 'object' && points !== null) ? (points.points || 0) : Number(points || 0);
-        if (pts > 0) {
+        const isPresent = (typeof points === 'object' && points !== null && points.present !== undefined)
+          ? points.present
+          : (pts > 0);
+
+        if (isPresent) {
           playerTotals[playerId].presentSaturdays++;
         }
       }
@@ -133,16 +138,21 @@ function generateBimestreReport(games, players, selectedYear = null, selectedBim
 
     // Gera linha para cada jogador neste bimestre
     for (const [playerId, totalPoints] of Object.entries(gameTotals)) {
-      if (totalPoints > 0 || game.saturdays) { // Só inclui jogadores com participação
+      const participated = game.saturdays ? Object.values(game.saturdays).filter(sat => {
+        if (!sat || !sat[playerId]) return false;
+        const val = sat[playerId];
+        const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
+        const isPresent = (typeof val === 'object' && val !== null && val.present !== undefined)
+          ? val.present
+          : (pts > 0);
+        return isPresent;
+      }).length : 0;
+
+      if (totalPoints > 0 || participated > 0) { // Só inclui jogadores com participação
         reportData.push({
           jogador: playerNames[playerId],
           pontos_totais: totalPoints,
-          sabados_participados: game.saturdays ? Object.values(game.saturdays).filter(sat => {
-            if (!sat || !sat[playerId]) return false;
-            const val = sat[playerId];
-            const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
-            return pts > 0;
-          }).length : 0,
+          sabados_participados: participated,
           data_inicio: formatBR(game.startedAt),
           data_fim: game.endedAt ? formatBR(game.endedAt) : 'Em andamento',
           bimestre: gameTrimester,
@@ -329,7 +339,11 @@ function generateQuarterlyAttendanceReport(games, players, selectedYear, selecte
         const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
         const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
 
-        if (pts > 0) {
+        const isPresent = (typeof val === 'object' && val !== null && val.present !== undefined)
+          ? val.present
+          : (pts > 0);
+
+        if (isPresent) {
           marker = s7 ? 'P7' : 'P';
         }
       }
@@ -378,7 +392,11 @@ function generateStudies7PercentageReport(games, players, selectedYear = null, s
         const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
         const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
 
-        if (pts > 0) {
+        const isPresent = (typeof val === 'object' && val !== null && val.present !== undefined)
+          ? val.present
+          : (pts > 0);
+
+        if (isPresent) {
           totalPresent++;
           if (s7) totalS7++;
 

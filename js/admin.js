@@ -537,8 +537,12 @@ function renderSaturdaySummary(isoDate = null) {
 
     const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
     const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
+    // Presence logic: explicit 'present' flag OR fallback to points > 0 for old data
+    const isPresent = (typeof val === 'object' && val !== null && val.present !== undefined)
+      ? val.present
+      : (pts > 0);
 
-    if (pts > 0) {
+    if (isPresent) {
       totalPresent++;
       if (s7) totalS7++;
 
@@ -607,8 +611,12 @@ async function downloadMembersReport(isoDate) {
 
     const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
     const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
+    // Presence logic: explicit 'present' flag OR fallback to points > 0
+    const isPresent = (typeof val === 'object' && val !== null && val.present !== undefined)
+      ? val.present
+      : (pts > 0);
 
-    if (pts > 0) {
+    if (isPresent) {
       members.push({ name: player.name, status: s7 ? 'P7' : 'P' });
     }
   }
@@ -1679,6 +1687,7 @@ function renderPointsTableForSaturday(iso) {
     // try to find existing value using candidates
     let existing = '';
     let studied7 = false;
+    let present = true; // Default to present
     if (game && game.saturdays) {
       const cands = isoKeyCandidates(iso);
       for (const c of cands) {
@@ -1687,9 +1696,22 @@ function renderPointsTableForSaturday(iso) {
           if (typeof val === 'object' && val !== null) {
             existing = val.points ?? '';
             studied7 = !!val.studied7;
+            // If explicit present flag exists use it, otherwise fallback to existing points check (if points > 0 then present, else default true for new non-zero entry convenience, or false if 0? Actually let's just stick to default true if undefined, but if we are loading existing data with 0 points and no presence flag, it might be ambiguous. However, usually 0 points means no record. If record exists with 0 points, they might have been present but scored 0. Let's stick to: if present flag undefined -> (points > 0). If points=0 and undef, assume absent? 
+            // WAIT: We want the checkbox to reflect the saved state.
+            // If data exists:
+            //   if val.present defined -> use it
+            //   else -> (points > 0)
+            if (val.present !== undefined) {
+              present = val.present;
+            } else {
+              // Backward compatibility: if no flag, assume present if points > 0
+              present = (Number(val.points || 0) > 0);
+            }
           } else {
+            // Old format (just a number)
             existing = Number(val);
             studied7 = false;
+            present = (existing > 0);
           }
           break;
         }
@@ -1700,6 +1722,10 @@ function renderPointsTableForSaturday(iso) {
         <div style="flex:1;padding-right:12px">
           <div class="font-semibold">${escapeHtml(p.name)}</div>
           <div class="flex items-center gap-4 mt-1">
+            <div class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="pres-${key}" class="pixel-checkbox" ${present ? 'checked' : ''} />
+              <label for="pres-${key}" class="text-xs font-semibold cursor-pointer">Presente</label>
+            </div>
             <div class="flex items-center gap-1 cursor-pointer">
               <input type="checkbox" id="std7-${key}" class="pixel-checkbox" ${studied7 ? 'checked' : ''} />
               <label for="std7-${key}" class="text-xs font-semibold cursor-pointer">Estudou 7 vezes</label>
@@ -1729,8 +1755,10 @@ function renderPointsTableForSaturday(iso) {
         if (!pid) { console.error('PID undefined on direct handler'); return alert('ID do jogador inválido'); }
         const valEl = document.getElementById('pts-' + pid);
         const std7El = document.getElementById('std7-' + pid);
+        const presEl = document.getElementById('pres-' + pid);
         const val = Number(valEl?.value || 0);
         const studied7 = !!std7El?.checked;
+        const present = !!presEl?.checked;
         const gidLocal = state.activeGameId;
         if (!gidLocal || !isoLocal) return alert('Nenhum trimestre/sábado selecionado');
         try {
@@ -1738,7 +1766,8 @@ function renderPointsTableForSaturday(iso) {
           // Salva como objeto
           await set(ref(db, `/games/${gidLocal}/saturdays/${writeKey}/${pid}`), {
             points: Number(val),
-            studied7: studied7
+            studied7: studied7,
+            present: present
           });
           // cleanup old keys for same iso
           await cleanupOldIsoKeys(gidLocal, isoLocal, pid, writeKey);
