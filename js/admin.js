@@ -1039,6 +1039,16 @@ function settingsHtml() {
               <button id="export-stats7-csv" class="pixel-btn flex-1">CSV</button>
             </div>
           </div>
+
+          <!-- Relatório de Atividades Extras (Missão / PG) -->
+          <div class="flex flex-col gap-2">
+            <h4 class="text-sm">Relatório Ação Missionária / PG</h4>
+            <p class="text-xs">Monitoramento de atividades extras trimestral</p>
+            <div class="flex gap-2">
+              <button id="export-activities-excel" class="pixel-btn flex-1">EXCEL</button>
+              <button id="export-activities-csv" class="pixel-btn flex-1">CSV</button>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -1619,6 +1629,32 @@ function attachModalHandlers(type, payload) {
           const reportData = generateStudies7PercentageReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
           if (reportData.length === 0) return alert('Nenhum dado encontrado');
           exportToCSV(reportData, 'estatisticas-estudou7');
+          alert('✅ Relatório exportado');
+        } catch (err) {
+          console.error(err); alert('Erro: ' + err.message);
+        }
+      });
+
+      // Handlers para relatório de Atividades Extras
+      document.getElementById('export-activities-excel').addEventListener('click', async () => {
+        try {
+          const filters = getFilters();
+          await ensureSheetJS();
+          const reportData = generateActivitiesReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          if (reportData.length === 0) return alert('Nenhum dado encontrado');
+          exportToExcel(reportData, 'atividades-missao-pg', 'Atividades');
+          alert('✅ Relatório de atividades exportado');
+        } catch (err) {
+          console.error(err); alert('Erro: ' + err.message);
+        }
+      });
+
+      document.getElementById('export-activities-csv').addEventListener('click', async () => {
+        try {
+          const filters = getFilters();
+          const reportData = generateActivitiesReport(state.games || {}, state.players || {}, filters.year, filters.bimestre);
+          if (reportData.length === 0) return alert('Nenhum dado encontrado');
+          exportToCSV(reportData, 'atividades-missao-pg');
           alert('✅ Relatório exportado');
         } catch (err) {
           console.error(err); alert('Erro: ' + err.message);

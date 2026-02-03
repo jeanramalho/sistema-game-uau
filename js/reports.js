@@ -469,10 +469,10 @@ function generateActivitiesReport(games, players, selectedYear, selectedTrimeste
       let markers = [];
       if (val !== undefined && typeof val === 'object' && val !== null) {
         if (!!val.missionary) markers.push('M');
-        if (!!val.pg) markers.push('G');
+        if (!!val.pg) markers.push('PG');
       }
 
-      row[dateLabel] = markers.join('');
+      row[dateLabel] = markers.join(' | ');
     }
     reportData.push(row);
   }
