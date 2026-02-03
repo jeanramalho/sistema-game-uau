@@ -434,6 +434,52 @@ function generateStudies7PercentageReport(games, players, selectedYear = null, s
   return reportData;
 }
 
+/**
+ * Gera relatório de Atividades Extras (Missão e PG) - Matriz Trimestral
+ * @param {Object} games - Objeto com todos os games
+ * @param {Object} players - Objeto com todos os jogadores
+ * @param {number} selectedYear - Ano para filtrar (opcional)
+ * @param {number} selectedTrimester - Trimestre para filtrar (opcional)
+ * @returns {Array} Array de objetos formatado para Excel/CSV
+ */
+function generateActivitiesReport(games, players, selectedYear, selectedTrimester) {
+  // 1. Encontrar o game correspondente
+  const game = Object.values(games).find(g => {
+    const y = new Date(g.startedAt).getFullYear();
+    const t = g.trimester || 1;
+    return (selectedYear ? y === selectedYear : true) && (selectedTrimester ? t === selectedTrimester : true);
+  });
+
+  if (!game || !game.saturdays) return [];
+
+  // 2. Coletar todos os sábados e ordenar cronologicamente
+  const dates = Object.keys(game.saturdays).sort((a, b) => Number(a) - Number(b));
+
+  // 3. Preparar dados
+  const reportData = [];
+  const sortedPlayers = Object.values(players).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  for (const p of sortedPlayers) {
+    const row = { 'Participante': p.name };
+
+    for (const d of dates) {
+      const dateLabel = formatBR(new Date(Number(d)).toISOString());
+      const val = game.saturdays[d][p.id];
+
+      let markers = [];
+      if (val !== undefined && typeof val === 'object' && val !== null) {
+        if (!!val.missionary) markers.push('M');
+        if (!!val.pg) markers.push('G');
+      }
+
+      row[dateLabel] = markers.join('');
+    }
+    reportData.push(row);
+  }
+
+  return reportData;
+}
+
 // Exporta todas as funções para uso externo
 export {
   ensureSheetJS,
@@ -441,6 +487,7 @@ export {
   generateBimestreReport,
   generateQuarterlyAttendanceReport,
   generateStudies7PercentageReport,
+  generateActivitiesReport,
   getAvailableYearsAndTrimester,
   exportToExcel,
   exportToCSV,

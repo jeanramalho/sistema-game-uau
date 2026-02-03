@@ -12,6 +12,7 @@ import {
   generateBimestreReport,
   generateQuarterlyAttendanceReport,
   generateStudies7PercentageReport,
+  generateActivitiesReport,
   getAvailableYearsAndTrimester,
   exportToExcel,
   exportToCSV,
@@ -531,6 +532,8 @@ function renderSaturdaySummary(isoDate = null) {
   let totalPresent = 0, totalS7 = 0;
   let membersPresent = 0, membersS7 = 0;
   let absentS7 = 0; // New metric: Absent but Studied 7
+  let totalMissionary = 0, totalPG = 0;
+
 
   for (const [pid, val] of Object.entries(saturdayData)) {
     const player = players[pid];
@@ -538,6 +541,12 @@ function renderSaturdaySummary(isoDate = null) {
 
     const pts = (typeof val === 'object' && val !== null) ? (val.points || 0) : Number(val || 0);
     const s7 = (typeof val === 'object' && val !== null) ? !!val.studied7 : false;
+    const miss = (typeof val === 'object' && val !== null) ? !!val.missionary : false;
+    const pg = (typeof val === 'object' && val !== null) ? !!val.pg : false;
+
+    if (miss) totalMissionary++;
+    if (pg) totalPG++;
+
     // Presence logic: explicit 'present' flag OR fallback to points > 0 for old data
     const isPresent = (typeof val === 'object' && val !== null && val.present !== undefined)
       ? val.present
@@ -592,6 +601,16 @@ function renderSaturdaySummary(isoDate = null) {
           <div class="text-[10px] text-purple-600">Pontuaram à distância</div>
         </div>
         <span class="font-bold text-lg text-purple-700">${absentS7}</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col items-center bg-yellow-50 p-2 pixel-box border-yellow-200">
+           <div class="text-[10px] font-bold text-yellow-900 mb-1">AÇÃO MISSIONÁRIA</div>
+           <div class="text-xl font-bold text-yellow-700">${totalMissionary}</div>
+        </div>
+        <div class="flex flex-col items-center bg-orange-50 p-2 pixel-box border-orange-200">
+           <div class="text-[10px] font-bold text-orange-900 mb-1">PARTICIPOU PG</div>
+           <div class="text-xl font-bold text-orange-700">${totalPG}</div>
+        </div>
       </div>
     </div>
   `;
@@ -1704,6 +1723,8 @@ function renderPointsTableForSaturday(iso) {
     let existing = '';
     let studied7 = false;
     let present = false; // Default to FALSE (User request: desmarcada como padrão)
+    let missionary = false;
+    let pg = false;
     if (game && game.saturdays) {
       const cands = isoKeyCandidates(iso);
       for (const c of cands) {
@@ -1712,6 +1733,8 @@ function renderPointsTableForSaturday(iso) {
           if (typeof val === 'object' && val !== null) {
             existing = val.points ?? '';
             studied7 = !!val.studied7;
+            missionary = !!val.missionary;
+            pg = !!val.pg;
 
             // Logic:
             // 1. If explicit 'present' flag exists -> use it
@@ -1743,7 +1766,17 @@ function renderPointsTableForSaturday(iso) {
             </div>
             <div class="flex items-center gap-1 cursor-pointer">
               <input type="checkbox" id="std7-${key}" class="pixel-checkbox" ${studied7 ? 'checked' : ''} />
-              <label for="std7-${key}" class="text-xs font-semibold cursor-pointer">Estudou 7 vezes</label>
+              <label for="std7-${key}" class="text-xs font-semibold cursor-pointer">Estudou 7</label>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 mt-2">
+            <div class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="miss-${key}" class="pixel-checkbox" ${missionary ? 'checked' : ''} />
+              <label for="miss-${key}" class="text-xs font-semibold cursor-pointer text-yellow-800">Missão</label>
+            </div>
+            <div class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="pg-${key}" class="pixel-checkbox" ${pg ? 'checked' : ''} />
+              <label for="pg-${key}" class="text-xs font-semibold cursor-pointer text-orange-800">PG</label>
             </div>
           </div>
         </div>
@@ -1771,9 +1804,13 @@ function renderPointsTableForSaturday(iso) {
         const valEl = document.getElementById('pts-' + pid);
         const std7El = document.getElementById('std7-' + pid);
         const presEl = document.getElementById('pres-' + pid);
+        const missEl = document.getElementById('miss-' + pid);
+        const pgEl = document.getElementById('pg-' + pid);
         const val = Number(valEl?.value || 0);
         const studied7 = !!std7El?.checked;
         const present = !!presEl?.checked;
+        const missionary = !!missEl?.checked;
+        const pg = !!pgEl?.checked;
         const gidLocal = state.activeGameId;
         if (!gidLocal || !isoLocal) return alert('Nenhum trimestre/sábado selecionado');
         try {
@@ -1782,7 +1819,9 @@ function renderPointsTableForSaturday(iso) {
           await set(ref(db, `/games/${gidLocal}/saturdays/${writeKey}/${pid}`), {
             points: Number(val),
             studied7: studied7,
-            present: present
+            present: present,
+            missionary: missionary,
+            pg: pg
           });
           // cleanup old keys for same iso
           await cleanupOldIsoKeys(gidLocal, isoLocal, pid, writeKey);
