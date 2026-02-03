@@ -1687,7 +1687,7 @@ function renderPointsTableForSaturday(iso) {
     // try to find existing value using candidates
     let existing = '';
     let studied7 = false;
-    let present = true; // Default to present
+    let present = false; // Default to FALSE (User request: desmarcada como padrão)
     if (game && game.saturdays) {
       const cands = isoKeyCandidates(iso);
       for (const c of cands) {
@@ -1696,15 +1696,14 @@ function renderPointsTableForSaturday(iso) {
           if (typeof val === 'object' && val !== null) {
             existing = val.points ?? '';
             studied7 = !!val.studied7;
-            // If explicit present flag exists use it, otherwise fallback to existing points check (if points > 0 then present, else default true for new non-zero entry convenience, or false if 0? Actually let's just stick to default true if undefined, but if we are loading existing data with 0 points and no presence flag, it might be ambiguous. However, usually 0 points means no record. If record exists with 0 points, they might have been present but scored 0. Let's stick to: if present flag undefined -> (points > 0). If points=0 and undef, assume absent? 
-            // WAIT: We want the checkbox to reflect the saved state.
-            // If data exists:
-            //   if val.present defined -> use it
-            //   else -> (points > 0)
+
+            // Logic:
+            // 1. If explicit 'present' flag exists -> use it
+            // 2. If NO explicit flag -> assume present IF points > 0 (Backward Compatibility)
+            // 3. Otherwise -> false
             if (val.present !== undefined) {
               present = val.present;
             } else {
-              // Backward compatibility: if no flag, assume present if points > 0
               present = (Number(val.points || 0) > 0);
             }
           } else {
