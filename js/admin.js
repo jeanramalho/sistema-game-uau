@@ -530,6 +530,7 @@ function renderSaturdaySummary(isoDate = null) {
 
   let totalPresent = 0, totalS7 = 0;
   let membersPresent = 0, membersS7 = 0;
+  let absentS7 = 0; // New metric: Absent but Studied 7
 
   for (const [pid, val] of Object.entries(saturdayData)) {
     const player = players[pid];
@@ -550,6 +551,11 @@ function renderSaturdaySummary(isoDate = null) {
         membersPresent++;
         if (s7) membersS7++;
       }
+    } else {
+      // Not present, but verify if studied 7 (and had valid entry)
+      if (s7) {
+        absentS7++;
+      }
     }
   }
 
@@ -568,17 +574,24 @@ function renderSaturdaySummary(isoDate = null) {
       </div>
       <div class="flex justify-between items-center bg-blue-50 p-3 pixel-box border-blue-200">
         <div>
-          <div class="text-xs font-semibold">TOTAL ESTUDO 7</div>
-          <div class="text-[10px] text-blue-600">${totalS7} de ${totalPresent} jogadores</div>
+          <div class="text-xs font-semibold">TOTAL ESTUDA 7 (PRESENTES)</div>
+          <div class="text-[10px] text-blue-600">${totalS7} de ${totalPresent} presentes</div>
         </div>
         <span class="font-bold text-lg text-blue-700">${totalS7Perc}%</span>
       </div>
       <div class="flex justify-between items-center bg-green-50 p-3 pixel-box border-green-200">
         <div>
-          <div class="text-xs font-semibold">ESTUDO 7 (MEMBROS)</div>
+          <div class="text-xs font-semibold">ESTUDA 7 (MEMBROS)</div>
           <div class="text-[10px] text-green-600">${membersS7} de ${membersPresent} membros</div>
         </div>
         <span class="font-bold text-lg text-green-700">${membersS7Perc}%</span>
+      </div>
+      <div class="flex justify-between items-center bg-purple-50 p-3 pixel-box border-purple-200">
+        <div>
+          <div class="text-xs font-semibold text-purple-900">AUSENTES C/ 7</div>
+          <div class="text-[10px] text-purple-600">Pontuaram à distância</div>
+        </div>
+        <span class="font-bold text-lg text-purple-700">${absentS7}</span>
       </div>
     </div>
   `;
@@ -618,6 +631,9 @@ async function downloadMembersReport(isoDate) {
 
     if (isPresent) {
       members.push({ name: player.name, status: s7 ? 'P7' : 'P' });
+    } else if (s7) {
+      // Also include absent members who studied 7
+      members.push({ name: player.name, status: '7' });
     }
   }
 

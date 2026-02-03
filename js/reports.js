@@ -345,6 +345,8 @@ function generateQuarterlyAttendanceReport(games, players, selectedYear, selecte
 
         if (isPresent) {
           marker = s7 ? 'P7' : 'P';
+        } else if (s7) {
+          marker = '7';
         }
       }
       row[dateLabel] = marker;
