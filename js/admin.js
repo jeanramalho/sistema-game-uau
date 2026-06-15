@@ -80,7 +80,7 @@ function updateAuthBtn(user) {
    Implementação do painel
    =========================== */
 
-let state = { players: {}, games: {}, activeGameId: null, selectedSummaryDate: null };
+let state = { players: {}, games: {}, activeGameId: null, selectedSummaryDate: null, publicRankingBlocked: false };
 let unsubPlayers = null, unsubGames = null, unsubMeta = null;
 
 function initAdminPanel() {
@@ -199,7 +199,17 @@ function wireAdmin() {
 
   unsubPlayers = onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('players read err', err); state.players = {}; renderAllAdmin(); });
   unsubGames = onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAllAdmin(); }, err => { console.warn('games read err', err); state.games = {}; renderAllAdmin(); });
-  unsubMeta = onValue(ref(db, '/meta/activeGameId'), snap => { state.activeGameId = snap.val(); renderAllAdmin(); }, err => { console.warn('meta read err', err); state.activeGameId = null; renderAllAdmin(); });
+  unsubMeta = onValue(ref(db, '/meta'), snap => {
+    const meta = snap.val() || {};
+    state.activeGameId = meta.activeGameId || null;
+    state.publicRankingBlocked = !!meta.publicRankingBlocked;
+    renderAllAdmin();
+  }, err => {
+    console.warn('meta read err', err);
+    state.activeGameId = null;
+    state.publicRankingBlocked = false;
+    renderAllAdmin();
+  });
 
   const authBtn = document.getElementById('authBtn');
   if (authBtn) {
@@ -734,6 +744,9 @@ function openModal(type, payload) {
 }
 
 function closeModal() {
+  if (currentModal && typeof currentModal.cleanup === 'function') {
+    try { currentModal.cleanup(); } catch (e) { console.error('cleanup err', e); }
+  }
   const o = document.getElementById('modal-overlay');
   if (o) o.remove();
   currentModal = null;
@@ -1052,6 +1065,17 @@ function settingsHtml() {
         </div>
       </div>
       
+      </div>
+      
+      <!-- Bloqueio do Ranking Público -->
+      <div class="pixel-box p-4">
+        <h3>VISUALIZAÇÃO DO RANKING PÚBLICO</h3>
+        <p class="text-sm mt-1">Gerencie se o ranking público e o Top 5 ficarão visíveis para todos.</p>
+        
+        <div id="ranking-lock-info" class="mt-4 p-3 bg-gray-50 border-2 border-black rounded flex flex-col gap-2">
+          <div id="ranking-lock-status" class="text-sm italic font-bold">Verificando...</div>
+          <button id="btn-toggle-ranking-lock" class="pixel-btn w-full">BLOQUEAR RANKING</button>
+        </div>
       </div>
       
       <!-- Regulamento -->
@@ -1383,6 +1407,53 @@ function attachModalHandlers(type, payload) {
 
     if (type === 'settings') {
       document.getElementById('close-settings').addEventListener('click', closeModal);
+
+      // --- Início Logica Bloqueio Ranking ---
+      const lockStatus = document.getElementById('ranking-lock-status');
+      const btnToggleLock = document.getElementById('btn-toggle-ranking-lock');
+
+      const unsubLock = onValue(ref(db, '/meta/publicRankingBlocked'), (snap) => {
+        const isBlocked = !!snap.val();
+        if (lockStatus) {
+          lockStatus.innerHTML = `Estado atual: <strong>${isBlocked ? '🔒 BLOQUEADO' : '🔓 DESBLOQUEADO (Visível)'}</strong>`;
+        }
+        if (btnToggleLock) {
+          btnToggleLock.textContent = isBlocked ? 'DESBLOQUEAR RANKING' : 'BLOQUEAR RANKING';
+          if (isBlocked) {
+            btnToggleLock.style.backgroundColor = '#f8d7da';
+            btnToggleLock.style.borderColor = '#dc3545';
+          } else {
+            btnToggleLock.style.backgroundColor = '#bfeaf0';
+            btnToggleLock.style.borderColor = '#000';
+          }
+        }
+      });
+
+      if (currentModal) {
+        currentModal.cleanup = () => {
+          unsubLock();
+        };
+      }
+
+      if (btnToggleLock) {
+        btnToggleLock.addEventListener('click', async () => {
+          btnToggleLock.disabled = true;
+          const currentBlocked = state.publicRankingBlocked;
+          try {
+            await update(ref(db, '/meta'), {
+              publicRankingBlocked: !currentBlocked,
+              updatedAt: new Date().toISOString()
+            });
+            alert(`Ranking público ${!currentBlocked ? 'bloqueado' : 'desbloqueado'} com sucesso!`);
+          } catch (err) {
+            console.error('Erro ao alternar bloqueio:', err);
+            alert('Erro ao atualizar bloqueio: ' + (err.message || err));
+          } finally {
+            btnToggleLock.disabled = false;
+          }
+        });
+      }
+      // --- Fim Logica Bloqueio Ranking ---
 
       // --- Início Logica Regulamento ---
       const regStatus = document.getElementById('regulation-status');
