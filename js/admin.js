@@ -90,9 +90,10 @@ function initAdminPanel() {
       <div class="lg:col-span-2 space-y-6">
         <div class="pixel-box p-6">
           <h2>DASHBOARD ADMINISTRATIVO</h2>
-          <div class="mt-3">
-            <span id="activeTag" class="tag">TRIMESTRE INATIVO</span>
-            <span id="playersCount" class="tag">0 JOGADORES</span>
+          <div class="mt-3 flex flex-wrap gap-2 items-center">
+            <span id="activeTag" class="tag" style="margin-right:0">TRIMESTRE INATIVO</span>
+            <span id="playersCount" class="tag" style="margin-right:0">0 JOGADORES</span>
+            <button id="btn-toggle-ranking-lock" class="pixel-btn" style="font-size:10px; padding:6px 12px; border:4px solid #000; box-shadow:4px 4px 0 #000; margin-left:8px;"></button>
           </div>
         </div>
 
@@ -170,6 +171,26 @@ function wireAdmin() {
   if (cardLaunchPoints) cardLaunchPoints.addEventListener('click', () => openModal('launchPoints'));
   if (cardAnnualRanking) cardAnnualRanking.addEventListener('click', () => openModal('annualRanking'));
   if (cardSettings) cardSettings.addEventListener('click', () => openModal('settings'));
+
+  const btnToggleLock = document.getElementById('btn-toggle-ranking-lock');
+  if (btnToggleLock) {
+    btnToggleLock.addEventListener('click', async () => {
+      btnToggleLock.disabled = true;
+      const currentBlocked = !!state.publicRankingBlocked;
+      try {
+        await update(ref(db, '/meta'), {
+          publicRankingBlocked: !currentBlocked,
+          updatedAt: new Date().toISOString()
+        });
+        alert(`Ranking público ${!currentBlocked ? 'bloqueado' : 'desbloqueado'} com sucesso!`);
+      } catch (err) {
+        console.error('Erro ao alternar bloqueio:', err);
+        alert('Erro ao atualizar bloqueio: ' + (err.message || err));
+      } finally {
+        btnToggleLock.disabled = false;
+      }
+    });
+  }
 
   const btnChooseSat = document.getElementById('btn-choose-saturday');
   if (btnChooseSat) btnChooseSat.addEventListener('click', () => openModal('saturdaySelector'));
@@ -436,6 +457,15 @@ function renderAllAdmin() {
   } else {
     if (activeTag) activeTag.textContent = 'TRIMESTRE INATIVO';
     if (createEndTitle) createEndTitle.textContent = 'NOVO GAME UAU';
+  }
+
+  const btnToggleLock = document.getElementById('btn-toggle-ranking-lock');
+  if (btnToggleLock) {
+    const isBlocked = !!state.publicRankingBlocked;
+    btnToggleLock.textContent = isBlocked ? 'DESBLOQUEAR RANKING 🔒' : 'BLOQUEAR RANKING 🔓';
+    btnToggleLock.style.backgroundColor = isBlocked ? '#f8d7da' : '#d4edda';
+    btnToggleLock.style.borderColor = '#000';
+    btnToggleLock.style.color = isBlocked ? '#721c24' : '#155724';
   }
 
   const nextTag = document.getElementById('nextSaturdayTag');
@@ -744,9 +774,6 @@ function openModal(type, payload) {
 }
 
 function closeModal() {
-  if (currentModal && typeof currentModal.cleanup === 'function') {
-    try { currentModal.cleanup(); } catch (e) { console.error('cleanup err', e); }
-  }
   const o = document.getElementById('modal-overlay');
   if (o) o.remove();
   currentModal = null;
@@ -1065,17 +1092,6 @@ function settingsHtml() {
         </div>
       </div>
       
-      </div>
-      
-      <!-- Bloqueio do Ranking Público -->
-      <div class="pixel-box p-4">
-        <h3>VISUALIZAÇÃO DO RANKING PÚBLICO</h3>
-        <p class="text-sm mt-1">Gerencie se o ranking público e o Top 5 ficarão visíveis para todos.</p>
-        
-        <div id="ranking-lock-info" class="mt-4 p-3 bg-gray-50 border-2 border-black rounded flex flex-col gap-2">
-          <div id="ranking-lock-status" class="text-sm italic font-bold">Verificando...</div>
-          <button id="btn-toggle-ranking-lock" class="pixel-btn w-full">BLOQUEAR RANKING</button>
-        </div>
       </div>
       
       <!-- Regulamento -->
@@ -1407,53 +1423,6 @@ function attachModalHandlers(type, payload) {
 
     if (type === 'settings') {
       document.getElementById('close-settings').addEventListener('click', closeModal);
-
-      // --- Início Logica Bloqueio Ranking ---
-      const lockStatus = document.getElementById('ranking-lock-status');
-      const btnToggleLock = document.getElementById('btn-toggle-ranking-lock');
-
-      const unsubLock = onValue(ref(db, '/meta/publicRankingBlocked'), (snap) => {
-        const isBlocked = !!snap.val();
-        if (lockStatus) {
-          lockStatus.innerHTML = `Estado atual: <strong>${isBlocked ? '🔒 BLOQUEADO' : '🔓 DESBLOQUEADO (Visível)'}</strong>`;
-        }
-        if (btnToggleLock) {
-          btnToggleLock.textContent = isBlocked ? 'DESBLOQUEAR RANKING' : 'BLOQUEAR RANKING';
-          if (isBlocked) {
-            btnToggleLock.style.backgroundColor = '#f8d7da';
-            btnToggleLock.style.borderColor = '#dc3545';
-          } else {
-            btnToggleLock.style.backgroundColor = '#bfeaf0';
-            btnToggleLock.style.borderColor = '#000';
-          }
-        }
-      });
-
-      if (currentModal) {
-        currentModal.cleanup = () => {
-          unsubLock();
-        };
-      }
-
-      if (btnToggleLock) {
-        btnToggleLock.addEventListener('click', async () => {
-          btnToggleLock.disabled = true;
-          const currentBlocked = state.publicRankingBlocked;
-          try {
-            await update(ref(db, '/meta'), {
-              publicRankingBlocked: !currentBlocked,
-              updatedAt: new Date().toISOString()
-            });
-            alert(`Ranking público ${!currentBlocked ? 'bloqueado' : 'desbloqueado'} com sucesso!`);
-          } catch (err) {
-            console.error('Erro ao alternar bloqueio:', err);
-            alert('Erro ao atualizar bloqueio: ' + (err.message || err));
-          } finally {
-            btnToggleLock.disabled = false;
-          }
-        });
-      }
-      // --- Fim Logica Bloqueio Ranking ---
 
       // --- Início Logica Regulamento ---
       const regStatus = document.getElementById('regulation-status');
