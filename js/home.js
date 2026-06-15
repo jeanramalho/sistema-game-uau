@@ -4,12 +4,22 @@ import { ref, onValue } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase
 import { formatBR } from './common.js';
 import { saveElementAsImage } from './print.js';
 
-let state = { players: {}, games: {}, activeGameId: null };
+let state = { players: {}, games: {}, activeGameId: null, publicRankingBlocked: false };
 
 // listeners
 onValue(ref(db, '/players'), snap => { state.players = snap.val() || {}; renderAll(); }, err => { console.warn('players read err', err); });
 onValue(ref(db, '/games'), snap => { state.games = snap.val() || {}; renderAll(); }, err => { console.warn('games read err', err); });
-onValue(ref(db, '/meta/activeGameId'), snap => { state.activeGameId = snap.val(); renderAll(); }, err => { console.warn('meta err', err); });
+onValue(ref(db, '/meta'), snap => {
+  const meta = snap.val() || {};
+  state.activeGameId = meta.activeGameId || null;
+  state.publicRankingBlocked = !!meta.publicRankingBlocked;
+  renderAll();
+}, err => {
+  console.warn('meta err', err);
+  state.activeGameId = null;
+  state.publicRankingBlocked = false;
+  renderAll();
+});
 
 // authBtn update
 onAuthStateChanged(auth, user => {
@@ -142,6 +152,22 @@ function renderPublicRanking() {
   const container = document.getElementById('publicRanking');
   if (!container) return;
   container.innerHTML = '';
+  const btnSaveImage = document.getElementById('btnSaveImage');
+  if (state.publicRankingBlocked) {
+    container.innerHTML = `
+      <div class="pixel-box p-6 text-center bg-yellow-50 border-4 border-yellow-500 shadow-[6px_6px_0_0_#000]">
+        <div class="text-4xl mb-4">🤫</div>
+        <h3 class="text-sm font-bold uppercase tracking-wider mb-2">Ranking Bloqueado!</h3>
+        <p class="text-xs leading-relaxed text-gray-700">
+          O ranking foi temporariamente bloqueado para visualização para gerar suspense. 
+          Acompanhe a revelação e a premiação na classe Jovem UAU!
+        </p>
+      </div>
+    `;
+    if (btnSaveImage) btnSaveImage.classList.add('hidden');
+    return;
+  }
+  if (btnSaveImage) btnSaveImage.classList.remove('hidden');
   const active = getActiveGame();
   if (!active) { container.innerHTML = '<div class="pixel-box p-4">Nenhum game UAU em andamento no momento.</div>'; return; }
   const totals = computeGameTotalsObj(active);
@@ -171,6 +197,9 @@ function renderHomeTop5() {
   const container = document.getElementById('homeTop5');
   if (!container) return;
   container.innerHTML = '';
+  if (state.publicRankingBlocked) {
+    return;
+  }
   const active = getActiveGame();
   if (!active) { container.innerHTML = '<div class="pixel-box p-4">Nenhum game UAU em andamento no momento.</div>'; return; }
   const totals = computeGameTotalsObj(active);
